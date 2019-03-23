@@ -1,6 +1,6 @@
-import React, { Component } from "react";
+import React, { Component } from 'react';
 
-import "./style/toolBar.css";
+import './style/toolBar.css';
 
 class ToolBar extends Component {
   state = {};

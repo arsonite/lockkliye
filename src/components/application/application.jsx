@@ -1,12 +1,12 @@
-import React, { Component } from "react";
+import React, { Component } from 'react';
 
-import Navigator from "./navigator";
-import List from "./list";
-import Display from "../display/display";
+import Navigator from './navigator';
+import List from './list';
+import Display from '../display/display';
 
-import test_entries from "../../test_entries.json";
+import test_entries from '../../test_entries.json';
 
-import "./style/application.css";
+import './style/application.css';
 
 class Application extends Component {
   state = {

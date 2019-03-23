@@ -1,50 +1,41 @@
-import React, { Component } from "react";
+import React, { Component } from 'react';
 
-import ToolBar from "./toolBar";
+import ToolBar from './toolBar';
 
-import "./style/display.css";
+import './style/display.css';
+
+const FLAG_NL = '';
+const FLAG_S = '';
 
 class Display extends Component {
-  state = {
-    dirtyFlag: false
-  };
-
-  filter = text => {
-    console.log(text);
-    text = text.replace(/<br>/g, "");
-    text = text.replace(/<div>/g, "§");
-    text = text.replace(/<\/div>/g, "");
-    text = text.replace(/&nbsp;/g, " ");
-    console.log(text);
-  };
-
   word = string => {
-    let p = document.createElement("p");
-    p.id = string;
-    p.className = "word";
+    let p = document.createElement('p');
+    p.className = 'word';
     p.innerHTML = string;
     return p;
   };
 
-  line = string => {};
-
-  paragraph = string => {};
-
   package = text => {
+    text = text.replace(/<p.+?>/g, '');
+    text = text.replace(/<\/p>/g, '');
+    text = text.replace(/<br>/g, '');
+    text = text.replace(/<div>/g, '§');
+    text = text.replace(/<\/div>/g, '');
+    text = text.replace(/&nbsp;/g, ' ');
+
+    text = text.split(/[\s§]/g);
     console.log(text);
-    text = text.split(/[\s]/g);
-    console.log(text);
-    let packagedText = document.createElement("div");
+    let packagedText = document.createElement('div');
 
     for (let string of text) {
-      console.log(string);
+      if (string === '§') {
+        packagedText.innerHTML += '\n';
+        continue;
+      }
+
       packagedText.appendChild(this.word(string));
     }
-
-    console.log(packagedText);
-    packagedText.innerHTML =
-      "<formatted>" + packagedText.innerHTML + "</formatted>";
-    return packagedText;
+    return packagedText.innerHTML;
   };
 
   render() {
@@ -53,10 +44,9 @@ class Display extends Component {
         <ToolBar />
         <main
           contentEditable='true'
-          onInput={e => {
-            this.filter(e.target.innerHTML);
+          onBlur={e => {
+            e.target.innerHTML = this.package(e.target.innerHTML);
           }}
-          onBlur={e => {}}
         />
       </div>
     );

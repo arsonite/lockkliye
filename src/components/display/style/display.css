@@ -2,7 +2,7 @@
   display: block;
   height: 100%;
   width: 100% !important;
-  background: url("../../../res/img/pattern_b3.png");
+  background: url('../../../res/img/pattern_b3.png');
   background-size: 5%;
 }
 #display main {
@@ -19,7 +19,7 @@
   margin-right: 4px;
   width: fit-content;
 }
-#display main .word.selector:hover {
+#display main .word:hover {
   cursor: pointer;
   color: #ff8800;
   background-color: #555;
