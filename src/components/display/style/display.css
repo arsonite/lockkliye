@@ -12,19 +12,31 @@
   height: 100%;
   width: 100%;
 }
-#display main .word {
+#display main #content {
+  height: 100%;
+  width: 100%;
+}
+#display main #content .word {
   display: inline-block;
   padding: 0;
   margin: 0;
-  margin-right: 4px;
   width: fit-content;
 }
-#display main .word:hover {
+#display main #content .word.bold {
+  font-weight: bold;
+}
+#display main #content .word.italic {
+  font-style: italic;
+}
+#display main #content .word.underline {
+  text-decoration: underline;
+}
+#display main #content .word:hover {
   cursor: pointer;
   color: #ff8800;
   background-color: #555;
 }
-#display main .word.selector:hover {
+#display main #content .word.selector:hover {
   cursor: pointer;
   color: #ff8800;
   background-color: #555;

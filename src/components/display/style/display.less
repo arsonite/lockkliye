@@ -18,27 +18,43 @@
     height: 100%;
     width: 100%;
 
-    .word {
-      display: inline-block;
+    #content {
+      height: 100%;
+      width: 100%;
 
-      padding: 0;
-      margin: 0;
-      margin-right: 4px;
-      width: fit-content;
-    }
+      .word {
+        display: inline-block;
 
-    .word:hover {
-      cursor: pointer;
+        padding: 0;
+        margin: 0;
+        width: fit-content;
+      }
 
-      color: #ff8800;
-      background-color: #555;
-    }
+      .word.bold {
+        font-weight: bold;
+      }
 
-    .word.selector:hover {
-      cursor: pointer;
+      .word.italic {
+        font-style: italic;
+      }
 
-      color: #ff8800;
-      background-color: #555;
+      .word.underline {
+        text-decoration: underline;
+      }
+
+      .word:hover {
+        cursor: pointer;
+
+        color: #ff8800;
+        background-color: #555;
+      }
+
+      .word.selector:hover {
+        cursor: pointer;
+
+        color: #ff8800;
+        background-color: #555;
+      }
     }
   }
 }
