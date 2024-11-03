@@ -1,0 +1,173 @@
+# Copyright (C) 2024-2025 Burak Günaydin
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+# General
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Logs and backups
+*.log
+*.bak
+*.backup
+*.sql
+
+# Environment-specific files
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+
+# Node.js / npm
+*node_modules/
+npm-debug.log
+yarn-error.log
+.pnp
+.pnp.js
+.cache
+.npm
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyo
+*.pyc
+
+# Java
+*.class
+
+# Compiled binaries
+target/
+bin/
+build/
+dist/
+*.jar
+*.war
+*.ear
+
+# macOS specific files
+.DS_Store
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.iws
+
+# Eclipse IDE
+.classpath
+.project
+.settings/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# IntelliJ IDEA
+*.ipr
+*.iws
+*.iml
+.idea/
+
+# macOS / Xcode
+*.xcuserdata/
+*.xcworkspace/
+*.pbxproj
+
+# Android
+.gradle/
+/local.properties
+/.idea/workspace.xml
+/.idea/libraries
+
+# Ruby
+.bundle/
+vendor/
+Gemfile.lock
+
+# Compiled files
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Fonts
+*.eot
+*.otf
+*.ttf
+*.woff
+*.woff2
+
+# Miscellaneous
+*.tmp
+*.tmp.*
+*.log*
+*.out
+*.lock
+*.sql
+*.log
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+*node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Custom project-specific ignores
+# Add specific files or patterns here based on your project needs
+*~temp*
+*-lock*
+*.lock*
+*/bin/
+*/dist/
+*venv/
