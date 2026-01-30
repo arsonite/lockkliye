@@ -1,0 +1,90 @@
+/**
+ * @license
+ * Copyright (C) 2024-2026 Burak Günaydin
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+
+// Variables and base styles
+@import 'variables';
+
+// Main App Layout
+.notes-app {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+
+    &--fullscreen {
+        .notes-app__main {
+            margin-left: 0;
+        }
+    }
+
+    &__main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: transparent;
+        transition: margin-left var(--transition);
+        overflow: hidden;
+    }
+
+    &__empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: var(--text-secondary);
+        text-align: center;
+        gap: 16px;
+
+        &-icon {
+            font-size: 64px;
+            opacity: 0.5;
+        }
+
+        h2 {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        p {
+            font-size: 14px;
+        }
+
+        button {
+            margin-top: 16px;
+            padding: 12px 24px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background var(--transition);
+
+            &:hover {
+                background: var(--accent-hover);
+            }
+        }
+    }
+}
+
+// Component styles
+@import 'sidebar';
+@import 'toolbar';
+@import 'editor';
+@import 'textblock';
+@import 'modal';
+@import 'toast';
+@import 'lightmode';

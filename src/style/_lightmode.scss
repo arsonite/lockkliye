@@ -1,0 +1,170 @@
+/**
+ * @license
+ * Copyright (C) 2024-2026 Burak Günaydin
+ */
+
+// Light Mode Theme
+.notes-app.light-mode {
+    --bg-primary: #f5f5f7;
+    --bg-gradient: linear-gradient(135deg, #f5f5f7 0%, #ffffff 25%, #fafafa 50%, #ffffff 75%, #f5f5f7 100%);
+    --bg-secondary: rgba(255, 255, 255, 0.95);
+    --bg-tertiary: #e8e8ed;
+    --bg-hover: #d1d1d6;
+    --bg-glass: rgba(255, 255, 255, 0.8);
+    --text-primary: #1d1d1f;
+    --text-secondary: #6e6e73;
+    --text-tertiary: #8e8e93;
+    --accent: #ff9500;
+    --accent-hover: #cc7700;
+    --accent-glow: rgba(255, 149, 0, 0.2);
+    --danger: #ff3b30;
+    --danger-hover: #cc2f26;
+    --border: rgba(0, 0, 0, 0.08);
+    --border-strong: rgba(0, 0, 0, 0.15);
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    --glass-border: rgba(0, 0, 0, 0.1);
+    --glass-highlight: rgba(255, 255, 255, 0.5);
+
+    background: var(--bg-gradient);
+
+    .sidebar {
+        background: var(--bg-secondary);
+        border-right-color: var(--border);
+    }
+
+    .floating-toolbar__inner {
+        background: var(--bg-glass);
+        border-color: var(--glass-border);
+    }
+
+    .floating-toolbar {
+        &__inner {
+            box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+        }
+    }
+
+    .text-block {
+        &--editing {
+            background: var(--bg-tertiary);
+        }
+
+        &__input {
+            color: var(--text-primary);
+        }
+    }
+
+    .word {
+        &:not([style*='color']) {
+            color: var(--text-primary);
+        }
+    }
+
+    .word--mode-active:hover {
+        background: rgba(255, 149, 0, 0.15);
+        box-shadow: 0 0 0 2px rgba(255, 149, 0, 0.2);
+    }
+
+    .mode-cursor {
+        background: var(--bg-secondary);
+        box-shadow: var(--shadow);
+    }
+
+    .note-editor__title,
+    .note-editor__date {
+        color: var(--text-primary);
+    }
+
+    .sidebar__title {
+        color: var(--text-primary);
+    }
+
+    .note-editor__history-btn,
+    .note-editor__undo-btn,
+    .note-editor__redo-btn {
+        background: var(--bg-glass);
+        border-color: var(--glass-border);
+    }
+
+    .note-editor__history-header {
+        color: var(--text-primary);
+    }
+
+    .note-editor__history-dropdown {
+        background: var(--bg-glass);
+    }
+
+    .floating-toolbar__size-menu {
+        background: var(--bg-glass);
+        box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+    }
+
+    .floating-toolbar__size-option {
+        color: var(--text-primary);
+
+        &:hover {
+            background: var(--bg-hover);
+        }
+    }
+
+    .floating-toolbar__size-shortcut {
+        color: var(--text-tertiary);
+    }
+
+    .toast {
+        background: rgba(255, 255, 255, 0.9);
+        box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+    }
+
+    .toast__message {
+        color: var(--text-primary);
+    }
+
+    .link-modal {
+        background: var(--bg-glass);
+        box-shadow: rgba(149, 157, 165, 0.2) 0px 8px 24px;
+
+        &__word {
+            color: var(--text-secondary);
+        }
+
+        &__input {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+
+            &::placeholder {
+                color: var(--text-secondary);
+            }
+        }
+
+        &__btn--secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+    }
+
+    // Block title needs dark text on light background in light mode
+    .text-block__title {
+        color: #1a1a1a;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        font-weight: 700;
+        text-shadow: none;
+    }
+
+    // Ensure text blocks with colored backgrounds have readable titles
+    .text-block {
+        // For blocks with any background color, use dark text
+        &[style*='background'] .text-block__title,
+        &[style*='Background'] .text-block__title {
+            color: #1a1a1a;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(0, 0, 0, 0.25);
+        }
+    }
+
+    // Light mode drag ghost
+    .note-editor__drag-ghost {
+        background: rgba(255, 255, 255, 0.85);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 0 0 2px var(--accent);
+    }
+}

@@ -1,0 +1,45 @@
+/**
+ * @license
+ * Copyright (C) 2024-2026 Burak Günaydin
+ */
+
+// Notes Dark Mode Theme
+:root {
+    --bg-primary: #0a0a0b;
+    --bg-gradient: linear-gradient(135deg, #0a0a0b 0%, #141416 25%, #1a1a1d 50%, #141416 75%, #0a0a0b 100%);
+    --bg-secondary: rgba(20, 20, 22, 0.85);
+    --bg-tertiary: #1e1e22;
+    --bg-hover: #2a2a30;
+    --bg-glass: rgba(30, 30, 35, 0.6);
+    --text-primary: #ffffff;
+    --text-secondary: #98989d;
+    --text-tertiary: #636366;
+    --accent: #ff9500;
+    --accent-hover: #ffaa33;
+    --accent-glow: rgba(255, 149, 0, 0.3);
+    --danger: #ff453a;
+    --danger-hover: #ff6961;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.15);
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-highlight: rgba(255, 255, 255, 0.05);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --transition: 200ms ease;
+}
+
+html,
+body,
+#root {
+    height: 100%;
+    width: 100%;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-gradient);
+    color: var(--text-primary);
+    overflow: hidden;
+}

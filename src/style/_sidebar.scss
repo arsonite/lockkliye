@@ -1,0 +1,478 @@
+/**
+ * @license
+ * Copyright (C) 2024-2026 Burak Günaydin
+ */
+
+// Sidebar
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+
+    &--expanded {
+        width: 300px;
+    }
+
+    &--collapsed {
+        width: 50px;
+    }
+
+    &__header {
+        display: flex;
+        align-items: center;
+        padding: 16px;
+        gap: 12px;
+        border-bottom: 1px solid var(--border);
+        min-height: 60px;
+        flex-shrink: 0;
+    }
+
+    &__toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-radius: var(--radius-sm);
+        transition: all var(--transition);
+
+        &:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        &-icon {
+            font-size: 12px;
+        }
+    }
+
+    &__title {
+        font-size: 18px;
+        font-weight: 600;
+        flex: 1;
+    }
+
+    &__new-note {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        background: var(--accent);
+        border: none;
+        color: white;
+        cursor: pointer;
+        border-radius: var(--radius-sm);
+        font-size: 18px;
+        font-weight: 300;
+        transition: background var(--transition);
+
+        &:hover {
+            background: var(--accent-hover);
+        }
+    }
+
+    &__notes {
+        display: flex;
+        flex-direction: column;
+        padding: 12px;
+        flex: 1;
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    &__notes-list {
+        flex: 1;
+        overflow-y: auto;
+
+        &::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background: var(--bg-hover);
+            border-radius: 3px;
+        }
+    }
+
+    &__section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+    }
+
+    &__count {
+        font-size: 12px;
+        color: var(--text-tertiary);
+        background: var(--bg-tertiary);
+        padding: 2px 8px;
+        border-radius: 10px;
+    }
+
+    &__note {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        padding: 12px;
+        background: transparent;
+        border: none;
+        color: var(--text-primary);
+        cursor: pointer;
+        border-radius: var(--radius-md);
+        text-align: left;
+        transition: background var(--transition);
+        margin-bottom: 4px;
+
+        &:hover {
+            background: var(--bg-hover);
+        }
+
+        &--active {
+            background: var(--bg-tertiary);
+        }
+
+        &-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        &-title {
+            font-weight: 500;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        &-delete {
+            opacity: 0;
+            background: transparent;
+            border: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            transition: opacity var(--transition);
+
+            &:hover {
+                color: #ff6b6b;
+            }
+        }
+
+        &:hover &-delete {
+            opacity: 1;
+        }
+
+        &-meta {
+            display: flex;
+            gap: 8px;
+            margin-top: 4px;
+            font-size: 12px;
+            color: var(--text-tertiary);
+        }
+
+        &-date {
+            flex-shrink: 0;
+        }
+
+        &-preview {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    &__empty {
+        padding: 24px;
+        text-align: center;
+        color: var(--text-tertiary);
+        font-size: 13px;
+    }
+
+    &__footer {
+        padding: 12px;
+        border-top: 1px solid var(--border);
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        max-height: 60vh;
+        overflow: hidden;
+    }
+
+    &__settings-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 10px 12px;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-radius: var(--radius-md);
+        font-size: 14px;
+        transition: all var(--transition);
+
+        &:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+    }
+
+    &__settings {
+        margin-top: 8px;
+        padding: 12px;
+        background: var(--bg-tertiary);
+        border-radius: var(--radius-md);
+        animation: settingsSlideIn 250ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        transform-origin: top;
+        overflow-y: auto;
+        max-height: 50vh;
+
+        &::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background: var(--bg-hover);
+            border-radius: 3px;
+        }
+
+        &--closing {
+            animation: settingsSlideOut 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+    }
+
+    &__settings-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    &__settings-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-tertiary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    &__clear-data-btn {
+        padding: 10px 16px;
+        background: transparent;
+        border: 1px solid var(--danger);
+        border-radius: var(--radius-sm);
+        color: var(--danger);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all var(--transition);
+
+        &:hover {
+            background: var(--danger);
+            color: white;
+        }
+    }
+
+    &__export-buttons,
+    &__import-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    &__export-btn,
+    &__import-btn,
+    &__toggle-light-mode-btn {
+        padding: 10px 16px;
+        background: var(--bg-hover);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+        font-size: 13px;
+        cursor: pointer;
+        transition: all var(--transition);
+        text-align: left;
+
+        &:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-color: var(--border-strong);
+        }
+    }
+
+    &__toggle-light-mode-btn {
+        background: var(--bg-tertiary);
+    }
+
+    &__slider-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+    }
+
+    &__slider {
+        flex: 1;
+        height: 4px;
+        appearance: none;
+        background: var(--bg-hover);
+        border-radius: 2px;
+        outline: none;
+        cursor: pointer;
+
+        &::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform var(--transition), box-shadow var(--transition);
+
+            &:hover {
+                transform: scale(1.1);
+                box-shadow: 0 0 8px var(--accent-glow);
+            }
+        }
+
+        &::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: var(--accent);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+    }
+
+    &__slider-value {
+        font-size: 12px;
+        color: var(--text-secondary);
+        min-width: 36px;
+        text-align: right;
+    }
+
+    &__toggle-setting {
+        padding: 8px 0;
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+
+            &:hover {
+                color: var(--text-primary);
+            }
+        }
+
+        input[type='checkbox'] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+    }
+
+    &__dev-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 4px;
+    }
+
+    &__dev-label {
+        font-size: 10px;
+        color: var(--text-tertiary);
+        margin-top: 8px;
+        margin-bottom: 2px;
+
+        &:first-child {
+            margin-top: 0;
+        }
+    }
+
+    &__dev-btn {
+        padding: 8px 12px;
+        background: var(--bg-hover);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+        font-size: 12px;
+        cursor: pointer;
+        transition: all var(--transition);
+        text-align: left;
+
+        &:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+    }
+}
+
+@keyframes settingsSlideIn {
+    from {
+        opacity: 0;
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        margin-top: 0;
+    }
+    to {
+        opacity: 1;
+        max-height: 1000px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+        margin-top: 8px;
+    }
+}
+
+@keyframes settingsSlideOut {
+    from {
+        opacity: 1;
+        max-height: 1000px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+        margin-top: 8px;
+    }
+    to {
+        opacity: 0;
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        margin-top: 0;
+    }
+}
