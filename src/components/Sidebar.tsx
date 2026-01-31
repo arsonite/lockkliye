@@ -14,9 +14,25 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+
+// TeaType components
+import {
+    TeaSidebar,
+    TeaSidebarSettings,
+    TeaSidebarSlider,
+    TeaSidebarToggle,
+    TeaSidebarButton,
+    TeaSidebarButtonGroup,
+    TeaModal,
+    type iTeaSidebarItem,
+    type iTeaSidebarSection,
+    type iUseTeaToastReturn,
+} from '@teatype/components';
+
+// Types
 import type { iNote } from '@/types';
-import { Modal } from './Modal';
-import type { useToast } from './Toast';
+
+// Utils
 import { generateShortText, generateLongText, generateTitle, copyToClipboard } from '@/util/randomGenerator';
 
 interface iSidebarProps {
@@ -42,7 +58,7 @@ interface iSidebarProps {
     onImportSettings: (json: string) => boolean;
     onImportHistory: (json: string) => boolean;
     onCreateRandomNote: () => void;
-    toast: ReturnType<typeof useToast>;
+    toast: iUseTeaToastReturn;
 }
 
 export const Sidebar = ({
@@ -81,7 +97,6 @@ export const Sidebar = ({
     // Handle settings toggle with closing animation
     const handleSettingsToggle = () => {
         if (showSettings) {
-            // Start closing animation
             setIsSettingsClosing(true);
         } else {
             setShowSettings(true);
@@ -94,7 +109,7 @@ export const Sidebar = ({
             const timer = setTimeout(() => {
                 setShowSettings(false);
                 setIsSettingsClosing(false);
-            }, 200); // Match animation duration
+            }, 200);
             return () => clearTimeout(timer);
         }
     }, [isSettingsClosing]);
@@ -121,384 +136,358 @@ export const Sidebar = ({
         return words.slice(0, 10).join(' ') || 'No content';
     };
 
-    return (
-        <aside className={`sidebar ${expanded ? 'sidebar--expanded' : 'sidebar--collapsed'}`}>
-            <div className='sidebar__header'>
-                <button className='sidebar__toggle' onClick={onToggle} title={expanded ? 'Collapse' : 'Expand'}>
-                    <span className='sidebar__toggle-icon'>{expanded ? '◀' : '▶'}</span>
-                </button>
-                {expanded && (
-                    <>
-                        <h2 className='sidebar__title'>Notes</h2>
-                        <button className='sidebar__new-note' onClick={onCreateNote} title='New Note'>
-                            <span>+</span>
-                        </button>
-                    </>
-                )}
-            </div>
+    // Check if note is empty
+    const isNoteEmpty = (note: iNote): boolean => {
+        return (
+            note.blocks.length === 0 ||
+            (note.blocks.length === 1 && note.blocks[0].words.length <= 1 && !note.blocks[0].words[0]?.text.trim())
+        );
+    };
 
-            {expanded && (
+    // Transform notes to sidebar items
+    const noteItems: iTeaSidebarItem[] = notes
+        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .map((note) => ({
+            id: note.id,
+            title: note.title,
+            subtitle: getNotePreview(note),
+            meta: formatDate(note.updatedAt),
+            active: activeNoteId === note.id,
+        }));
+
+    const sections: iTeaSidebarSection[] = [
+        {
+            id: 'notes',
+            title: 'All Notes',
+            items: noteItems,
+            count: notes.length,
+        },
+    ];
+
+    const handleItemClick = (_sectionId: string, itemId: string) => {
+        onNoteSelect(itemId);
+    };
+
+    const handleItemDelete = (_sectionId: string, itemId: string) => {
+        const note = notes.find((n) => n.id === itemId);
+        if (note && confirmDeletions && !isNoteEmpty(note)) {
+            setDeleteNoteId(itemId);
+        } else {
+            onDeleteNote(itemId);
+        }
+    };
+
+    // Hidden file inputs for import
+    const fileInputs = (
+        <>
+            <input
+                type='file'
+                ref={notesInputRef}
+                accept='.json'
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            const content = event.target?.result as string;
+                            const success = onImportNotes(content);
+                            if (success) {
+                                toast.success('Notes imported successfully!');
+                            } else {
+                                toast.error('Failed to import notes. Invalid file format.');
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                    e.target.value = '';
+                }}
+            />
+            <input
+                type='file'
+                ref={settingsInputRef}
+                accept='.json'
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            const content = event.target?.result as string;
+                            const success = onImportSettings(content);
+                            if (success) {
+                                toast.success('Settings & presets imported!');
+                            } else {
+                                toast.error('Failed to import settings. Invalid file format.');
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                    e.target.value = '';
+                }}
+            />
+            <input
+                type='file'
+                ref={historyInputRef}
+                accept='.json'
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            const content = event.target?.result as string;
+                            const success = onImportHistory(content);
+                            if (success) {
+                                toast.success('History imported successfully!');
+                            } else {
+                                toast.error('Failed to import history. Invalid file format.');
+                            }
+                        };
+                        reader.readAsText(file);
+                    }
+                    e.target.value = '';
+                }}
+            />
+        </>
+    );
+
+    // Export helper
+    const downloadFile = (content: string, filename: string, mimeType: string) => {
+        const blob = new Blob([content], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    // Settings panel content
+    const settingsSections = [
+        {
+            id: 'appearance',
+            label: 'Appearance',
+            children: (
+                <TeaSidebarButton onClick={onToggleLightMode}>
+                    {lightMode ? '🌙 Dark Mode' : '☀️ Light Mode'}
+                </TeaSidebarButton>
+            ),
+        },
+        {
+            id: 'editor-width',
+            label: 'Editor Width',
+            children: (
+                <TeaSidebarSlider
+                    min={50}
+                    max={100}
+                    step={5}
+                    value={editorWidth}
+                    onChange={onEditorWidthChange}
+                    unit='%'
+                />
+            ),
+        },
+        {
+            id: 'export',
+            label: 'Export',
+            children: (
+                <TeaSidebarButtonGroup>
+                    <TeaSidebarButton
+                        onClick={() => {
+                            downloadFile(onExportText(), 'lockkliye-notes.txt', 'text/plain');
+                            toast.success('Notes exported as text');
+                        }}
+                    >
+                        📄 Notes (Text)
+                    </TeaSidebarButton>
+                    <TeaSidebarButton
+                        onClick={() => {
+                            downloadFile(onExportJson(), 'lockkliye-notes.json', 'application/json');
+                            toast.success('Notes exported as JSON');
+                        }}
+                    >
+                        📝 Notes (JSON)
+                    </TeaSidebarButton>
+                    <TeaSidebarButton
+                        onClick={() => {
+                            downloadFile(onExportSettings(), 'lockkliye-settings.json', 'application/json');
+                            toast.success('Settings & presets exported');
+                        }}
+                    >
+                        ⚙️ Settings & Presets
+                    </TeaSidebarButton>
+                    <TeaSidebarButton
+                        onClick={() => {
+                            downloadFile(onExportHistory(), 'lockkliye-history.json', 'application/json');
+                            toast.success('History exported');
+                        }}
+                    >
+                        📜 History
+                    </TeaSidebarButton>
+                </TeaSidebarButtonGroup>
+            ),
+        },
+        {
+            id: 'import',
+            label: 'Import',
+            children: (
+                <TeaSidebarButtonGroup>
+                    <TeaSidebarButton onClick={() => notesInputRef.current?.click()}>📝 Notes</TeaSidebarButton>
+                    <TeaSidebarButton onClick={() => settingsInputRef.current?.click()}>
+                        ⚙️ Settings & Presets
+                    </TeaSidebarButton>
+                    <TeaSidebarButton onClick={() => historyInputRef.current?.click()}>📜 History</TeaSidebarButton>
+                </TeaSidebarButtonGroup>
+            ),
+        },
+        {
+            id: 'developer',
+            label: 'Developer',
+            children: (
                 <>
-                    <div className='sidebar__notes'>
-                        <div className='sidebar__section-header'>
-                            <span>All Notes</span>
-                            <span className='sidebar__count'>{notes.length}</span>
-                        </div>
-
-                        <div className='sidebar__notes-list'>
-                            {notes.length === 0 ? (
-                                <div className='sidebar__empty'>No notes yet. Click + to create one.</div>
-                            ) : (
-                                notes
-                                    .sort((a, b) => b.updatedAt - a.updatedAt)
-                                    .map((note) => (
-                                        <div
-                                            key={note.id}
-                                            className={`sidebar__note ${
-                                                activeNoteId === note.id ? 'sidebar__note--active' : ''
-                                            }`}
-                                            onClick={() => onNoteSelect(note.id)}
-                                            role='button'
-                                            tabIndex={0}
-                                            onKeyDown={(e) => e.key === 'Enter' && onNoteSelect(note.id)}
-                                        >
-                                            <div className='sidebar__note-header'>
-                                                <span className='sidebar__note-title'>{note.title}</span>
-                                                <button
-                                                    className='sidebar__note-delete'
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        // Check if note is empty (skip confirmation)
-                                                        const noteToDelete = notes.find((n) => n.id === note.id);
-                                                        const isNoteEmpty =
-                                                            !noteToDelete ||
-                                                            noteToDelete.blocks.length === 0 ||
-                                                            (noteToDelete.blocks.length === 1 &&
-                                                                noteToDelete.blocks[0].words.length <= 1 &&
-                                                                !noteToDelete.blocks[0].words[0]?.text.trim());
-                                                        if (confirmDeletions && !isNoteEmpty) {
-                                                            setDeleteNoteId(note.id);
-                                                        } else {
-                                                            onDeleteNote(note.id);
-                                                        }
-                                                    }}
-                                                    title='Delete note'
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                            <div className='sidebar__note-meta'>
-                                                <span className='sidebar__note-date'>{formatDate(note.updatedAt)}</span>
-                                                <span className='sidebar__note-preview'>{getNotePreview(note)}</span>
-                                            </div>
-                                        </div>
-                                    ))
-                            )}
-                        </div>
-                    </div>
-
-                    <div className='sidebar__footer'>
-                        <button className='sidebar__settings-btn' onClick={handleSettingsToggle}>
-                            <span>⚙</span>
-                            <span>Settings</span>
-                        </button>
-
-                        {showSettings && (
-                            <div
-                                className={`sidebar__settings ${isSettingsClosing ? 'sidebar__settings--closing' : ''}`}
-                            >
-                                <div className='sidebar__settings-section'>
-                                    <span className='sidebar__settings-label'>Appearance</span>
-                                    <button className='sidebar__toggle-light-mode-btn' onClick={onToggleLightMode}>
-                                        {lightMode ? '🌙 Dark Mode' : '☀️ Light Mode'}
-                                    </button>
-                                </div>
-
-                                <div className='sidebar__settings-section'>
-                                    <span className='sidebar__settings-label'>Editor Width</span>
-                                    <div className='sidebar__slider-container'>
-                                        <input
-                                            type='range'
-                                            min='50'
-                                            max='100'
-                                            step='5'
-                                            value={editorWidth}
-                                            onChange={(e) => onEditorWidthChange(Number(e.target.value))}
-                                            className='sidebar__slider'
-                                        />
-                                        <span className='sidebar__slider-value'>{editorWidth}%</span>
-                                    </div>
-                                </div>
-
-                                <div className='sidebar__settings-section'>
-                                    <span className='sidebar__settings-label'>Export</span>
-                                    <div className='sidebar__export-buttons'>
-                                        <button
-                                            className='sidebar__export-btn'
-                                            onClick={() => {
-                                                const text = onExportText();
-                                                const blob = new Blob([text], { type: 'text/plain' });
-                                                const url = URL.createObjectURL(blob);
-                                                const a = document.createElement('a');
-                                                a.href = url;
-                                                a.download = 'lockkliye-notes.txt';
-                                                a.click();
-                                                URL.revokeObjectURL(url);
-                                                toast.success('Notes exported as text');
-                                            }}
-                                        >
-                                            📄 Notes (Text)
-                                        </button>
-                                        <button
-                                            className='sidebar__export-btn'
-                                            onClick={() => {
-                                                const json = onExportJson();
-                                                const blob = new Blob([json], { type: 'application/json' });
-                                                const url = URL.createObjectURL(blob);
-                                                const a = document.createElement('a');
-                                                a.href = url;
-                                                a.download = 'lockkliye-notes.json';
-                                                a.click();
-                                                URL.revokeObjectURL(url);
-                                                toast.success('Notes exported as JSON');
-                                            }}
-                                        >
-                                            📝 Notes (JSON)
-                                        </button>
-                                        <button
-                                            className='sidebar__export-btn'
-                                            onClick={() => {
-                                                const json = onExportSettings();
-                                                const blob = new Blob([json], { type: 'application/json' });
-                                                const url = URL.createObjectURL(blob);
-                                                const a = document.createElement('a');
-                                                a.href = url;
-                                                a.download = 'lockkliye-settings.json';
-                                                a.click();
-                                                URL.revokeObjectURL(url);
-                                                toast.success('Settings & presets exported');
-                                            }}
-                                        >
-                                            ⚙️ Settings & Presets
-                                        </button>
-                                        <button
-                                            className='sidebar__export-btn'
-                                            onClick={() => {
-                                                const json = onExportHistory();
-                                                const blob = new Blob([json], { type: 'application/json' });
-                                                const url = URL.createObjectURL(blob);
-                                                const a = document.createElement('a');
-                                                a.href = url;
-                                                a.download = 'lockkliye-history.json';
-                                                a.click();
-                                                URL.revokeObjectURL(url);
-                                                toast.success('History exported');
-                                            }}
-                                        >
-                                            📜 History
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className='sidebar__settings-section'>
-                                    <span className='sidebar__settings-label'>Import</span>
-                                    <input
-                                        type='file'
-                                        ref={notesInputRef}
-                                        accept='.json'
-                                        style={{ display: 'none' }}
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) {
-                                                const reader = new FileReader();
-                                                reader.onload = (event) => {
-                                                    const content = event.target?.result as string;
-                                                    const success = onImportNotes(content);
-                                                    if (success) {
-                                                        toast.success('Notes imported successfully!');
-                                                    } else {
-                                                        toast.error('Failed to import notes. Invalid file format.');
-                                                    }
-                                                };
-                                                reader.readAsText(file);
-                                            }
-                                            e.target.value = '';
-                                        }}
-                                    />
-                                    <input
-                                        type='file'
-                                        ref={settingsInputRef}
-                                        accept='.json'
-                                        style={{ display: 'none' }}
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) {
-                                                const reader = new FileReader();
-                                                reader.onload = (event) => {
-                                                    const content = event.target?.result as string;
-                                                    const success = onImportSettings(content);
-                                                    if (success) {
-                                                        toast.success('Settings & presets imported!');
-                                                    } else {
-                                                        toast.error('Failed to import settings. Invalid file format.');
-                                                    }
-                                                };
-                                                reader.readAsText(file);
-                                            }
-                                            e.target.value = '';
-                                        }}
-                                    />
-                                    <input
-                                        type='file'
-                                        ref={historyInputRef}
-                                        accept='.json'
-                                        style={{ display: 'none' }}
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) {
-                                                const reader = new FileReader();
-                                                reader.onload = (event) => {
-                                                    const content = event.target?.result as string;
-                                                    const success = onImportHistory(content);
-                                                    if (success) {
-                                                        toast.success('History imported successfully!');
-                                                    } else {
-                                                        toast.error('Failed to import history. Invalid file format.');
-                                                    }
-                                                };
-                                                reader.readAsText(file);
-                                            }
-                                            e.target.value = '';
-                                        }}
-                                    />
-                                    <div className='sidebar__import-buttons'>
-                                        <button
-                                            className='sidebar__import-btn'
-                                            onClick={() => notesInputRef.current?.click()}
-                                        >
-                                            📝 Notes
-                                        </button>
-                                        <button
-                                            className='sidebar__import-btn'
-                                            onClick={() => settingsInputRef.current?.click()}
-                                        >
-                                            ⚙️ Settings & Presets
-                                        </button>
-                                        <button
-                                            className='sidebar__import-btn'
-                                            onClick={() => historyInputRef.current?.click()}
-                                        >
-                                            📜 History
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className='sidebar__settings-section'>
-                                    <span className='sidebar__settings-label'>Developer</span>
-                                    <div className='sidebar__toggle-setting'>
-                                        <label>
-                                            <input
-                                                type='checkbox'
-                                                checked={confirmDeletions}
-                                                onChange={(e) => onConfirmDeletionsChange(e.target.checked)}
-                                            />
-                                            Show delete confirmations
-                                        </label>
-                                    </div>
-                                    <div className='sidebar__dev-buttons'>
-                                        <span className='sidebar__dev-label'>Text Generators</span>
-                                        <button
-                                            className='sidebar__dev-btn'
-                                            onClick={async () => {
-                                                const text = generateShortText();
-                                                const success = await copyToClipboard(text);
-                                                if (success) toast.success('Short text copied!');
-                                                else toast.error('Failed to copy');
-                                            }}
-                                        >
-                                            📋 Short Text
-                                        </button>
-                                        <button
-                                            className='sidebar__dev-btn'
-                                            onClick={async () => {
-                                                const text = generateLongText();
-                                                const success = await copyToClipboard(text);
-                                                if (success) toast.success('Long text copied!');
-                                                else toast.error('Failed to copy');
-                                            }}
-                                        >
-                                            📋 Long Text
-                                        </button>
-                                        <button
-                                            className='sidebar__dev-btn'
-                                            onClick={async () => {
-                                                const text = generateTitle();
-                                                const success = await copyToClipboard(text);
-                                                if (success) toast.success('Title copied!');
-                                                else toast.error('Failed to copy');
-                                            }}
-                                        >
-                                            📋 Title
-                                        </button>
-                                        <span className='sidebar__dev-label'>Note Generator</span>
-                                        <button className='sidebar__dev-btn' onClick={onCreateRandomNote}>
-                                            🎲 Random Note
-                                        </button>
-                                    </div>
-                                    <button
-                                        className='sidebar__clear-data-btn'
-                                        onClick={() => setShowClearDataModal(true)}
-                                    >
-                                        Clear All Data
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
+                    <TeaSidebarToggle
+                        checked={confirmDeletions}
+                        onChange={onConfirmDeletionsChange}
+                        label='Show delete confirmations'
+                    />
+                    <div className='tea-sidebar-settings__sublabel'>Text Generators</div>
+                    <TeaSidebarButtonGroup>
+                        <TeaSidebarButton
+                            onClick={async () => {
+                                const text = generateShortText();
+                                const success = await copyToClipboard(text);
+                                if (success) toast.success('Short text copied!');
+                                else toast.error('Failed to copy');
+                            }}
+                        >
+                            📋 Short Text
+                        </TeaSidebarButton>
+                        <TeaSidebarButton
+                            onClick={async () => {
+                                const text = generateLongText();
+                                const success = await copyToClipboard(text);
+                                if (success) toast.success('Long text copied!');
+                                else toast.error('Failed to copy');
+                            }}
+                        >
+                            📋 Long Text
+                        </TeaSidebarButton>
+                        <TeaSidebarButton
+                            onClick={async () => {
+                                const text = generateTitle();
+                                const success = await copyToClipboard(text);
+                                if (success) toast.success('Title copied!');
+                                else toast.error('Failed to copy');
+                            }}
+                        >
+                            📋 Title
+                        </TeaSidebarButton>
+                    </TeaSidebarButtonGroup>
+                    <div className='tea-sidebar-settings__sublabel'>Note Generator</div>
+                    <TeaSidebarButton onClick={onCreateRandomNote}>🎲 Random Note</TeaSidebarButton>
+                    <TeaSidebarButton variant='danger' onClick={() => setShowClearDataModal(true)}>
+                        Clear All Data
+                    </TeaSidebarButton>
                 </>
-            )}
+            ),
+        },
+    ];
+
+    const footer = (
+        <>
+            <button className='tea-sidebar-footer-btn' onClick={handleSettingsToggle}>
+                <span>⚙</span>
+                <span>Settings</span>
+            </button>
+            <TeaSidebarSettings isOpen={showSettings} isClosing={isSettingsClosing} sections={settingsSections} />
+            {fileInputs}
+        </>
+    );
+
+    return (
+        <>
+            <TeaSidebar
+                title='Notes'
+                expanded={expanded}
+                onToggle={onToggle}
+                headerActions={[
+                    {
+                        id: 'new-note',
+                        label: 'New Note',
+                        onClick: onCreateNote,
+                        variant: 'primary',
+                    },
+                ]}
+                sections={sections}
+                onItemClick={handleItemClick}
+                onItemDelete={handleItemDelete}
+                showItemDelete={true}
+                footer={footer}
+                emptyMessage='No notes yet. Click + to create one.'
+            />
 
             {/* Clear All Data Confirmation Modal */}
-            <Modal
+            <TeaModal
                 isOpen={showClearDataModal}
                 title='Clear All Data'
-                message='Are you sure you want to clear all data? This cannot be undone.'
                 onClose={() => setShowClearDataModal(false)}
-                buttons={[
-                    { label: 'Cancel', variant: 'secondary', onClick: () => setShowClearDataModal(false) },
-                    {
-                        label: 'Clear All',
-                        variant: 'danger',
-                        onClick: () => {
-                            onClearAllData();
-                            setShowClearDataModal(false);
-                        },
-                    },
-                ]}
-            />
+                size='sm'
+                footer={
+                    <>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--secondary'
+                            onClick={() => setShowClearDataModal(false)}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--danger'
+                            onClick={() => {
+                                onClearAllData();
+                                setShowClearDataModal(false);
+                            }}
+                        >
+                            Clear All
+                        </button>
+                    </>
+                }
+            >
+                <p>Are you sure you want to clear all data? This cannot be undone.</p>
+            </TeaModal>
 
             {/* Delete Note Confirmation Modal */}
-            <Modal
+            <TeaModal
                 isOpen={deleteNoteId !== null}
                 title='Delete Note'
-                message={`Are you sure you want to delete "${
-                    notes.find((n) => n.id === deleteNoteId)?.title || 'this note'
-                }"?`}
                 onClose={() => setDeleteNoteId(null)}
-                buttons={[
-                    { label: 'Cancel', variant: 'secondary', onClick: () => setDeleteNoteId(null) },
-                    {
-                        label: 'Delete',
-                        variant: 'danger',
-                        onClick: () => {
-                            if (deleteNoteId) {
-                                onDeleteNote(deleteNoteId);
-                                setDeleteNoteId(null);
-                            }
-                        },
-                    },
-                ]}
-            />
-        </aside>
+                size='sm'
+                footer={
+                    <>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--secondary'
+                            onClick={() => setDeleteNoteId(null)}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--danger'
+                            onClick={() => {
+                                if (deleteNoteId) {
+                                    onDeleteNote(deleteNoteId);
+                                    setDeleteNoteId(null);
+                                }
+                            }}
+                        >
+                            Delete
+                        </button>
+                    </>
+                }
+            >
+                <p>
+                    Are you sure you want to delete "{notes.find((n) => n.id === deleteNoteId)?.title || 'this note'}"?
+                </p>
+            </TeaModal>
+        </>
     );
 };

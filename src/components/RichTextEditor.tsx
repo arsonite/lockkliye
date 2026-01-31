@@ -517,7 +517,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 onClearFormatMode();
             }
         },
-        [formatMode, selectedColor, onWordsChange, updateWordStylesInPlace, onClearFormatMode, isFocused]
+        [formatMode, selectedColor, onWordsChange, updateWordStylesInPlace, onClearFormatMode, isFocused],
     );
 
     // Track previous format mode to detect changes
@@ -584,7 +584,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
 
             // Regular Enter inserts newline (default contenteditable behavior)
         },
-        [onAddBlockAfter]
+        [onAddBlockAfter],
     );
 
     // Handle paste - strip formatting and insert plain text
@@ -610,7 +610,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
             onWordsChange(newWords);
             updateDOMContent(newWords);
         },
-        [linkModal.wordId, onWordsChange, updateDOMContent]
+        [linkModal.wordId, onWordsChange, updateDOMContent],
     );
 
     // Handle deleting a link from a word
@@ -706,7 +706,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 }
             }
         },
-        [formatMode, isFocused, applyFormattingToSelection, openLinkModal]
+        [formatMode, isFocused, applyFormattingToSelection, openLinkModal],
     );
 
     // Handle mousedown for format mode clicking
@@ -736,7 +736,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 }
             }
         },
-        [formatMode, applyFormattingToWord, isFocused]
+        [formatMode, applyFormattingToWord, isFocused],
     );
 
     // Handle mouseup - only prevent selection in format mode when NOT editing
@@ -748,7 +748,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 window.getSelection()?.removeAllRanges();
             }
         },
-        [formatMode, isFocused]
+        [formatMode, isFocused],
     );
 
     // Handle selectstart to prevent text selection in format mode when NOT editing
@@ -758,7 +758,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 e.preventDefault();
             }
         },
-        [formatMode, isFocused]
+        [formatMode, isFocused],
     );
 
     // Sync content when words change externally

@@ -19,10 +19,12 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 // External
 import { Flipper, Flipped } from 'react-flip-toolkit';
 
+// TeaType components
+import { TeaModal } from '@teatype/components';
+
 // Components
 import FloatingToolbar from './FloatingToolbar';
 import { TextBlockComponent } from './TextBlockComponent';
-import { Modal } from './Modal';
 
 // Types
 import type { iNote, iTextBlock, iWord, tFormatMode, iHistoryEntry, iBlockStyle } from '@/types';
@@ -201,7 +203,7 @@ export const NoteEditor = ({
             setMousePosition({ x: e.clientX, y: e.clientY });
             setPreviewOrder(note.blocks.map((_, i) => i));
         },
-        [note.blocks]
+        [note.blocks],
     );
 
     // Close preset menu on outside click
@@ -434,7 +436,7 @@ export const NoteEditor = ({
                                                             e.stopPropagation();
                                                             setEditingPresetIndex(index);
                                                             setEditingPresetTitle(
-                                                                preset.title || `Preset ${index + 1}`
+                                                                preset.title || `Preset ${index + 1}`,
                                                             );
                                                         }}
                                                         title='Edit preset name'
@@ -467,27 +469,35 @@ export const NoteEditor = ({
             </div>
 
             {/* Delete Preset Confirmation Modal */}
-            <Modal
+            <TeaModal
                 isOpen={deletePresetIndex !== null}
                 title='Delete Preset'
-                message={`Are you sure you want to delete "${
-                    blockPresets[deletePresetIndex ?? 0]?.title || 'this preset'
-                }"?`}
                 onClose={() => setDeletePresetIndex(null)}
-                buttons={[
-                    { label: 'Cancel', variant: 'secondary', onClick: () => setDeletePresetIndex(null) },
-                    {
-                        label: 'Delete',
-                        variant: 'danger',
-                        onClick: () => {
-                            if (deletePresetIndex !== null) {
-                                onRemoveBlockPreset(deletePresetIndex);
-                                setDeletePresetIndex(null);
-                            }
-                        },
-                    },
-                ]}
-            />
+                size='sm'
+                footer={
+                    <>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--secondary'
+                            onClick={() => setDeletePresetIndex(null)}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--danger'
+                            onClick={() => {
+                                if (deletePresetIndex !== null) {
+                                    onRemoveBlockPreset(deletePresetIndex);
+                                    setDeletePresetIndex(null);
+                                }
+                            }}
+                        >
+                            Delete
+                        </button>
+                    </>
+                }
+            >
+                <p>Are you sure you want to delete "{blockPresets[deletePresetIndex ?? 0]?.title || 'this preset'}"?</p>
+            </TeaModal>
 
             {/* History indicator - fixed at bottom, overlays content */}
             <div className='note-editor__history-overlay'>

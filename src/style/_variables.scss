@@ -28,6 +28,14 @@
     --radius-md: 10px;
     --radius-lg: 14px;
     --transition: 200ms ease;
+
+    // TeaType component variable mappings (for TeaSidebar, TeaModal, TeaToast)
+    --surface-card: var(--bg-secondary);
+    --surface-elevated: var(--bg-tertiary);
+    --text-muted: var(--text-secondary);
+    --error: var(--danger);
+    --error-hover: var(--danger-hover);
+    --accent-soft: var(--accent-glow);
 }
 
 html,

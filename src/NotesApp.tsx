@@ -13,11 +13,13 @@
  * all copies or substantial portions of the Software.
  */
 
+// TeaType components
+import { TeaToastContainer, useTeaToast } from '@teatype/components';
+
 // Components
 import ModeCursor from '@/components/ModeCursor';
 import { NoteEditor } from '@/components/NoteEditor';
 import { Sidebar } from '@/components/Sidebar';
-import { ToastContainer, useToast } from '@/components/Toast';
 
 // Hooks
 import useNotesStore from '@/hooks/useNotesStore';
@@ -28,7 +30,7 @@ import type { iBlockStyle } from '@/types';
 
 const NotesApp: React.FC = () => {
     const store = useNotesStore();
-    const toast = useToast();
+    const toast = useTeaToast();
 
     useKeyboardShortcuts({
         onEscape: () => store.setFormatMode(null),
@@ -40,7 +42,7 @@ const NotesApp: React.FC = () => {
     const handleWordFormatChange = (
         blockId: string,
         wordId: string,
-        format: Parameters<typeof store.updateWordFormat>[3]
+        format: Parameters<typeof store.updateWordFormat>[3],
     ) => {
         if (store.activeNoteId) {
             store.updateWordFormat(store.activeNoteId, blockId, wordId, format);
@@ -165,7 +167,7 @@ const NotesApp: React.FC = () => {
             </main>
 
             <ModeCursor formatMode={store.formatMode} selectedColor={store.selectedColor} />
-            <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} position={toast.position} />
+            <TeaToastContainer toasts={toast.toasts} onRemove={toast.removeToast} position={toast.position} />
         </div>
     );
 };

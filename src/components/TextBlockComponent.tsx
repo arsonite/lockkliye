@@ -16,7 +16,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { iTextBlock, tFormatMode, iWord, iBlockStyle } from '@/types';
 import { RichTextEditor } from './RichTextEditor';
-import { Modal } from './Modal';
+import { TeaModal } from '@teatype/components';
 
 interface iTextBlockComponentProps {
     block: iTextBlock;
@@ -60,7 +60,7 @@ export const TextBlockComponent = ({
     const [customGradientTo, setCustomGradientTo] = useState('#0000ff');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isLightMode, setIsLightMode] = useState(
-        () => document.querySelector('.notes-app')?.classList.contains('light-mode') ?? false
+        () => document.querySelector('.notes-app')?.classList.contains('light-mode') ?? false,
     );
     const styleMenuRef = useRef<HTMLDivElement>(null);
     const blockRef = useRef<HTMLDivElement>(null);
@@ -597,23 +597,33 @@ export const TextBlockComponent = ({
             </div>
 
             {/* Delete Confirmation Modal */}
-            <Modal
+            <TeaModal
                 isOpen={showDeleteModal}
                 title='Delete Block'
-                message='Are you sure you want to delete this block?'
                 onClose={() => setShowDeleteModal(false)}
-                buttons={[
-                    { label: 'Cancel', variant: 'secondary', onClick: () => setShowDeleteModal(false) },
-                    {
-                        label: 'Delete',
-                        variant: 'danger',
-                        onClick: () => {
-                            onDelete(block.id);
-                            setShowDeleteModal(false);
-                        },
-                    },
-                ]}
-            />
+                size='sm'
+                footer={
+                    <>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--secondary'
+                            onClick={() => setShowDeleteModal(false)}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--danger'
+                            onClick={() => {
+                                onDelete(block.id);
+                                setShowDeleteModal(false);
+                            }}
+                        >
+                            Delete
+                        </button>
+                    </>
+                }
+            >
+                <p>Are you sure you want to delete this block?</p>
+            </TeaModal>
         </>
     );
 };

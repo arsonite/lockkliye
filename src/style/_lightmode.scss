@@ -25,6 +25,14 @@
     --glass-border: rgba(0, 0, 0, 0.1);
     --glass-highlight: rgba(255, 255, 255, 0.5);
 
+    // TeaType component variable mappings (for TeaSidebar, TeaModal, TeaToast)
+    --surface-card: var(--bg-secondary);
+    --surface-elevated: var(--bg-tertiary);
+    --text-muted: var(--text-secondary);
+    --error: var(--danger);
+    --error-hover: var(--danger-hover);
+    --accent-soft: var(--accent-glow);
+
     background: var(--bg-gradient);
 
     .sidebar {
@@ -165,6 +173,8 @@
     // Light mode drag ghost
     .note-editor__drag-ghost {
         background: rgba(255, 255, 255, 0.85);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 0 0 0 2px var(--accent);
+        box-shadow:
+            0 12px 40px rgba(0, 0, 0, 0.15),
+            0 0 0 2px var(--accent);
     }
 }
