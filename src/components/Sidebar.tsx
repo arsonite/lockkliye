@@ -24,8 +24,8 @@ import {
     TeaSidebarButton,
     TeaSidebarButtonGroup,
     TeaModal,
-    type iTeaSidebarItem,
-    type iTeaSidebarSection,
+    type tSidebarItem,
+    type tSidebarSection,
     type iUseTeaToastReturn,
 } from '@teatype/components';
 
@@ -145,7 +145,7 @@ export const Sidebar = ({
     };
 
     // Transform notes to sidebar items
-    const noteItems: iTeaSidebarItem[] = notes
+    const noteItems: tSidebarItem[] = notes
         .sort((a, b) => b.updatedAt - a.updatedAt)
         .map((note) => ({
             id: note.id,
@@ -155,7 +155,7 @@ export const Sidebar = ({
             active: activeNoteId === note.id,
         }));
 
-    const sections: iTeaSidebarSection[] = [
+    const sections: tSidebarSection[] = [
         {
             id: 'notes',
             title: 'All Notes',
