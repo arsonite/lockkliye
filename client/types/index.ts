@@ -87,7 +87,7 @@ interface iFolder {
     name: string;
     icon?: string;
     color?: string;
-    expanded?: boolean;
+    parentId?: string | null; // The folder this one sits in, none for a top-level folder
 }
 
 // History entry for undo/redo functionality
@@ -183,10 +183,10 @@ const createNote = (title: string = 'Untitled', folderId: string | null = null):
 });
 
 // Helper to create a new folder
-const createFolder = (name: string): iFolder => ({
+const createFolder = (name: string, parentId: string | null = null): iFolder => ({
     id: crypto.randomUUID(),
     name,
-    expanded: true,
+    parentId,
 });
 
 // Serialize note for storage/reconstruction

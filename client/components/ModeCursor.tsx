@@ -13,12 +13,14 @@
  * all copies or substantial portions of the Software.
  */
 
+// React imports
+import React from 'react';
+
 // Hooks
 import useMousePosition from '@/hooks/useMousePosition';
 
 // Types
 import type { tFormatMode } from '@/types';
-import React from 'react';
 
 interface iModeCursorProps {
     formatMode: tFormatMode;

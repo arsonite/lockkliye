@@ -147,17 +147,18 @@ const folderCollection: iCollection<iFolder> = {
     key: (folder) => folder.id,
     toRow: (folder) => ({
         color: folder.color ?? '',
-        expanded: folder.expanded ?? true,
         icon: folder.icon ?? '',
         name: folder.name,
+        ...(folder.parentId ? { parent: folder.parentId } : {}),
     }),
     fromRow: (row, key) => ({
         id: key,
         name: text(row.name),
         icon: text(row.icon) || undefined,
         color: text(row.color) || undefined,
-        expanded: row.expanded as boolean,
+        parentId: (row.parent as string | undefined) ?? null,
     }),
+    relations: { parent: 'folders' },
 };
 
 // Without its blocks
