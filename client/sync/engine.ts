@@ -14,7 +14,7 @@
  */
 
 // Sync
-import type { iCollection, tRow, tServerRow } from '@/sync/collections';
+import type { iCollection, tServerRow } from '@/sync/collections';
 import hash from '@/sync/hash';
 
 // What the server had when an entity was last synced: the local content hash, the server's rev and the server's
@@ -257,7 +257,7 @@ const syncCollection = async <L extends object>(
         const localItem = item as L;
         const rev = Date.now();
         try {
-            const payload: tRow & Record<string, string | number | boolean | null> = {
+            const payload: Record<string, string | number | boolean | null> = {
                 ...collection.toRow(localItem),
                 rev,
             };

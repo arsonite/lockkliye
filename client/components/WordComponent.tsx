@@ -129,7 +129,8 @@ export const WordComponent = ({
 export const applyFormatMode = (
     currentFormat: iWordFormat,
     mode: tFormatMode,
-    selectedColor: string
+    selectedColor: string,
+    selectedAnchorId?: string | null
 ): Partial<iWordFormat> => {
     switch (mode) {
         case 'bold':
@@ -148,6 +149,9 @@ export const applyFormatMode = (
             // Link mode is handled specially - this toggles the link off if already set
             // Setting a link is handled by the LinkModal component
             return currentFormat.link ? { link: undefined } : {};
+        case 'anchor':
+            // A word that has an anchor loses it, any other word gets the chosen anchor note
+            return currentFormat.anchor ? { anchor: undefined } : selectedAnchorId ? { anchor: selectedAnchorId } : {};
         // Size modes - directly set the size
         case 'tiny':
             return { fontSize: 'tiny' };

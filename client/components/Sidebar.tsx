@@ -88,6 +88,13 @@ interface iFolderForm {
     parentId: string | null;
 }
 
+// An entry of the right-click menu
+interface iMenuItem {
+    label: string;
+    danger?: boolean;
+    onClick: () => void;
+}
+
 const byName = (a: iFolder, b: iFolder) => a.name.localeCompare(b.name);
 
 const loadCollapsed = (): Set<string> => {
@@ -142,6 +149,7 @@ export const Sidebar = ({
     const [moveTarget, setMoveTarget] = useState('');
     const [collapsed, setCollapsed] = useState<Set<string>>(loadCollapsed);
     const [dropTarget, setDropTarget] = useState<string | null>(null);
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: iMenuItem[] } | null>(null);
     const dragged = useRef<iDragged | null>(null);
     const notesInputRef = useRef<HTMLInputElement>(null);
     const settingsInputRef = useRef<HTMLInputElement>(null);
@@ -151,6 +159,32 @@ export const Sidebar = ({
     useEffect(() => {
         localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed]));
     }, [collapsed]);
+
+    // The right-click menu closes on any other click, on Escape, and when the list scrolls or the window changes
+    useEffect(() => {
+        if (!contextMenu) {
+            return;
+        }
+        const close = () => setContextMenu(null);
+        const onMouseDown = (event: MouseEvent) => {
+            if (!(event.target as HTMLElement).closest('.sidebar-menu')) {
+                close();
+            }
+        };
+        const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && close();
+        document.addEventListener('mousedown', onMouseDown);
+        document.addEventListener('keydown', onKeyDown);
+        window.addEventListener('resize', close);
+        window.addEventListener('blur', close);
+        document.addEventListener('scroll', close, true);
+        return () => {
+            document.removeEventListener('mousedown', onMouseDown);
+            document.removeEventListener('keydown', onKeyDown);
+            window.removeEventListener('resize', close);
+            window.removeEventListener('blur', close);
+            document.removeEventListener('scroll', close, true);
+        };
+    }, [contextMenu]);
 
     // Handle settings toggle with closing animation
     const handleSettingsToggle = () => {
@@ -253,6 +287,53 @@ export const Sidebar = ({
         setFolderForm(null);
     };
 
+    const openMenu = (event: React.MouseEvent, items: iMenuItem[]) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setContextMenu({ x: event.clientX, y: event.clientY, items });
+    };
+
+    const folderMenu = (folder: iFolder): iMenuItem[] => [
+        {
+            label: 'New note here',
+            onClick: () => {
+                onCreateNote(folder.id);
+                setCollapsed((previous) => {
+                    const next = new Set(previous);
+                    next.delete(folder.id);
+                    return next;
+                });
+            },
+        },
+        { label: 'New subfolder', onClick: () => setFolderForm({ id: null, name: '', color: '', parentId: folder.id }) },
+        {
+            label: 'Edit folder',
+            onClick: () =>
+                setFolderForm({
+                    id: folder.id,
+                    name: folder.name,
+                    color: folder.color ?? '',
+                    parentId: parentOf(folder),
+                }),
+        },
+        { label: 'Delete folder', danger: true, onClick: () => handleFolderDelete(folder) },
+    ];
+
+    const noteMenu = (note: iNote): iMenuItem[] => [
+        ...(folders.length > 0
+            ? [
+                  {
+                      label: 'Move to folder',
+                      onClick: () => {
+                          setMoveNoteId(note.id);
+                          setMoveTarget(note.folderId ?? '');
+                      },
+                  },
+              ]
+            : []),
+        { label: 'Delete note', danger: true, onClick: () => handleNoteDelete(note) },
+    ];
+
     const handleFolderDelete = (folder: iFolder) => {
         const hasContent = notesIn(folder.id).length > 0 || foldersIn(folder.id).length > 0;
         if (confirmDeletions && hasContent) {
@@ -312,6 +393,7 @@ export const Sidebar = ({
             onDragStart={(event) => startDrag(event, { type: 'note', id: note.id })}
             onDragEnd={() => setDropTarget(null)}
             onClick={() => onNoteSelect(note.id)}
+            onContextMenu={(event) => openMenu(event, noteMenu(note))}
             role='button'
             tabIndex={0}
             onKeyDown={(event) => event.key === 'Enter' && onNoteSelect(note.id)}
@@ -323,21 +405,15 @@ export const Sidebar = ({
             )}
             <div className='tea-sidebar-item__content'>
                 <div className='tea-sidebar-item__header'>
-                    <span className='tea-sidebar-item__title'>{note.title}</span>
-                    <span className='sidebar-row__actions'>
-                        {folders.length > 0 && (
-                            <button
-                                className='sidebar-action'
-                                title='Move to folder'
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    setMoveNoteId(note.id);
-                                    setMoveTarget(note.folderId ?? '');
-                                }}
-                            >
-                                ↪
-                            </button>
+                    <span className='tea-sidebar-item__title'>
+                        {note.isAnchor && (
+                            <span className='sidebar-row__anchor' title='Anchor note'>
+                                ⚓
+                            </span>
                         )}
+                        {note.title}
+                    </span>
+                    <span className='sidebar-row__actions'>
                         <button
                             className='sidebar-action sidebar-action--danger'
                             title='Delete'
@@ -374,6 +450,8 @@ export const Sidebar = ({
                     onDragLeave={() => setDropTarget((current) => (current === folder.id ? null : current))}
                     onDrop={(event) => dropOn(event, folder.id)}
                     onClick={() => toggleCollapsed(folder.id)}
+                    onContextMenu={(event) => openMenu(event, folderMenu(folder))}
+                    title={folder.name}
                     role='button'
                     tabIndex={0}
                     onKeyDown={(event) => event.key === 'Enter' && toggleCollapsed(folder.id)}
@@ -383,58 +461,6 @@ export const Sidebar = ({
                     {folder.color && <span className='folder-row__dot' style={{ background: folder.color }} />}
                     <span className='tea-sidebar-item__title folder-row__name'>{folder.name}</span>
                     <span className='folder-row__count'>{countNotes(folder.id)}</span>
-                    <span className='sidebar-row__actions'>
-                        <button
-                            className='sidebar-action'
-                            title='New note in this folder'
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                onCreateNote(folder.id);
-                                setCollapsed((previous) => {
-                                    const next = new Set(previous);
-                                    next.delete(folder.id);
-                                    return next;
-                                });
-                            }}
-                        >
-                            +
-                        </button>
-                        <button
-                            className='sidebar-action'
-                            title='New subfolder'
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                setFolderForm({ id: null, name: '', color: '', parentId: folder.id });
-                            }}
-                        >
-                            🗀
-                        </button>
-                        <button
-                            className='sidebar-action'
-                            title='Edit folder'
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                setFolderForm({
-                                    id: folder.id,
-                                    name: folder.name,
-                                    color: folder.color ?? '',
-                                    parentId: parentOf(folder),
-                                });
-                            }}
-                        >
-                            ✎
-                        </button>
-                        <button
-                            className='sidebar-action sidebar-action--danger'
-                            title='Delete folder'
-                            onClick={(event) => {
-                                event.stopPropagation();
-                                handleFolderDelete(folder);
-                            }}
-                        >
-                            ×
-                        </button>
-                    </span>
                 </div>
                 {open && (
                     <>
@@ -739,6 +765,31 @@ export const Sidebar = ({
             >
                 {tree}
             </TeaSidebar>
+
+            {/* Right-click menu of folders and notes */}
+            {contextMenu && (
+                <div
+                    className='sidebar-menu'
+                    style={{
+                        left: Math.min(contextMenu.x, window.innerWidth - 190),
+                        top: Math.min(contextMenu.y, window.innerHeight - contextMenu.items.length * 36 - 16),
+                    }}
+                    onContextMenu={(event) => event.preventDefault()}
+                >
+                    {contextMenu.items.map((item) => (
+                        <button
+                            key={item.label}
+                            className={`sidebar-menu__item ${item.danger ? 'sidebar-menu__item--danger' : ''}`}
+                            onClick={() => {
+                                setContextMenu(null);
+                                item.onClick();
+                            }}
+                        >
+                            {item.label}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {/* Create / Edit Folder Modal */}
             <TeaModal

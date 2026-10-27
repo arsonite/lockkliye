@@ -28,8 +28,10 @@ interface iRichTextEditorProps {
     placeholder?: string;
     selectedColor: string;
     selectedSize: string;
+    selectedAnchorId?: string | null;
     words: iWord[];
 
+    onOpenAnchor?: (noteId: string) => void;
     onWordsChange: (words: iWord[]) => void;
     onAddBlockAfter: () => void;
     onClearFormatMode?: () => void;
@@ -59,6 +61,12 @@ const getWordStyle = (format: iWordFormat): React.CSSProperties => {
         if (!format.color || format.color === 'inherit') style.color = '#0a84ff';
         style.textDecoration = (style.textDecoration || '') + ' underline';
         style.cursor = 'pointer';
+    }
+
+    if (format.anchor) {
+        style.textDecoration = (style.textDecoration || '') + ' underline';
+        style.textDecorationColor = 'var(--accent)';
+        style.textUnderlineOffset = '3px';
     }
 
     switch (format.fontSize) {
@@ -97,6 +105,8 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
     formatMode,
     selectedColor,
     selectedSize: _selectedSize,
+    selectedAnchorId,
+    onOpenAnchor,
     onWordsChange,
     onAddBlockAfter,
     onClearFormatMode,
@@ -148,6 +158,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                     } else {
                         span.classList.remove('rich-text-editor__linked');
                     }
+                    span.classList.toggle('rich-text-editor__anchored', !!word.format.anchor);
                 }
             }
         });
@@ -187,8 +198,11 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 // Add link class for hyperlinked words (indicator is added via CSS ::after)
                 const linkClass = word.format.link ? ' rich-text-editor__linked' : '';
 
-                if (styleStr || linkClass) {
-                    return `<span data-word-id="${word.id}" class="rich-text-editor__word${linkClass}" style="${styleStr}">${word.text}</span>${space}`;
+                const anchorClass = word.format.anchor ? ' rich-text-editor__anchored' : '';
+                const anchorTitle = word.format.anchor ? ' title="Ctrl+click to open the anchor note"' : '';
+
+                if (styleStr || linkClass || anchorClass) {
+                    return `<span data-word-id="${word.id}" class="rich-text-editor__word${linkClass}${anchorClass}"${anchorTitle} style="${styleStr}">${word.text}</span>${space}`;
                 }
                 return `<span data-word-id="${word.id}" class="rich-text-editor__word">${word.text}</span>${space}`;
             })
@@ -459,7 +473,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
 
         const newWords = wordsRef.current.map((word) => {
             if (selectedIds.includes(word.id)) {
-                const updates = applyFormatMode(word.format, formatMode, selectedColor);
+                const updates = applyFormatMode(word.format, formatMode, selectedColor, selectedAnchorId);
                 return { ...word, format: { ...word.format, ...updates } };
             }
             return word;
@@ -484,6 +498,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
     }, [
         formatMode,
         selectedColor,
+        selectedAnchorId,
         getSelectedWordIds,
         onWordsChange,
         updateWordStylesInPlace,
@@ -498,7 +513,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
 
             const newWords = wordsRef.current.map((word) => {
                 if (word.id === wordId) {
-                    const updates = applyFormatMode(word.format, formatMode, selectedColor);
+                    const updates = applyFormatMode(word.format, formatMode, selectedColor, selectedAnchorId);
                     return { ...word, format: { ...word.format, ...updates } };
                 }
                 return word;
@@ -518,7 +533,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 onClearFormatMode();
             }
         },
-        [formatMode, selectedColor, onWordsChange, updateWordStylesInPlace, onClearFormatMode, isFocused],
+        [formatMode, selectedColor, selectedAnchorId, onWordsChange, updateWordStylesInPlace, onClearFormatMode, isFocused],
     );
 
     // Track previous format mode to detect changes
@@ -687,6 +702,13 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                         }
                     }
 
+                    // Ctrl+click on an anchored word opens its anchor note
+                    if (word?.format.anchor && (e.ctrlKey || e.metaKey)) {
+                        e.preventDefault();
+                        onOpenAnchor?.(word.format.anchor);
+                        return;
+                    }
+
                     // Handle link format mode - open modal for adding link
                     if (formatMode === 'link') {
                         e.preventDefault();
@@ -707,7 +729,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 }
             }
         },
-        [formatMode, isFocused, applyFormattingToSelection, openLinkModal],
+        [formatMode, isFocused, applyFormattingToSelection, openLinkModal, onOpenAnchor],
     );
 
     // Handle mousedown for format mode clicking

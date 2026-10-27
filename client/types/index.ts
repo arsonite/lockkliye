@@ -28,6 +28,7 @@ type tFormatMode =
     | 'smaller'
     | 'tiny'
     | 'link'
+    | 'anchor'
     | null;
 
 // Word-level formatting attributes
@@ -40,6 +41,7 @@ interface iWordFormat {
     highlight?: string;
     fontSize?: 'tiny' | 'smaller' | 'normal' | 'large' | 'larger' | 'huge';
     link?: string; // URL for hyperlinks
+    anchor?: string; // Id of the anchor note that Ctrl+click opens
 }
 
 // Each word is its own component with formatting
@@ -79,6 +81,7 @@ interface iNote {
     createdAt: number;
     updatedAt: number;
     pinned?: boolean;
+    isAnchor?: boolean; // Words of other notes can be anchored to this note
 }
 
 // Folder for organizing notes
@@ -114,6 +117,7 @@ interface iNotesState {
     formatMode: tFormatMode;
     selectedColor: string;
     selectedSize: string;
+    selectedAnchorId?: string | null; // The anchor note that anchor mode applies to
     lightMode: boolean;
     editorWidth: number; // percentage 50-100
     confirmDeletions: boolean; // Show confirmation dialogs for deletions

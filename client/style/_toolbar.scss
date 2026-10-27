@@ -161,6 +161,14 @@
         overflow: hidden;
     }
 
+    &__anchor-empty {
+        max-width: 200px;
+        padding: 8px 12px;
+        color: var(--text-secondary);
+        font-size: 12px;
+        line-height: 1.4;
+    }
+
     &__size-option {
         display: flex;
         align-items: center;

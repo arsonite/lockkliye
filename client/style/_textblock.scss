@@ -46,12 +46,16 @@
         cursor: ew-resize;
     }
 
+    // Top right, next to the block instead of inside it. The buttons are children of the block and the
+    // padding closes the gap to it, so the hover continues while the mouse is on them.
     &__controls {
         position: absolute;
-        top: 8px;
-        right: 8px;
+        top: 0;
+        left: 100%;
         display: flex;
+        flex-direction: column;
         gap: 4px;
+        padding-left: 8px;
         opacity: 0;
         transition: opacity var(--transition);
         z-index: 10;

@@ -15,9 +15,11 @@ from teatype.db.hsdb.core import HSDBAttribute, HSDBModel, HSDBRelation
 
 # Local imports
 from .Block import Block
+from .Note import Note
 
 # Empty strings stand for "not set"
 class Word(HSDBModel):
+    anchor        = HSDBRelation.ManyToOne(Note) # Optional, the anchor note a word opens
     block         = HSDBRelation.ManyToOne(Block, required=True)
     bold          = HSDBAttribute(bool, required=True)
     color         = HSDBAttribute(str,  required=True)

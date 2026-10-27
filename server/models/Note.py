@@ -20,6 +20,7 @@ from .Folder import Folder
 class Note(HSDBModel):
     created_ms = HSDBAttribute(int,  required=True)
     folder     = HSDBRelation.ManyToOne(Folder) # Optional, left out for a note without folder
+    is_anchor  = HSDBAttribute(bool, description='Words of other notes can point to an anchor note')
     pinned     = HSDBAttribute(bool, required=True)
     rev        = HSDBAttribute(int,  required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
     title      = HSDBAttribute(str,  required=True)

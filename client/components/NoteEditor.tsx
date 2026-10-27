@@ -27,13 +27,20 @@ import FloatingToolbar from './FloatingToolbar';
 import { TextBlockComponent } from './TextBlockComponent';
 
 // Types
-import type { iNote, iTextBlock, iWord, tFormatMode, iHistoryEntry, iBlockStyle } from '@/types';
+import type { iFolder, iNote, iTextBlock, iWord, tFormatMode, iHistoryEntry, iBlockStyle } from '@/types';
+
+// Utils
+import { folderChain } from '@/util/folderTree';
 
 interface iNoteEditorProps {
     note: iNote;
+    folders: iFolder[];
+    anchorNotes: iNote[];
+    anchorUsage: number; // Words anywhere that are anchored to this note
     formatMode: tFormatMode;
     selectedColor: string;
     selectedSize: string;
+    selectedAnchorId?: string | null;
     editorWidth: number;
     historyCount: number;
     redoCount: number;
@@ -42,6 +49,9 @@ interface iNoteEditorProps {
     confirmDeletions: boolean;
     blockPresets: iBlockStyle[];
     onTitleChange: (title: string) => void;
+    onToggleAnchor: (isAnchor: boolean) => void;
+    onAnchorChange: (noteId: string) => void;
+    onOpenNote: (noteId: string) => void;
     onWordFormatChange: (blockId: string, wordId: string, format: Partial<iWord['format']>) => void;
     onWordsChange: (blockId: string, words: iWord[]) => void;
     onBlockStyleChange: (blockId: string, style: Partial<iTextBlock['style']>) => void;
@@ -64,9 +74,13 @@ interface iNoteEditorProps {
 
 export const NoteEditor = ({
     note,
+    folders,
+    anchorNotes,
+    anchorUsage,
     formatMode,
     selectedColor,
     selectedSize,
+    selectedAnchorId,
     editorWidth,
     historyCount,
     redoCount: _redoCount,
@@ -75,6 +89,9 @@ export const NoteEditor = ({
     confirmDeletions,
     blockPresets,
     onTitleChange,
+    onToggleAnchor,
+    onAnchorChange,
+    onOpenNote,
     onWordFormatChange,
     onWordsChange,
     onBlockStyleChange,
@@ -101,6 +118,7 @@ export const NoteEditor = ({
     const [editingPresetIndex, setEditingPresetIndex] = useState<number | null>(null);
     const [editingPresetTitle, setEditingPresetTitle] = useState('');
     const [deletePresetIndex, setDeletePresetIndex] = useState<number | null>(null);
+    const [showUnanchorModal, setShowUnanchorModal] = useState(false);
     const [draggedBlockIndex, setDraggedBlockIndex] = useState<number | null>(null);
     const [previewOrder, setPreviewOrder] = useState<number[] | null>(null);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -227,6 +245,19 @@ export const NoteEditor = ({
         setIsEditingTitle(false);
     };
 
+    // Taking the anchor off also takes it off every word that points here, so that is confirmed first
+    const handleAnchorToggle = () => {
+        if (!note.isAnchor) {
+            onToggleAnchor(true);
+        } else if (anchorUsage > 0) {
+            setShowUnanchorModal(true);
+        } else {
+            onToggleAnchor(false);
+        }
+    };
+
+    const breadcrumbs = folderChain(folders, note.folderId);
+
     const formatDate = (timestamp: number) => {
         return new Date(timestamp).toLocaleDateString('en-US', {
             weekday: 'long',
@@ -246,6 +277,9 @@ export const NoteEditor = ({
                     formatMode={formatMode}
                     selectedColor={selectedColor}
                     selectedSize={selectedSize}
+                    anchorNotes={anchorNotes}
+                    selectedAnchorId={selectedAnchorId}
+                    onAnchorChange={onAnchorChange}
                     onFormatModeChange={onFormatModeChange}
                     onColorChange={onColorChange}
                     onSizeChange={onSizeChange}
@@ -254,6 +288,17 @@ export const NoteEditor = ({
 
             <div ref={editorRef} className='note-editor__body' style={{ maxWidth: `${editorWidth}%` }}>
                 <div className='note-editor__header'>
+                    {breadcrumbs.length > 0 && (
+                        <div className='note-editor__breadcrumbs'>
+                            {breadcrumbs.map((folder, index) => (
+                                <span key={folder.id}>
+                                    {index > 0 && <span className='note-editor__breadcrumb-separator'>/</span>}
+                                    {folder.name}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                    <div className='note-editor__title-row'>
                     {isEditingTitle ? (
                         <input
                             className='note-editor__title-input'
@@ -274,6 +319,18 @@ export const NoteEditor = ({
                             {note.title}
                         </h1>
                     )}
+                    <button
+                        className={`note-editor__anchor-btn ${note.isAnchor ? 'note-editor__anchor-btn--active' : ''}`}
+                        onClick={handleAnchorToggle}
+                        title={
+                            note.isAnchor
+                                ? 'This note is an anchor. Click to stop it being one.'
+                                : 'Make this note an anchor, so words in other notes can open it'
+                        }
+                    >
+                        ⚓
+                    </button>
+                    </div>
                     <p className='note-editor__date'>Last edited: {formatDate(note.updatedAt)}</p>
                 </div>
 
@@ -323,6 +380,8 @@ export const NoteEditor = ({
                                                     formatMode={formatMode}
                                                     selectedColor={selectedColor}
                                                     selectedSize={selectedSize}
+                                                    selectedAnchorId={selectedAnchorId}
+                                                    onOpenAnchor={onOpenNote}
                                                     confirmDeletions={confirmDeletions}
                                                     onWordFormatChange={onWordFormatChange}
                                                     onWordsChange={onWordsChange}
@@ -469,6 +528,38 @@ export const NoteEditor = ({
                     </div>
                 </div>
             </div>
+
+            {/* Remove Anchor Confirmation Modal */}
+            <TeaModal
+                isOpen={showUnanchorModal}
+                title='Remove Anchor'
+                onClose={() => setShowUnanchorModal(false)}
+                size='sm'
+                footer={
+                    <>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--secondary'
+                            onClick={() => setShowUnanchorModal(false)}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--danger'
+                            onClick={() => {
+                                onToggleAnchor(false);
+                                setShowUnanchorModal(false);
+                            }}
+                        >
+                            Remove Anchor
+                        </button>
+                    </>
+                }
+            >
+                <p>
+                    {anchorUsage === 1 ? '1 anchored word' : `${anchorUsage} anchored words`} in your notes point to "
+                    {note.title}". They will be unanchored, also in the database, once you save.
+                </p>
+            </TeaModal>
 
             {/* Delete Preset Confirmation Modal */}
             <TeaModal

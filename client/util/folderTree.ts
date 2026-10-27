@@ -32,21 +32,27 @@ const descendantIds = (folders: iFolder[], folderId: string): Set<string> => {
     return found;
 };
 
-// "Work / Projects / 2026", for lists where the nesting has to be readable without indentation
-const folderPath = (folders: iFolder[], folderId: string): string => {
-    const names: string[] = [];
+// The folders a folder sits in, outermost first and ending with the folder itself
+const folderChain = (folders: iFolder[], folderId: string | null | undefined): iFolder[] => {
+    const chain: iFolder[] = [];
     const seen = new Set<string>();
-    for (let id: string | null | undefined = folderId; id && !seen.has(id);) {
+    for (let id = folderId; id && !seen.has(id); ) {
         seen.add(id);
         const folder = folders.find((entry) => entry.id === id);
         if (!folder) {
             break;
         }
-        names.unshift(folder.name);
+        chain.unshift(folder);
         id = folder.parentId;
     }
-    return names.join(' / ');
+    return chain;
 };
+
+// "Work / Projects / 2026", for lists where the nesting has to be readable without indentation
+const folderPath = (folders: iFolder[], folderId: string): string =>
+    folderChain(folders, folderId)
+        .map((folder) => folder.name)
+        .join(' / ');
 
 // Folders without an existing parent move to the top level, and so do folders that are their own ancestors
 const repairFolders = (folders: iFolder[]): iFolder[] => {
@@ -58,4 +64,4 @@ const repairFolders = (folders: iFolder[]): iFolder[] => {
     );
 };
 
-export { descendantIds, folderPath, repairFolders };
+export { descendantIds, folderChain, folderPath, repairFolders };

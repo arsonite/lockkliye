@@ -40,6 +40,7 @@ const getInitialState = (): iNotesState => {
                 ...parsed,
                 lightMode: parsed.lightMode ?? false,
                 selectedSize: parsed.selectedSize ?? 'normal',
+                selectedAnchorId: parsed.selectedAnchorId ?? null,
                 editorWidth: parsed.editorWidth ?? 70,
             };
         } catch {
@@ -216,6 +217,7 @@ const getInitialState = (): iNotesState => {
         formatMode: null,
         selectedColor: FORMAT_COLORS[0],
         selectedSize: 'normal',
+        selectedAnchorId: null,
         lightMode: false,
         editorWidth: 70,
         confirmDeletions: true,
@@ -228,13 +230,40 @@ const getInitialState = (): iNotesState => {
     };
 };
 
-// Imported data may point to folders that are not there, those notes and folders move to the top level
-const withValidFolders = (notes: iNote[], folders: iFolder[]): { notes: iNote[]; folders: iFolder[] } => {
+// Takes the anchor off every word whose anchor note matches, notes with such words count as edited
+const stripAnchors = (notes: iNote[], strip: (anchorId: string) => boolean): iNote[] =>
+    notes.map((note) => {
+        let changed = false;
+        const blocks = note.blocks.map((block) => {
+            if (!block.words.some((word) => word.format.anchor && strip(word.format.anchor))) {
+                return block;
+            }
+            changed = true;
+            return {
+                ...block,
+                words: block.words.map((word) => {
+                    if (!word.format.anchor || !strip(word.format.anchor)) {
+                        return word;
+                    }
+                    const { anchor: _anchor, ...format } = word.format;
+                    return { ...word, format };
+                }),
+            };
+        });
+        return changed ? { ...note, blocks, updatedAt: Date.now() } : note;
+    });
+
+// Imported data may point to folders or anchor notes that are not there, those move to the top level or lose the anchor
+const withValidReferences = (notes: iNote[], folders: iFolder[]): { notes: iNote[]; folders: iFolder[] } => {
     const repaired = repairFolders(folders);
     const ids = new Set(repaired.map((folder) => folder.id));
+    const anchorIds = new Set(notes.filter((note) => note.isAnchor).map((note) => note.id));
     return {
         folders: repaired,
-        notes: notes.map((note) => (note.folderId && !ids.has(note.folderId) ? { ...note, folderId: null } : note)),
+        notes: stripAnchors(
+            notes.map((note) => (note.folderId && !ids.has(note.folderId) ? { ...note, folderId: null } : note)),
+            (anchorId) => !anchorIds.has(anchorId),
+        ),
     };
 };
 
@@ -424,10 +453,14 @@ const useNotesStore = () => {
 
     const deleteNote = useCallback((noteId: string) => {
         setState((prev: iNotesState) => {
-            const newNotes = prev.notes.filter((n: iNote) => n.id !== noteId);
+            const newNotes = stripAnchors(
+                prev.notes.filter((n: iNote) => n.id !== noteId),
+                (anchorId) => anchorId === noteId,
+            );
             return {
                 ...prev,
                 notes: newNotes,
+                selectedAnchorId: prev.selectedAnchorId === noteId ? null : prev.selectedAnchorId,
                 activeNoteId: prev.activeNoteId === noteId
                     ? (newNotes[0]?.id || null)
                     : prev.activeNoteId,
@@ -523,6 +556,36 @@ const useNotesStore = () => {
     const setSelectedSize = useCallback((size: string) => {
         setState((prev: iNotesState) => ({ ...prev, selectedSize: size }));
     }, []);
+
+    const setSelectedAnchor = useCallback((noteId: string | null) => {
+        setState((prev: iNotesState) => ({ ...prev, selectedAnchorId: noteId }));
+    }, []);
+
+    // Taking the anchor off a note also takes it off every word that points to it
+    const setNoteAnchor = useCallback((noteId: string, isAnchor: boolean) => {
+        setState((prev: iNotesState) => ({
+            ...prev,
+            notes: (isAnchor ? prev.notes : stripAnchors(prev.notes, (anchorId) => anchorId === noteId)).map(
+                (n: iNote) => (n.id === noteId ? { ...n, isAnchor } : n),
+            ),
+            selectedAnchorId: !isAnchor && prev.selectedAnchorId === noteId ? null : prev.selectedAnchorId,
+        }));
+    }, []);
+
+    const anchorUsageCount = useCallback(
+        (noteId: string) =>
+            state.notes.reduce(
+                (sum: number, n: iNote) =>
+                    sum +
+                    n.blocks.reduce(
+                        (inNote: number, block: iTextBlock) =>
+                            inNote + block.words.filter((word: iWord) => word.format.anchor === noteId).length,
+                        0,
+                    ),
+                0,
+            ),
+        [state.notes],
+    );
 
     // Light mode toggle
     const setLightMode = useCallback((lightMode: boolean) => {
@@ -718,7 +781,7 @@ const useNotesStore = () => {
                     const newFolders = result.folders.filter((f: iFolder) => !existingFolderIds.has(f.id));
                     newState.folders = [...newFolders, ...prev.folders];
                 }
-                Object.assign(newState, withValidFolders(newState.notes, newState.folders));
+                Object.assign(newState, withValidReferences(newState.notes, newState.folders));
             }
 
             // Handle settings import (settings or legacy format)
@@ -765,7 +828,7 @@ const useNotesStore = () => {
                 const newFolders = result.folders.filter((f: iFolder) => !existingFolderIds.has(f.id));
                 newState.folders = [...newFolders, ...prev.folders];
             }
-            Object.assign(newState, withValidFolders(newState.notes, newState.folders));
+            Object.assign(newState, withValidReferences(newState.notes, newState.folders));
 
             return newState;
         });
@@ -950,6 +1013,9 @@ const useNotesStore = () => {
         toggleFormatMode,
         setSelectedColor,
         setSelectedSize,
+        setSelectedAnchor,
+        setNoteAnchor,
+        anchorUsageCount,
 
         // Light mode
         setLightMode,

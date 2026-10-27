@@ -140,6 +140,66 @@
         width: 100%;
     }
 
+    // The folders the note sits in, above the title
+    &__breadcrumbs {
+        display: flex;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+        color: var(--text-tertiary);
+        font-size: 12px;
+        opacity: 0.85;
+    }
+
+    &__breadcrumb-separator {
+        margin: 0 6px;
+        opacity: 0.6;
+    }
+
+    &__title-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+
+        .note-editor__title,
+        .note-editor__title-input {
+            margin-bottom: 0;
+        }
+
+        .note-editor__title-input {
+            flex: 1;
+        }
+    }
+
+    &__anchor-btn {
+        display: flex;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        color: var(--text-tertiary);
+        cursor: pointer;
+        font-size: 16px;
+        opacity: 0.5;
+        transition: all var(--transition);
+
+        &:hover {
+            background: var(--bg-hover);
+            opacity: 1;
+        }
+
+        &--active {
+            border-color: var(--accent);
+            color: var(--accent);
+            opacity: 1;
+        }
+    }
+
     &__title {
         font-size: 32px;
         font-weight: 700;
@@ -181,7 +241,9 @@
 
     &__date {
         font-size: 13px;
+        font-style: italic;
         color: var(--text-tertiary);
+        opacity: 0.8;
     }
 
     &__content {

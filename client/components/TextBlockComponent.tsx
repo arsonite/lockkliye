@@ -23,6 +23,8 @@ interface iTextBlockComponentProps {
     formatMode: tFormatMode;
     selectedColor: string;
     selectedSize: string;
+    selectedAnchorId?: string | null;
+    onOpenAnchor?: (noteId: string) => void;
     onWordFormatChange: (blockId: string, wordId: string, format: Partial<iWord['format']>) => void;
     onWordsChange: (blockId: string, words: iWord[]) => void;
     onStyleChange: (blockId: string, style: Partial<iTextBlock['style']>) => void;
@@ -38,6 +40,8 @@ export const TextBlockComponent = ({
     formatMode,
     selectedColor,
     selectedSize,
+    selectedAnchorId,
+    onOpenAnchor,
     onWordsChange,
     onStyleChange,
     onDelete,
@@ -141,7 +145,9 @@ export const TextBlockComponent = ({
         }
         const rect = blockRef.current.getBoundingClientRect();
         const nearEdgeThreshold = 15;
-        const isNear = rect.right - e.clientX < nearEdgeThreshold;
+        // Only inside the block: the buttons next to it are outside its right edge
+        const distanceToEdge = rect.right - e.clientX;
+        const isNear = distanceToEdge >= 0 && distanceToEdge < nearEdgeThreshold;
         setIsNearEdge(isNear);
     };
 
@@ -589,6 +595,8 @@ export const TextBlockComponent = ({
                     formatMode={formatMode}
                     selectedColor={selectedColor}
                     selectedSize={selectedSize}
+                    selectedAnchorId={selectedAnchorId}
+                    onOpenAnchor={onOpenAnchor}
                     onWordsChange={(newWords) => onWordsChange(block.id, newWords)}
                     onAddBlockAfter={() => onAddBlockAfter(block.id)}
                     onClearFormatMode={onClearFormatMode}

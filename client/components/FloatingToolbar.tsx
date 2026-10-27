@@ -15,13 +15,16 @@
 
 // Types
 import { useState } from 'react';
-import { FORMAT_COLORS, tFormatMode } from '@/types';
+import { FORMAT_COLORS, iNote, tFormatMode } from '@/types';
 
 interface iFloatingToolbarProps {
     formatMode: tFormatMode;
     selectedColor: string;
     selectedSize: string;
+    anchorNotes: iNote[];
+    selectedAnchorId?: string | null;
 
+    onAnchorChange: (noteId: string) => void;
     onFormatModeChange: (mode: tFormatMode) => void;
     onColorChange: (color: string) => void;
     onSizeChange: (size: string) => void;
@@ -66,11 +69,26 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
     formatMode,
     selectedColor,
     selectedSize: _selectedSize,
+    anchorNotes,
+    selectedAnchorId,
+    onAnchorChange,
     onFormatModeChange,
     onColorChange,
     onSizeChange,
 }) => {
     const [showSizeMenu, setShowSizeMenu] = useState(false);
+
+    // Anchor mode applies the chosen anchor note, so one is picked as soon as the mode starts
+    const toggleAnchorMode = () => {
+        if (formatMode === 'anchor') {
+            onFormatModeChange(null);
+            return;
+        }
+        if (!anchorNotes.some((note) => note.id === selectedAnchorId) && anchorNotes.length > 0) {
+            onAnchorChange(anchorNotes[0].id);
+        }
+        onFormatModeChange('anchor');
+    };
 
     // Check if current format mode is a size mode
     const isSizeMode = SIZE_MODES.includes(formatMode as (typeof SIZE_MODES)[number]);
@@ -105,6 +123,43 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                             </span>
                         </button>
                     ))}
+
+                    {/* Anchor button with the list of anchor notes */}
+                    <div className='floating-toolbar__size-wrapper'>
+                        <button
+                            className={`floating-toolbar__btn ${
+                                formatMode === 'anchor' ? 'floating-toolbar__btn--active' : ''
+                            }`}
+                            onClick={toggleAnchorMode}
+                            onMouseDown={(e) => e.preventDefault()}
+                            title='Anchor: click words to link them to an anchor note (Ctrl+click opens it)'
+                        >
+                            <span className='floating-toolbar__icon'>⚓</span>
+                        </button>
+
+                        {formatMode === 'anchor' && (
+                            <div className='floating-toolbar__size-menu'>
+                                {anchorNotes.length === 0 ? (
+                                    <div className='floating-toolbar__anchor-empty'>
+                                        No anchor notes yet. Mark a note with the ⚓ next to its title.
+                                    </div>
+                                ) : (
+                                    anchorNotes.map((note) => (
+                                        <button
+                                            key={note.id}
+                                            className={`floating-toolbar__size-option ${
+                                                note.id === selectedAnchorId ? 'floating-toolbar__size-option--active' : ''
+                                            }`}
+                                            onClick={() => onAnchorChange(note.id)}
+                                            onMouseDown={(e) => e.preventDefault()}
+                                        >
+                                            {note.title}
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Size button with dropdown */}
                     <div className='floating-toolbar__size-wrapper'>

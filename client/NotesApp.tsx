@@ -102,6 +102,12 @@ const NotesApp: React.FC = () => {
         }
     };
 
+    const handleToggleAnchor = (isAnchor: boolean) => {
+        if (store.activeNoteId) {
+            store.setNoteAnchor(store.activeNoteId, isAnchor);
+        }
+    };
+
     const handleTitleChange = (title: string) => {
         if (store.activeNoteId) {
             store.updateNote(store.activeNoteId, { title });
@@ -153,9 +159,13 @@ const NotesApp: React.FC = () => {
                 {store.activeNote ? (
                     <NoteEditor
                         note={store.activeNote}
+                        folders={store.folders}
+                        anchorNotes={store.notes.filter((note) => note.isAnchor)}
+                        anchorUsage={store.anchorUsageCount(store.activeNote.id)}
                         formatMode={store.formatMode}
                         selectedColor={store.selectedColor}
                         selectedSize={store.selectedSize}
+                        selectedAnchorId={store.selectedAnchorId}
                         editorWidth={store.editorWidth}
                         historyCount={store.historyCount}
                         redoCount={store.redoCount}
@@ -164,6 +174,9 @@ const NotesApp: React.FC = () => {
                         confirmDeletions={store.confirmDeletions}
                         blockPresets={store.blockPresets}
                         onTitleChange={handleTitleChange}
+                        onToggleAnchor={handleToggleAnchor}
+                        onAnchorChange={store.setSelectedAnchor}
+                        onOpenNote={(noteId) => store.notes.some((note) => note.id === noteId) && store.setActiveNote(noteId)}
                         onWordFormatChange={handleWordFormatChange}
                         onWordsChange={handleWordsChange}
                         onBlockStyleChange={handleBlockStyleChange}

@@ -117,6 +117,7 @@ const styleFromRow = (row: tServerRow): iBlockStyle => {
 };
 
 const wordRow = (word: iWord): tRow => ({
+    ...(word.format.anchor ? { anchor: word.format.anchor } : {}),
     bold: word.format.bold ?? false,
     color: word.format.color ?? '',
     font_size: word.format.fontSize ?? '',
@@ -130,6 +131,7 @@ const wordRow = (word: iWord): tRow => ({
 
 const wordFromRow = (row: tServerRow, key: string): iWord => {
     const format: iWordFormat = {};
+    if (row.anchor) format.anchor = text(row.anchor);
     if (row.bold) format.bold = true;
     if (row.color) format.color = text(row.color);
     if (row.font_size) format.fontSize = text(row.font_size) as iWordFormat['fontSize'];
@@ -168,6 +170,7 @@ const noteCollection: iCollection<iNote> = {
     key: (note) => note.id,
     toRow: (note) => ({
         created_ms: note.createdAt,
+        is_anchor: note.isAnchor ?? false,
         pinned: note.pinned ?? false,
         title: note.title,
         updated_ms: note.updatedAt,
@@ -178,6 +181,7 @@ const noteCollection: iCollection<iNote> = {
         title: text(row.title),
         blocks: [],
         folderId: (row.folder as string | undefined) ?? null,
+        isAnchor: row.is_anchor === true,
         pinned: row.pinned as boolean,
         createdAt: row.created_ms as number,
         updatedAt: row.updated_ms as number,
@@ -229,7 +233,7 @@ const wordCollection: iCollection<iWordItem> = {
         position: row.position as number,
         word: wordFromRow(row, key),
     }),
-    relations: { block: 'blocks' },
+    relations: { block: 'blocks', anchor: 'notes' },
 };
 
 const presetCollection: iCollection<iPresetItem> = {
