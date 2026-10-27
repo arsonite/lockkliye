@@ -18,7 +18,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 
 // Components
-import NotesApp from './src/NotesApp';
+import NotesApp from './client/NotesApp';
 
 // Style
 import '@teatype/style/globstyle.scss';
@@ -28,5 +28,5 @@ import '@/style/index.scss';
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <React.StrictMode>
         <NotesApp />
-    </React.StrictMode>
+    </React.StrictMode>,
 );

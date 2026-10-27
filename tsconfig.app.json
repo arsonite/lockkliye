@@ -31,9 +31,9 @@
         "noFallthroughCasesInSwitch": true,
         "noUncheckedSideEffectImports": true,
         "paths": {
-            "@/*": ["./src/*"],
+            "@/*": ["client/*"],
             "@teatype/*": ["../teatype/ts/*"]
         }
     },
-    "include": ["src", "*.tsx", "*.ts", "vite-env.d.ts"]
+    "include": ["client", "*.tsx", "*.ts", "vite-env.d.ts"]
 }
