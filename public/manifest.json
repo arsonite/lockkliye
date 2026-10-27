@@ -1,0 +1,29 @@
+{
+    "background_color": "#CBC1FF",
+    "display": "standalone",
+    "display_override": ["standalone", "window-controls-overlay"],
+    "icons": [
+        {
+            "src": "/public/img/cir.log-logo-app-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/public/img/cir.log-logo-app-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "purpose": "maskable",
+            "sizes": "512x512",
+            "src": "/public/img/cir.log-logo-app-512.png",
+            "type": "image/png"
+        }
+    ],
+    "name": "Cir.Log",
+    "orientation": "landscape",
+    "scope": "/",
+    "short_name": "Cir.Log",
+    "start_url": "/index.html",
+    "theme_color": "#CBC1FF"
+}

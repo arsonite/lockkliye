@@ -21,6 +21,7 @@ import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyl
 
 // Util
 import { createNote, createFolder, createBlock, createWord, FORMAT_COLORS, exportNotesAsText, exportNotesAsJson, exportSettingsAsJson, importFromJson as parseImportJson } from '@/types';
+import { descendantIds, repairFolders } from '@/util/folderTree';
 import { generateRandomNote } from '@/util/randomGenerator';
 import useSync from '@/sync/useSync';
 
@@ -47,8 +48,7 @@ const getInitialState = (): iNotesState => {
     }
 
     // Create default state with sample data
-    const defaultFolder = createFolder('All Notes');
-    const sampleNote = createNote('Welcome to Lockkliye', defaultFolder.id);
+    const sampleNote = createNote('Welcome to Lockkliye');
     sampleNote.blocks = [
         // Title block
         createBlock([
@@ -209,9 +209,9 @@ const getInitialState = (): iNotesState => {
 
     return {
         notes: [sampleNote],
-        folders: [defaultFolder],
+        folders: [],
         activeNoteId: sampleNote.id,
-        activeFolderId: defaultFolder.id,
+        activeFolderId: null,
         sidebarExpanded: true,
         formatMode: null,
         selectedColor: FORMAT_COLORS[0],
@@ -225,6 +225,16 @@ const getInitialState = (): iNotesState => {
             { title: 'Important', borderStyle: 'solid', borderRadius: 4, backgroundGradient: 'linear-gradient(135deg, rgba(255,107,107,0.15) 0%, rgba(255,169,77,0.15) 100%)' },
             { title: 'Info', borderStyle: 'dashed', borderRadius: 8, backgroundColor: 'rgba(116,192,252,0.1)' },
         ],
+    };
+};
+
+// Imported data may point to folders that are not there, those notes and folders move to the top level
+const withValidFolders = (notes: iNote[], folders: iFolder[]): { notes: iNote[]; folders: iFolder[] } => {
+    const repaired = repairFolders(folders);
+    const ids = new Set(repaired.map((folder) => folder.id));
+    return {
+        folders: repaired,
+        notes: notes.map((note) => (note.folderId && !ids.has(note.folderId) ? { ...note, folderId: null } : note)),
     };
 };
 
@@ -390,15 +400,15 @@ const useNotesStore = () => {
     const activeNote = state.notes.find((n: iNote) => n.id === state.activeNoteId) || null;
 
     // Note actions
-    const createNewNote = useCallback((folderId?: string) => {
-        const note = createNote('Untitled', folderId || state.activeFolderId);
+    const createNewNote = useCallback((folderId?: string | null) => {
+        const note = createNote('Untitled', folderId ?? null);
         setState((prev: iNotesState) => ({
             ...prev,
             notes: [note, ...prev.notes],
             activeNoteId: note.id,
         }));
         return note;
-    }, [state.activeFolderId]);
+    }, []);
 
     const updateNote = useCallback((noteId: string, updates: Partial<iNote>) => {
         saveToHistory(noteId, 'Update note');
@@ -433,8 +443,8 @@ const useNotesStore = () => {
     }, []);
 
     // Folder actions
-    const createNewFolder = useCallback((name: string) => {
-        const folder = createFolder(name);
+    const createNewFolder = useCallback((name: string, parentId: string | null = null, color?: string) => {
+        const folder = { ...createFolder(name, parentId), ...(color ? { color } : {}) };
         setState((prev: iNotesState) => ({
             ...prev,
             folders: [...prev.folders, folder],
@@ -443,21 +453,41 @@ const useNotesStore = () => {
     }, []);
 
     const updateFolder = useCallback((folderId: string, updates: Partial<iFolder>) => {
-        setState((prev: iNotesState) => ({
-            ...prev,
-            folders: prev.folders.map((f: iFolder) =>
-                f.id === folderId ? { ...f, ...updates } : f
-            ),
-        }));
+        setState((prev: iNotesState) => {
+            // A folder cannot move into itself or into one of its own subfolders
+            const blocked = updates.parentId
+                ? updates.parentId === folderId || descendantIds(prev.folders, folderId).has(updates.parentId)
+                : false;
+            const { parentId, ...rest } = updates;
+            return {
+                ...prev,
+                folders: prev.folders.map((f: iFolder) =>
+                    f.id === folderId ? { ...f, ...rest, ...(parentId !== undefined && !blocked ? { parentId } : {}) } : f
+                ),
+            };
+        });
     }, []);
 
+    // What is inside a deleted folder moves up to the folder above it
     const deleteFolder = useCallback((folderId: string) => {
+        setState((prev: iNotesState) => {
+            const above = prev.folders.find((f: iFolder) => f.id === folderId)?.parentId ?? null;
+            return {
+                ...prev,
+                folders: prev.folders
+                    .filter((f: iFolder) => f.id !== folderId)
+                    .map((f: iFolder) => (f.parentId === folderId ? { ...f, parentId: above } : f)),
+                notes: prev.notes.map((n: iNote) => (n.folderId === folderId ? { ...n, folderId: above } : n)),
+                activeFolderId: prev.activeFolderId === folderId ? null : prev.activeFolderId,
+            };
+        });
+    }, []);
+
+    // Moving a note is not an edit of its text, so it stays out of the undo history
+    const moveNote = useCallback((noteId: string, folderId: string | null) => {
         setState((prev: iNotesState) => ({
             ...prev,
-            folders: prev.folders.filter((f: iFolder) => f.id !== folderId),
-            notes: prev.notes.map((n: iNote) =>
-                n.folderId === folderId ? { ...n, folderId: null } : n
-            ),
+            notes: prev.notes.map((n: iNote) => (n.id === noteId && n.folderId !== folderId ? { ...n, folderId } : n)),
         }));
     }, []);
 
@@ -688,6 +718,7 @@ const useNotesStore = () => {
                     const newFolders = result.folders.filter((f: iFolder) => !existingFolderIds.has(f.id));
                     newState.folders = [...newFolders, ...prev.folders];
                 }
+                Object.assign(newState, withValidFolders(newState.notes, newState.folders));
             }
 
             // Handle settings import (settings or legacy format)
@@ -734,6 +765,7 @@ const useNotesStore = () => {
                 const newFolders = result.folders.filter((f: iFolder) => !existingFolderIds.has(f.id));
                 newState.folders = [...newFolders, ...prev.folders];
             }
+            Object.assign(newState, withValidFolders(newState.notes, newState.folders));
 
             return newState;
         });
@@ -906,6 +938,7 @@ const useNotesStore = () => {
         createNewFolder,
         updateFolder,
         deleteFolder,
+        moveNote,
         setActiveFolder,
 
         // Sidebar

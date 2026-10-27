@@ -116,6 +116,7 @@ const NotesApp: React.FC = () => {
         >
             <Sidebar
                 notes={store.notes}
+                folders={store.folders}
                 activeNoteId={store.activeNoteId}
                 expanded={store.sidebarExpanded}
                 lightMode={store.lightMode}
@@ -127,8 +128,12 @@ const NotesApp: React.FC = () => {
                 onToggle={store.toggleSidebar}
                 onSave={handleSave}
                 onNoteSelect={store.setActiveNote}
-                onCreateNote={() => store.createNewNote()}
+                onCreateNote={(folderId) => store.createNewNote(folderId)}
                 onDeleteNote={store.deleteNote}
+                onMoveNote={store.moveNote}
+                onCreateFolder={store.createNewFolder}
+                onUpdateFolder={store.updateFolder}
+                onDeleteFolder={store.deleteFolder}
                 onClearAllData={store.clearAllData}
                 onToggleLightMode={store.toggleLightMode}
                 onEditorWidthChange={store.setEditorWidth}

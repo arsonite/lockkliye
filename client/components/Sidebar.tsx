@@ -24,20 +24,24 @@ import {
     TeaSidebarButton,
     TeaSidebarButtonGroup,
     TeaModal,
-    type tSidebarItem,
-    type tSidebarSection,
     type iUseTeaToastReturn,
 } from '@teatype/components';
 
 // Types
-import type { iNote } from '@/types';
+import type { iFolder, iNote } from '@/types';
+import { FORMAT_COLORS } from '@/types';
 import type { tSyncStatus } from '@/sync/useSync';
 
 // Utils
+import { descendantIds, folderPath } from '@/util/folderTree';
 import { generateShortText, generateLongText, generateTitle, copyToClipboard } from '@/util/randomGenerator';
+
+const COLLAPSED_KEY = 'lockkliye-folders-collapsed';
+const FOLDER_COLORS = FORMAT_COLORS.filter((color) => color !== 'inherit');
 
 interface iSidebarProps {
     notes: iNote[];
+    folders: iFolder[];
     activeNoteId: string | null;
     expanded: boolean;
     lightMode: boolean;
@@ -49,8 +53,12 @@ interface iSidebarProps {
     onToggle: () => void;
     onSave: () => void;
     onNoteSelect: (noteId: string) => void;
-    onCreateNote: () => void;
+    onCreateNote: (folderId?: string | null) => void;
     onDeleteNote: (noteId: string) => void;
+    onMoveNote: (noteId: string, folderId: string | null) => void;
+    onCreateFolder: (name: string, parentId: string | null, color?: string) => void;
+    onUpdateFolder: (folderId: string, updates: Partial<iFolder>) => void;
+    onDeleteFolder: (folderId: string) => void;
     onClearAllData: () => void;
     onToggleLightMode: () => void;
     onEditorWidthChange: (width: number) => void;
@@ -66,8 +74,33 @@ interface iSidebarProps {
     toast: iUseTeaToastReturn;
 }
 
+// What is being dragged from the list, notes and folders can both be dropped on a folder
+interface iDragged {
+    type: 'note' | 'folder';
+    id: string;
+}
+
+// The folder dialog creates a folder or edits an existing one
+interface iFolderForm {
+    id: string | null;
+    name: string;
+    color: string;
+    parentId: string | null;
+}
+
+const byName = (a: iFolder, b: iFolder) => a.name.localeCompare(b.name);
+
+const loadCollapsed = (): Set<string> => {
+    try {
+        return new Set(JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '[]'));
+    } catch {
+        return new Set();
+    }
+};
+
 export const Sidebar = ({
     notes,
+    folders,
     activeNoteId,
     expanded,
     lightMode,
@@ -81,6 +114,10 @@ export const Sidebar = ({
     onNoteSelect,
     onCreateNote,
     onDeleteNote,
+    onMoveNote,
+    onCreateFolder,
+    onUpdateFolder,
+    onDeleteFolder,
     onClearAllData,
     onToggleLightMode,
     onEditorWidthChange,
@@ -99,9 +136,21 @@ export const Sidebar = ({
     const [isSettingsClosing, setIsSettingsClosing] = useState(false);
     const [showClearDataModal, setShowClearDataModal] = useState(false);
     const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
+    const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
+    const [folderForm, setFolderForm] = useState<iFolderForm | null>(null);
+    const [moveNoteId, setMoveNoteId] = useState<string | null>(null);
+    const [moveTarget, setMoveTarget] = useState('');
+    const [collapsed, setCollapsed] = useState<Set<string>>(loadCollapsed);
+    const [dropTarget, setDropTarget] = useState<string | null>(null);
+    const dragged = useRef<iDragged | null>(null);
     const notesInputRef = useRef<HTMLInputElement>(null);
     const settingsInputRef = useRef<HTMLInputElement>(null);
     const historyInputRef = useRef<HTMLInputElement>(null);
+
+    // Whether a folder is open is a matter of this browser, so it is not part of the synced data
+    useEffect(() => {
+        localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed]));
+    }, [collapsed]);
 
     // Handle settings toggle with closing animation
     const handleSettingsToggle = () => {
@@ -153,39 +202,267 @@ export const Sidebar = ({
         );
     };
 
-    // Transform notes to sidebar items
-    const noteItems: tSidebarItem[] = notes
-        .sort((a, b) => b.updatedAt - a.updatedAt)
-        .map((note) => ({
-            id: note.id,
-            title: note.title,
-            subtitle: getNotePreview(note),
-            meta: formatDate(note.updatedAt),
-            active: activeNoteId === note.id,
-            icon: dirtyNoteIds.has(note.id) ? <span className='sync-dot' title='Not saved yet (Ctrl+S)' /> : undefined,
-        }));
-
-    const sections: tSidebarSection[] = [
-        {
-            id: 'notes',
-            title: 'All Notes',
-            items: noteItems,
-            count: notes.length,
-        },
-    ];
-
-    const handleItemClick = (_sectionId: string, itemId: string) => {
-        onNoteSelect(itemId);
+    // Folders and notes by the folder they sit in, a missing or unknown parent counts as the top level
+    const folderIds = new Set(folders.map((folder) => folder.id));
+    const parentOf = (folder: iFolder) => (folder.parentId && folderIds.has(folder.parentId) ? folder.parentId : null);
+    const foldersIn = (parentId: string | null) => folders.filter((f) => parentOf(f) === parentId).sort(byName);
+    const sortedNotes = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
+    const notesIn = (folderId: string | null) =>
+        sortedNotes.filter((n) => (n.folderId && folderIds.has(n.folderId) ? n.folderId : null) === folderId);
+    const countNotes = (folderId: string) => {
+        const inside = descendantIds(folders, folderId).add(folderId);
+        return notes.filter((n) => n.folderId && inside.has(n.folderId)).length;
     };
 
-    const handleItemDelete = (_sectionId: string, itemId: string) => {
-        const note = notes.find((n) => n.id === itemId);
-        if (note && confirmDeletions && !isNoteEmpty(note)) {
-            setDeleteNoteId(itemId);
+    // Folders to choose from, "Work / Projects" instead of indentation, without the ones a folder cannot move into
+    const folderOptions = (exclude?: string | null) => {
+        const blocked = exclude ? descendantIds(folders, exclude).add(exclude) : new Set<string>();
+        return folders
+            .filter((folder) => !blocked.has(folder.id))
+            .map((folder) => ({ id: folder.id, label: folderPath(folders, folder.id) }))
+            .sort((a, b) => a.label.localeCompare(b.label));
+    };
+
+    const toggleCollapsed = (folderId: string) =>
+        setCollapsed((previous) => {
+            const next = new Set(previous);
+            if (!next.delete(folderId)) {
+                next.add(folderId);
+            }
+            return next;
+        });
+
+    const submitFolderForm = () => {
+        if (!folderForm || !folderForm.name.trim()) {
+            return;
+        }
+        const name = folderForm.name.trim();
+        if (folderForm.id) {
+            onUpdateFolder(folderForm.id, { name, color: folderForm.color || undefined, parentId: folderForm.parentId });
         } else {
-            onDeleteNote(itemId);
+            onCreateFolder(name, folderForm.parentId, folderForm.color || undefined);
+            // Show the new folder, its parent may be closed
+            setCollapsed((previous) => {
+                const next = new Set(previous);
+                if (folderForm.parentId) {
+                    next.delete(folderForm.parentId);
+                }
+                return next;
+            });
+        }
+        setFolderForm(null);
+    };
+
+    const handleFolderDelete = (folder: iFolder) => {
+        const hasContent = notesIn(folder.id).length > 0 || foldersIn(folder.id).length > 0;
+        if (confirmDeletions && hasContent) {
+            setDeleteFolderId(folder.id);
+        } else {
+            onDeleteFolder(folder.id);
         }
     };
+
+    const handleNoteDelete = (note: iNote) => {
+        if (confirmDeletions && !isNoteEmpty(note)) {
+            setDeleteNoteId(note.id);
+        } else {
+            onDeleteNote(note.id);
+        }
+    };
+
+    // Drag and drop: a note or folder dropped on a folder goes into it, dropped on the free space it goes to the top level
+    const startDrag = (event: React.DragEvent, item: iDragged) => {
+        dragged.current = item;
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', item.id);
+        event.stopPropagation();
+    };
+
+    const dropOn = (event: React.DragEvent, folderId: string | null) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setDropTarget(null);
+        const item = dragged.current;
+        dragged.current = null;
+        if (!item) {
+            return;
+        }
+        if (item.type === 'note') {
+            onMoveNote(item.id, folderId);
+        } else if (item.id !== folderId) {
+            onUpdateFolder(item.id, { parentId: folderId });
+        }
+    };
+
+    const dragOver = (event: React.DragEvent, target: string) => {
+        if (!dragged.current) {
+            return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        setDropTarget(target);
+    };
+
+    const renderNote = (note: iNote, depth: number) => (
+        <div
+            key={note.id}
+            className={`tea-sidebar-item sidebar-row ${activeNoteId === note.id ? 'tea-sidebar-item--active' : ''}`}
+            style={{ paddingLeft: 12 + depth * 16 }}
+            draggable
+            onDragStart={(event) => startDrag(event, { type: 'note', id: note.id })}
+            onDragEnd={() => setDropTarget(null)}
+            onClick={() => onNoteSelect(note.id)}
+            role='button'
+            tabIndex={0}
+            onKeyDown={(event) => event.key === 'Enter' && onNoteSelect(note.id)}
+        >
+            {dirtyNoteIds.has(note.id) && (
+                <span className='tea-sidebar-item__icon'>
+                    <span className='sync-dot' title='Not saved yet (Ctrl+S)' />
+                </span>
+            )}
+            <div className='tea-sidebar-item__content'>
+                <div className='tea-sidebar-item__header'>
+                    <span className='tea-sidebar-item__title'>{note.title}</span>
+                    <span className='sidebar-row__actions'>
+                        {folders.length > 0 && (
+                            <button
+                                className='sidebar-action'
+                                title='Move to folder'
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    setMoveNoteId(note.id);
+                                    setMoveTarget(note.folderId ?? '');
+                                }}
+                            >
+                                ↪
+                            </button>
+                        )}
+                        <button
+                            className='sidebar-action sidebar-action--danger'
+                            title='Delete'
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                handleNoteDelete(note);
+                            }}
+                        >
+                            ×
+                        </button>
+                    </span>
+                </div>
+                <div className='tea-sidebar-item__meta'>
+                    <span className='tea-sidebar-item__date'>{formatDate(note.updatedAt)}</span>
+                    <span className='tea-sidebar-item__subtitle'>{getNotePreview(note)}</span>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderFolder = (folder: iFolder, depth: number): React.ReactNode => {
+        const open = !collapsed.has(folder.id);
+        return (
+            <div key={folder.id} className='folder-node'>
+                <div
+                    className={`tea-sidebar-item sidebar-row folder-row ${
+                        dropTarget === folder.id ? 'folder-row--drop' : ''
+                    }`}
+                    style={{ paddingLeft: 12 + depth * 16 }}
+                    draggable
+                    onDragStart={(event) => startDrag(event, { type: 'folder', id: folder.id })}
+                    onDragEnd={() => setDropTarget(null)}
+                    onDragOver={(event) => dragOver(event, folder.id)}
+                    onDragLeave={() => setDropTarget((current) => (current === folder.id ? null : current))}
+                    onDrop={(event) => dropOn(event, folder.id)}
+                    onClick={() => toggleCollapsed(folder.id)}
+                    role='button'
+                    tabIndex={0}
+                    onKeyDown={(event) => event.key === 'Enter' && toggleCollapsed(folder.id)}
+                >
+                    <span className={`folder-row__chevron ${open ? 'folder-row__chevron--open' : ''}`}>▶</span>
+                    <span className='folder-row__icon'>{open ? '📂' : '📁'}</span>
+                    {folder.color && <span className='folder-row__dot' style={{ background: folder.color }} />}
+                    <span className='tea-sidebar-item__title folder-row__name'>{folder.name}</span>
+                    <span className='folder-row__count'>{countNotes(folder.id)}</span>
+                    <span className='sidebar-row__actions'>
+                        <button
+                            className='sidebar-action'
+                            title='New note in this folder'
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                onCreateNote(folder.id);
+                                setCollapsed((previous) => {
+                                    const next = new Set(previous);
+                                    next.delete(folder.id);
+                                    return next;
+                                });
+                            }}
+                        >
+                            +
+                        </button>
+                        <button
+                            className='sidebar-action'
+                            title='New subfolder'
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setFolderForm({ id: null, name: '', color: '', parentId: folder.id });
+                            }}
+                        >
+                            🗀
+                        </button>
+                        <button
+                            className='sidebar-action'
+                            title='Edit folder'
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setFolderForm({
+                                    id: folder.id,
+                                    name: folder.name,
+                                    color: folder.color ?? '',
+                                    parentId: parentOf(folder),
+                                });
+                            }}
+                        >
+                            ✎
+                        </button>
+                        <button
+                            className='sidebar-action sidebar-action--danger'
+                            title='Delete folder'
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                handleFolderDelete(folder);
+                            }}
+                        >
+                            ×
+                        </button>
+                    </span>
+                </div>
+                {open && (
+                    <>
+                        {foldersIn(folder.id).map((child) => renderFolder(child, depth + 1))}
+                        {notesIn(folder.id).map((note) => renderNote(note, depth + 1))}
+                    </>
+                )}
+            </div>
+        );
+    };
+
+    const tree = (
+        <div
+            className={`folder-tree ${dropTarget === 'root' ? 'folder-tree--drop' : ''}`}
+            onDragOver={(event) => dragOver(event, 'root')}
+            onDragLeave={(event) => event.currentTarget === event.target && setDropTarget(null)}
+            onDrop={(event) => dropOn(event, null)}
+        >
+            {notes.length === 0 && folders.length === 0 ? (
+                <div className='tea-sidebar__empty'>No notes yet. Click + to create one.</div>
+            ) : (
+                <>
+                    {foldersIn(null).map((folder) => renderFolder(folder, 0))}
+                    {notesIn(null).map((note) => renderNote(note, 0))}
+                </>
+            )}
+        </div>
+    );
 
     // Hidden file inputs for import
     const fileInputs = (
@@ -434,6 +711,9 @@ export const Sidebar = ({
         </>
     );
 
+    const deleteFolderName = folders.find((f) => f.id === deleteFolderId)?.name;
+    const moveNote = notes.find((n) => n.id === moveNoteId);
+
     return (
         <>
             <TeaSidebar
@@ -442,19 +722,138 @@ export const Sidebar = ({
                 onToggle={onToggle}
                 headerActions={[
                     {
+                        id: 'new-folder',
+                        label: 'New Folder',
+                        icon: <span className='sidebar-header-icon'>🗀</span>,
+                        onClick: () => setFolderForm({ id: null, name: '', color: '', parentId: null }),
+                        variant: 'secondary',
+                    },
+                    {
                         id: 'new-note',
                         label: 'New Note',
-                        onClick: onCreateNote,
+                        onClick: () => onCreateNote(null),
                         variant: 'primary',
                     },
                 ]}
-                sections={sections}
-                onItemClick={handleItemClick}
-                onItemDelete={handleItemDelete}
-                showItemDelete={true}
                 footer={footer}
-                emptyMessage='No notes yet. Click + to create one.'
-            />
+            >
+                {tree}
+            </TeaSidebar>
+
+            {/* Create / Edit Folder Modal */}
+            <TeaModal
+                isOpen={folderForm !== null}
+                title={folderForm?.id ? 'Edit Folder' : 'New Folder'}
+                onClose={() => setFolderForm(null)}
+                size='sm'
+                footer={
+                    <>
+                        <button className='tea-modal-btn tea-modal-btn--secondary' onClick={() => setFolderForm(null)}>
+                            Cancel
+                        </button>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--primary'
+                            disabled={!folderForm?.name.trim()}
+                            onClick={submitFolderForm}
+                        >
+                            {folderForm?.id ? 'Save' : 'Create'}
+                        </button>
+                    </>
+                }
+            >
+                {folderForm && (
+                    <div className='folder-form'>
+                        <label className='folder-form__label'>
+                            Name
+                            <input
+                                className='folder-form__input'
+                                autoFocus
+                                value={folderForm.name}
+                                onChange={(event) => setFolderForm({ ...folderForm, name: event.target.value })}
+                                onKeyDown={(event) => event.key === 'Enter' && submitFolderForm()}
+                            />
+                        </label>
+                        <label className='folder-form__label'>
+                            Inside
+                            <select
+                                className='folder-form__input'
+                                value={folderForm.parentId ?? ''}
+                                onChange={(event) =>
+                                    setFolderForm({ ...folderForm, parentId: event.target.value || null })
+                                }
+                            >
+                                <option value=''>No folder (top level)</option>
+                                {folderOptions(folderForm.id).map((option) => (
+                                    <option key={option.id} value={option.id}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <div className='folder-form__label'>
+                            Color
+                            <div className='folder-form__colors'>
+                                {['', ...FOLDER_COLORS].map((color) => (
+                                    <button
+                                        key={color || 'none'}
+                                        type='button'
+                                        title={color || 'No color'}
+                                        className={`folder-form__swatch ${
+                                            folderForm.color === color ? 'folder-form__swatch--active' : ''
+                                        } ${color ? '' : 'folder-form__swatch--none'}`}
+                                        style={color ? { background: color } : undefined}
+                                        onClick={() => setFolderForm({ ...folderForm, color })}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </TeaModal>
+
+            {/* Move Note Modal */}
+            <TeaModal
+                isOpen={moveNoteId !== null}
+                title='Move Note'
+                onClose={() => setMoveNoteId(null)}
+                size='sm'
+                footer={
+                    <>
+                        <button className='tea-modal-btn tea-modal-btn--secondary' onClick={() => setMoveNoteId(null)}>
+                            Cancel
+                        </button>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--primary'
+                            onClick={() => {
+                                if (moveNoteId) {
+                                    onMoveNote(moveNoteId, moveTarget || null);
+                                }
+                                setMoveNoteId(null);
+                            }}
+                        >
+                            Move
+                        </button>
+                    </>
+                }
+            >
+                <div className='folder-form'>
+                    <label className='folder-form__label'>
+                        Move "{moveNote?.title}" to
+                        <select
+                            className='folder-form__input'
+                            value={moveTarget}
+                            onChange={(event) => setMoveTarget(event.target.value)}
+                        >
+                            <option value=''>No folder (top level)</option>
+                            {folderOptions().map((option) => (
+                                <option key={option.id} value={option.id}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                </div>
+            </TeaModal>
 
             {/* Clear All Data Confirmation Modal */}
             <TeaModal
@@ -483,6 +882,40 @@ export const Sidebar = ({
                 }
             >
                 <p>Are you sure you want to clear all data? This cannot be undone.</p>
+            </TeaModal>
+
+            {/* Delete Folder Confirmation Modal */}
+            <TeaModal
+                isOpen={deleteFolderId !== null}
+                title='Delete Folder'
+                onClose={() => setDeleteFolderId(null)}
+                size='sm'
+                footer={
+                    <>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--secondary'
+                            onClick={() => setDeleteFolderId(null)}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--danger'
+                            onClick={() => {
+                                if (deleteFolderId) {
+                                    onDeleteFolder(deleteFolderId);
+                                    setDeleteFolderId(null);
+                                }
+                            }}
+                        >
+                            Delete
+                        </button>
+                    </>
+                }
+            >
+                <p>
+                    Delete the folder "{deleteFolderName}"? Its notes and subfolders are not deleted, they move up one
+                    level.
+                </p>
             </TeaModal>
 
             {/* Delete Note Confirmation Modal */}

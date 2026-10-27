@@ -50,10 +50,10 @@ const hashOf = <L extends object>(collection: iCollection<L>, item: L): string =
     return value;
 };
 
-const inChunks = async <T, R>(list: T[], work: (entry: T) => Promise<R>): Promise<R[]> => {
+const inChunks = async <T, R>(list: T[], work: (entry: T) => Promise<R>, size = REQUESTS_AT_ONCE): Promise<R[]> => {
     const results: R[] = [];
-    for (let i = 0; i < list.length; i += REQUESTS_AT_ONCE) {
-        results.push(...(await Promise.all(list.slice(i, i + REQUESTS_AT_ONCE).map(work))));
+    for (let i = 0; i < list.length; i += size) {
+        results.push(...(await Promise.all(list.slice(i, i + size).map(work))));
     }
     return results;
 };
@@ -118,7 +118,8 @@ const syncCollection = async <L extends object>(
     const relations = Object.entries(collection.relations ?? {});
     const parentKeys = new Map<string, Map<string, string>>();
     const toServerId = (parent: string, key: string): string => {
-        const id = parents[parent]?.[key]?.id;
+        // An entity of the own collection (folder in folder) is known as soon as it was saved in this run
+        const id = (parent === collection.name ? nextSynced : parents[parent])?.[key]?.id;
         if (!id) {
             throw new Error(`${parent} "${key}" is not on the server`);
         }
@@ -128,7 +129,12 @@ const syncCollection = async <L extends object>(
         if (!parentKeys.has(parent)) {
             parentKeys.set(
                 parent,
-                new Map(Object.entries(parents[parent] ?? {}).map(([key, known]) => [known.id, key])),
+                new Map(
+                    Object.entries((parent === collection.name ? synced : parents[parent]) ?? {}).map(([key, known]) => [
+                        known.id,
+                        key,
+                    ]),
+                ),
             );
         }
         return parentKeys.get(parent)?.get(id) ?? id;
@@ -177,6 +183,20 @@ const syncCollection = async <L extends object>(
         }
     }
 
+    // A child needs the server id of its parent: entities pointing to their own collection are saved parents first, one by one
+    const selfFields = relations.filter(([, parent]) => parent === collection.name).map(([field]) => field);
+    if (selfFields.length > 0) {
+        const parentOf = new Map(plan.map(({ key, item }) => [key, item ? String(collection.toRow(item)[selfFields[0]] ?? '') : '']));
+        const depthOf = (key: string): number => {
+            let depth = 0;
+            for (let up = parentOf.get(key); up && depth < 100; up = parentOf.get(up)) {
+                depth++;
+            }
+            return depth;
+        };
+        plan.sort((a, b) => depthOf(a.key) - depthOf(b.key));
+    }
+
     const pullIds = plan.filter((entry) => entry.step === 'pull').map((entry) => (remote.get(entry.key) as tServerRow).id);
     const pulledRows = new Map<string, tServerRow>();
     if (pullIds.length > 0) {
@@ -206,7 +226,7 @@ const syncCollection = async <L extends object>(
     let removed = 0;
     let failed = 0;
 
-    const resolved = await inChunks(plan, async ({ key, item, step }): Promise<L | undefined> => {
+    const work = async ({ key, item, step }: tStep<L>): Promise<L | undefined> => {
         if (step === 'keep') {
             return item;
         }
@@ -237,13 +257,18 @@ const syncCollection = async <L extends object>(
         const localItem = item as L;
         const rev = Date.now();
         try {
-            const payload: tRow = { ...collection.toRow(localItem), rev };
+            const payload: tRow & Record<string, string | number | boolean | null> = {
+                ...collection.toRow(localItem),
+                rev,
+            };
+            const row = remote.get(key);
             for (const [field, parent] of relations) {
                 if (field in payload) {
                     payload[field] = toServerId(parent, String(payload[field]));
+                } else if (row) {
+                    payload[field] = null; // A relation that is left out is unset on the server
                 }
             }
-            const row = remote.get(key);
             let id = row?.id;
             if (id) {
                 await collection.api.update(id, payload, { partial: true });
@@ -256,7 +281,9 @@ const syncCollection = async <L extends object>(
             failed++; // Stays dirty, the next save tries again
         }
         return localItem;
-    });
+    };
+
+    const resolved = selfFields.length > 0 ? await inChunks(plan, work, 1) : await inChunks(plan, work);
 
     await inChunks(toDelete, async ([key, row]) => {
         try {
