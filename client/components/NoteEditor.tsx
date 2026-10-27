@@ -23,6 +23,7 @@ import { Flipper, Flipped } from 'react-flip-toolkit';
 import { TeaModal } from '@teatype/components';
 
 // Components
+import AnchorIcon from './AnchorIcon';
 import FloatingToolbar from './FloatingToolbar';
 import { TextBlockComponent } from './TextBlockComponent';
 
@@ -241,7 +242,10 @@ export const NoteEditor = ({
     }, [showPresetMenu]);
 
     const handleTitleSubmit = () => {
-        onTitleChange(titleValue || 'Untitled');
+        // Clicking into the title and out again is no edit
+        if ((titleValue || 'Untitled') !== note.title) {
+            onTitleChange(titleValue || 'Untitled');
+        }
         setIsEditingTitle(false);
     };
 
@@ -328,7 +332,7 @@ export const NoteEditor = ({
                                 : 'Make this note an anchor, so words in other notes can open it'
                         }
                     >
-                        ⚓
+                        <AnchorIcon />
                     </button>
                     </div>
                     <p className='note-editor__date'>Last edited: {formatDate(note.updatedAt)}</p>

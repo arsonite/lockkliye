@@ -15,6 +15,7 @@
 
 // Types
 import { useState } from 'react';
+import AnchorIcon from '@/components/AnchorIcon';
 import { FORMAT_COLORS, iNote, tFormatMode } from '@/types';
 
 interface iFloatingToolbarProps {
@@ -77,9 +78,14 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
     onSizeChange,
 }) => {
     const [showSizeMenu, setShowSizeMenu] = useState(false);
+    const [anchorQuery, setAnchorQuery] = useState('');
+    const matchingAnchors = anchorNotes.filter((note) =>
+        note.title.toLowerCase().includes(anchorQuery.trim().toLowerCase()),
+    );
 
     // Anchor mode applies the chosen anchor note, so one is picked as soon as the mode starts
     const toggleAnchorMode = () => {
+        setAnchorQuery('');
         if (formatMode === 'anchor') {
             onFormatModeChange(null);
             return;
@@ -134,28 +140,53 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                             onMouseDown={(e) => e.preventDefault()}
                             title='Anchor: click words to link them to an anchor note (Ctrl+click opens it)'
                         >
-                            <span className='floating-toolbar__icon'>⚓</span>
+                            <span className='floating-toolbar__icon'>
+                                <AnchorIcon />
+                            </span>
                         </button>
 
                         {formatMode === 'anchor' && (
-                            <div className='floating-toolbar__size-menu'>
+                            <div className='floating-toolbar__size-menu floating-toolbar__anchor-menu'>
                                 {anchorNotes.length === 0 ? (
                                     <div className='floating-toolbar__anchor-empty'>
-                                        No anchor notes yet. Mark a note with the ⚓ next to its title.
+                                        No anchor notes yet. Use the bookmark button next to a note title.
                                     </div>
                                 ) : (
-                                    anchorNotes.map((note) => (
-                                        <button
-                                            key={note.id}
-                                            className={`floating-toolbar__size-option ${
-                                                note.id === selectedAnchorId ? 'floating-toolbar__size-option--active' : ''
-                                            }`}
-                                            onClick={() => onAnchorChange(note.id)}
-                                            onMouseDown={(e) => e.preventDefault()}
-                                        >
-                                            {note.title}
-                                        </button>
-                                    ))
+                                    <>
+                                        <input
+                                            className='floating-toolbar__anchor-search'
+                                            type='search'
+                                            placeholder='Search anchors...'
+                                            value={anchorQuery}
+                                            onChange={(e) => setAnchorQuery(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && matchingAnchors.length > 0) {
+                                                    onAnchorChange(matchingAnchors[0].id);
+                                                }
+                                            }}
+                                            autoFocus
+                                        />
+                                        <div className='floating-toolbar__anchor-list'>
+                                            {matchingAnchors.length === 0 ? (
+                                                <div className='floating-toolbar__anchor-empty'>No match</div>
+                                            ) : (
+                                                matchingAnchors.map((note) => (
+                                                    <button
+                                                        key={note.id}
+                                                        className={`floating-toolbar__size-option ${
+                                                            note.id === selectedAnchorId
+                                                                ? 'floating-toolbar__size-option--active'
+                                                                : ''
+                                                        }`}
+                                                        onClick={() => onAnchorChange(note.id)}
+                                                        onMouseDown={(e) => e.preventDefault()}
+                                                    >
+                                                        {note.title}
+                                                    </button>
+                                                ))
+                                            )}
+                                        </div>
+                                    </>
                                 )}
                             </div>
                         )}

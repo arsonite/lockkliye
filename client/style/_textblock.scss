@@ -46,16 +46,15 @@
         cursor: ew-resize;
     }
 
-    // Top right, next to the block instead of inside it. The buttons are children of the block and the
-    // padding closes the gap to it, so the hover continues while the mouse is on them.
+    // Left of the block in the gutter, right next to the drag handle. The padding closes the gap to the handle.
     &__controls {
         position: absolute;
-        top: 0;
-        left: 100%;
+        top: 16px;
+        left: -52px;
         display: flex;
         flex-direction: column;
         gap: 4px;
-        padding-left: 8px;
+        padding-right: 4px;
         opacity: 0;
         transition: opacity var(--transition);
         z-index: 10;
@@ -67,14 +66,14 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 24px;
-        height: 24px;
+        width: 20px;
+        height: 20px;
         background: var(--bg-tertiary);
         border: none;
         border-radius: var(--radius-sm);
         color: var(--text-secondary);
         cursor: pointer;
-        font-size: 12px;
+        font-size: 11px;
         transition: all var(--transition);
 
         // opacity: 0.9;
@@ -92,7 +91,7 @@
 
     &__style-menu {
         position: absolute;
-        right: 8px;
+        left: 8px;
         top: 32px;
         margin-top: 8px;
         min-width: 200px;

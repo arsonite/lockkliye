@@ -32,6 +32,9 @@ import type { iFolder, iNote } from '@/types';
 import { FORMAT_COLORS } from '@/types';
 import type { tSyncStatus } from '@/sync/useSync';
 
+// Components
+import AnchorIcon from '@/components/AnchorIcon';
+
 // Utils
 import { descendantIds, folderPath } from '@/util/folderTree';
 import { generateShortText, generateLongText, generateTitle, copyToClipboard } from '@/util/randomGenerator';
@@ -408,7 +411,7 @@ export const Sidebar = ({
                     <span className='tea-sidebar-item__title'>
                         {note.isAnchor && (
                             <span className='sidebar-row__anchor' title='Anchor note'>
-                                ⚓
+                                <AnchorIcon size={12} />
                             </span>
                         )}
                         {note.title}

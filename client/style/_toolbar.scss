@@ -161,6 +161,34 @@
         overflow: hidden;
     }
 
+    &__anchor-menu {
+        min-width: 220px;
+    }
+
+    &__anchor-search {
+        width: 100%;
+        padding: 7px 10px;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 13px;
+
+        &:focus {
+            border-color: var(--accent);
+            outline: none;
+        }
+    }
+
+    &__anchor-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+
     &__anchor-empty {
         max-width: 200px;
         padding: 8px 12px;

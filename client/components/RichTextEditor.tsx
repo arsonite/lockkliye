@@ -67,6 +67,7 @@ const getWordStyle = (format: iWordFormat): React.CSSProperties => {
         style.textDecoration = (style.textDecoration || '') + ' underline';
         style.textDecorationColor = 'var(--accent)';
         style.textUnderlineOffset = '3px';
+        style.cursor = 'pointer';
     }
 
     switch (format.fontSize) {

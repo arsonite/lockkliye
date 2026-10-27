@@ -129,8 +129,9 @@
 }
 
 .sidebar-row__anchor {
+    display: inline-flex;
     margin-right: 4px;
-    font-size: 0.75em;
+    vertical-align: -1px;
     opacity: 0.7;
 }
 

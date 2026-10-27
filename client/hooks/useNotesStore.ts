@@ -230,6 +230,15 @@ const getInitialState = (): iNotesState => {
     };
 };
 
+const sameFormat = (a: iWord['format'], b: iWord['format']): boolean => {
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]) as Set<keyof iWord['format']>;
+    return [...keys].every((key) => a[key] === b[key]);
+};
+
+// Same text and formatting, the ids do not matter
+const sameWords = (a: iWord[], b: iWord[]): boolean =>
+    a.length === b.length && a.every((word, i) => word.text === b[i].text && sameFormat(word.format, b[i].format));
+
 // Takes the anchor off every word whose anchor note matches, notes with such words count as edited
 const stripAnchors = (notes: iNote[], strip: (anchorId: string) => boolean): iNote[] =>
     notes.map((note) => {
@@ -672,6 +681,8 @@ const useNotesStore = () => {
     }, [saveToHistory]);
 
     const updateBlockStyle = useCallback((noteId: string, blockId: string, style: Partial<iBlockStyle>) => {
+        const current = state.notes.find((n: iNote) => n.id === noteId)?.blocks.find((b: iTextBlock) => b.id === blockId);
+        if (current && Object.entries(style).every(([key, value]) => current.style[key as keyof iBlockStyle] === value)) return;
         saveToHistory(noteId, 'Update block style');
         setState((prev: iNotesState) => ({
             ...prev,
@@ -688,7 +699,7 @@ const useNotesStore = () => {
                 };
             }),
         }));
-    }, [saveToHistory]);
+    }, [saveToHistory, state.notes]);
 
     const deleteBlock = useCallback((noteId: string, blockId: string) => {
         saveToHistory(noteId, 'Delete block');
@@ -723,6 +734,9 @@ const useNotesStore = () => {
 
     // Update words in a block (for typing)
     const setBlockWords = useCallback((noteId: string, blockId: string, words: iWord[]) => {
+        // Clicking around a note reports its text again, that is no edit and no undo step
+        const current = state.notes.find((n: iNote) => n.id === noteId)?.blocks.find((b: iTextBlock) => b.id === blockId);
+        if (current && sameWords(current.words, words)) return;
         saveToHistory(noteId, 'Edit text');
         setState((prev: iNotesState) => ({
             ...prev,
@@ -737,7 +751,7 @@ const useNotesStore = () => {
                 };
             }),
         }));
-    }, [saveToHistory]);
+    }, [saveToHistory, state.notes]);
 
     // Export functions
     const exportAsText = useCallback(() => {
