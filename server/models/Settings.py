@@ -13,11 +13,11 @@
 # Third-party imports
 from teatype.db.hsdb.core import HSDBAttribute, HSDBModel
 
+# There is one row, its id is "main"
 class Settings(HSDBModel):
-    client_id         = HSDBAttribute(str, required=True, indexed=True, description='Always "main", there is one settings row')
-    rev               = HSDBAttribute(int, required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
+    rev               = HSDBAttribute(int,  required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
     light_mode        = HSDBAttribute(bool, required=True)
     sidebar_expanded  = HSDBAttribute(bool, required=True)
-    editor_width      = HSDBAttribute(int, required=True)
+    editor_width      = HSDBAttribute(int,  required=True)
     confirm_deletions = HSDBAttribute(bool, required=True)
-    block_presets     = HSDBAttribute(str, required=True, description='JSON array of saved block styles')
+    block_presets     = HSDBAttribute(str,  required=True, description='JSON array of saved block styles')

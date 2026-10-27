@@ -19,6 +19,9 @@ import type { Dispatch, SetStateAction } from 'react';
 
 // Sync
 import {
+    assembleNotes,
+    blockCollection,
+    blockItemsOf,
     folderCollection,
     historyCollection,
     noteCollection,
@@ -32,11 +35,14 @@ import { findDirty, hashOf, syncCollection, type tSeed, type tSynced } from '@/s
 import type { iHistoryEntry, iNotesState } from '@/types';
 
 const META_KEY = 'lockkliye-sync';
-const COLLECTIONS = ['folders', 'notes', 'settings', 'history'] as const;
+// Bump when the row format changes: an older meta would otherwise make unchanged-looking entities count as deleted on the server
+const META_VERSION = 2;
+const COLLECTIONS = ['folders', 'notes', 'blocks', 'settings', 'history'] as const;
 
 type tSyncStatus = 'idle' | 'syncing' | 'offline';
 
 interface iSyncMeta {
+    version: number;
     synced: Record<string, tSynced>;
     seed: Record<string, tSeed>;
 }
@@ -70,6 +76,7 @@ const settingsOf = (state: iNotesState): iSettingsItem => ({
 });
 
 const emptyMeta = (): iSyncMeta => ({
+    version: META_VERSION,
     synced: Object.fromEntries(COLLECTIONS.map((name) => [name, {}])),
     seed: Object.fromEntries(COLLECTIONS.map((name) => [name, {}])),
 });
@@ -78,7 +85,10 @@ const loadMeta = (state: iNotesState, freshInstall: boolean): iSyncMeta => {
     const stored = localStorage.getItem(META_KEY);
     if (stored) {
         try {
-            return JSON.parse(stored);
+            const parsed = JSON.parse(stored);
+            if (parsed.version === META_VERSION) {
+                return parsed;
+            }
         } catch {
             // Fall through to a fresh meta
         }
@@ -91,6 +101,9 @@ const loadMeta = (state: iNotesState, freshInstall: boolean): iSyncMeta => {
         }
         for (const note of state.notes) {
             meta.seed.notes[note.id] = hashOf(noteCollection, note);
+        }
+        for (const item of blockItemsOf(state.notes)) {
+            meta.seed.blocks[item.block.id] = hashOf(blockCollection, item);
         }
         meta.seed.settings.main = hashOf(settingsCollection, settingsOf(state));
     }
@@ -183,12 +196,18 @@ const useSync = ({ state, history, historyLimit, freshInstall, setState, setHist
                     );
                 const folders = await run(folderCollection, snapshot.folders);
                 const notes = await run(noteCollection, snapshot.notes);
+                const blocks = await run(blockCollection, blockItemsOf(snapshot.notes));
                 const settingsResult = await run(settingsCollection, [snapshotSettings]);
                 const historyResult = await run(historyCollection, snapshotHistory);
-                const results = [folders, notes, settingsResult, historyResult];
+                const results = [folders, notes, blocks, settingsResult, historyResult];
+
+                const syncedNotes = assembleNotes(notes.items, blocks.items);
+                // Notes the sync removed (deleted elsewhere), their history entries have nothing left to point to
+                const removedNoteIds = new Set(snapshot.notes.map((note) => note.id));
+                syncedNotes.forEach((note) => removedNoteIds.delete(note.id));
 
                 setState((current) => {
-                    const mergedNotes = mergeItems(noteCollection, current.notes, snapshot.notes, notes.items);
+                    const mergedNotes = mergeItems(noteCollection, current.notes, snapshot.notes, syncedNotes);
                     const mergedFolders = mergeItems(folderCollection, current.folders, snapshot.folders, folders.items);
                     // Only overwrite the settings if they were not changed while saving
                     const settingsUntouched =
@@ -208,12 +227,13 @@ const useSync = ({ state, history, historyLimit, freshInstall, setState, setHist
                 });
                 setHistory((current) =>
                     mergeItems(historyCollection, current, snapshotHistory, historyResult.items)
+                        .filter((entry) => !removedNoteIds.has(entry.noteId))
                         .sort((a, b) => a.timestamp - b.timestamp)
                         .slice(-historyLimit),
                 );
 
                 const nextMeta = emptyMeta();
-                [folderCollection, noteCollection, settingsCollection, historyCollection].forEach((collection, index) => {
+                [folderCollection, noteCollection, blockCollection, settingsCollection, historyCollection].forEach((collection, index) => {
                     nextMeta.synced[collection.name] = results[index].synced;
                     // A placeholder that is synced (or gone) is no placeholder anymore
                     nextMeta.seed[collection.name] = Object.fromEntries(

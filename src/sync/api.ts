@@ -24,6 +24,10 @@ HSDBBaseAPI.configure({
     timeout: 8000,
 });
 
+class BlockAPI extends HSDBBaseAPI {
+    static resource = 'Block';
+}
+
 class FolderAPI extends HSDBBaseAPI {
     static resource = 'Folder';
 }
@@ -40,4 +44,4 @@ class SettingsAPI extends HSDBBaseAPI {
     static resource = 'Settings';
 }
 
-export { FolderAPI, NoteAPI, NoteHistoryAPI, SettingsAPI };
+export { BlockAPI, FolderAPI, NoteAPI, NoteHistoryAPI, SettingsAPI };

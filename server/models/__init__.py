@@ -11,6 +11,7 @@
 # all copies or substantial portions of the Software.
 
 # Local imports
+from .Block import Block
 from .Folder import Folder
 from .Note import Note
 from .NoteHistory import NoteHistory

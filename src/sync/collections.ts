@@ -17,22 +17,31 @@
 import type { HSDBBaseAPI, HSDBEntity } from '@teatype/api';
 
 // Sync
-import { FolderAPI, NoteAPI, NoteHistoryAPI, SettingsAPI } from '@/sync/api';
+import { BlockAPI, FolderAPI, NoteAPI, NoteHistoryAPI, SettingsAPI } from '@/sync/api';
 
 // Types
-import type { iBlockStyle, iFolder, iHistoryEntry, iNote } from '@/types';
+import { createBlock, createWord } from '@/types';
+import type { iBlockStyle, iFolder, iHistoryEntry, iNote, iTextBlock } from '@/types';
 
 type tRow = Record<string, string | number | boolean>;
-type tServerRow = HSDBEntity & { client_id: string; rev: number } & Record<string, unknown>;
+type tServerRow = HSDBEntity & { rev: number } & Record<string, unknown>;
 
-// Maps one local entity type to one HSDB model. toRow() must produce the same key order every time,
-// its JSON is what decides whether an entity changed since the last sync (server fields and rev excluded)
+// Maps one local entity type to one HSDB model. The key is also the entry id on the server.
+// toRow() must produce the same key order every time: its JSON decides whether an entity changed
+// since the last sync, so it contains neither the id nor the rev. Relation fields hold the id of the related entry.
 interface iCollection<L extends object> {
     name: string;
     api: typeof HSDBBaseAPI;
     key: (item: L) => string;
     toRow: (item: L) => tRow;
     fromRow: (row: tServerRow) => L;
+}
+
+// A block together with the note it belongs to, blocks are their own model pointing to the note
+interface iBlockItem {
+    noteId: string;
+    position: number;
+    block: iTextBlock;
 }
 
 // The app settings are one row, 'main'
@@ -49,14 +58,13 @@ const folderCollection: iCollection<iFolder> = {
     api: FolderAPI,
     key: (folder) => folder.id,
     toRow: (folder) => ({
-        client_id: folder.id,
         name: folder.name,
         icon: folder.icon ?? '',
         color: folder.color ?? '',
         expanded: folder.expanded ?? true,
     }),
     fromRow: (row) => ({
-        id: row.client_id,
+        id: row.id,
         name: row.name as string,
         icon: (row.icon as string) || undefined,
         color: (row.color as string) || undefined,
@@ -64,27 +72,47 @@ const folderCollection: iCollection<iFolder> = {
     }),
 };
 
+// Without its blocks, those are synced through blockCollection
 const noteCollection: iCollection<iNote> = {
     name: 'notes',
     api: NoteAPI,
     key: (note) => note.id,
     toRow: (note) => ({
-        client_id: note.id,
         title: note.title,
-        blocks: JSON.stringify(note.blocks),
-        folder_id: note.folderId ?? '',
         pinned: note.pinned ?? false,
         created_ms: note.createdAt,
         updated_ms: note.updatedAt,
+        ...(note.folderId ? { folder: note.folderId } : {}),
     }),
     fromRow: (row) => ({
-        id: row.client_id,
+        id: row.id,
         title: row.title as string,
-        blocks: JSON.parse(row.blocks as string),
-        folderId: (row.folder_id as string) || null,
+        blocks: [],
+        folderId: (row.folder as string | undefined) ?? null,
         pinned: row.pinned as boolean,
         createdAt: row.created_ms as number,
         updatedAt: row.updated_ms as number,
+    }),
+};
+
+const blockCollection: iCollection<iBlockItem> = {
+    name: 'blocks',
+    api: BlockAPI,
+    key: (item) => item.block.id,
+    toRow: (item) => ({
+        position: item.position,
+        words: JSON.stringify(item.block.words),
+        style: JSON.stringify(item.block.style),
+        note: item.noteId,
+    }),
+    fromRow: (row) => ({
+        noteId: row.note as string,
+        position: row.position as number,
+        block: {
+            id: row.id,
+            words: JSON.parse(row.words as string),
+            style: JSON.parse(row.style as string),
+        },
     }),
 };
 
@@ -93,7 +121,6 @@ const settingsCollection: iCollection<iSettingsItem> = {
     api: SettingsAPI,
     key: () => 'main',
     toRow: (settings) => ({
-        client_id: 'main',
         light_mode: settings.lightMode,
         sidebar_expanded: settings.sidebarExpanded,
         editor_width: settings.editorWidth,
@@ -112,21 +139,56 @@ const settingsCollection: iCollection<iSettingsItem> = {
 const historyCollection: iCollection<iHistoryEntry> = {
     name: 'history',
     api: NoteHistoryAPI,
-    key: (entry) => `${entry.noteId}:${entry.timestamp}`,
+    key: (entry) => `${entry.noteId}_${entry.timestamp}`,
     toRow: (entry) => ({
-        client_id: `${entry.noteId}:${entry.timestamp}`,
-        note_id: entry.noteId,
         timestamp: entry.timestamp,
         description: entry.description,
         snapshot: JSON.stringify(entry.note),
+        note: entry.noteId,
     }),
     fromRow: (row) => ({
-        noteId: row.note_id as string,
+        noteId: row.note as string,
         note: JSON.parse(row.snapshot as string),
         timestamp: row.timestamp as number,
         description: row.description as string,
     }),
 };
 
-export type { iCollection, iSettingsItem, tRow, tServerRow };
-export { folderCollection, historyCollection, noteCollection, settingsCollection };
+// Block items are cached per block so that unchanged blocks keep their identity, which keeps their hash cached
+const blockItemCache = new WeakMap<iTextBlock, iBlockItem>();
+
+const blockItemsOf = (notes: iNote[]): iBlockItem[] =>
+    notes.flatMap((note) =>
+        note.blocks.map((block, position) => {
+            const cached = blockItemCache.get(block);
+            if (cached && cached.noteId === note.id && cached.position === position) {
+                return cached;
+            }
+            const item = { noteId: note.id, position, block };
+            blockItemCache.set(block, item);
+            return item;
+        }),
+    );
+
+// Notes from the note collection carry no blocks, put them (back) together from the block items
+const assembleNotes = (notes: iNote[], blocks: iBlockItem[]): iNote[] => {
+    const byNote = new Map<string, iBlockItem[]>();
+    for (const item of blocks) {
+        byNote.set(item.noteId, [...(byNote.get(item.noteId) ?? []), item]);
+    }
+    return notes.map((note) => {
+        const items = (byNote.get(note.id) ?? []).sort((a, b) => a.position - b.position);
+        return { ...note, blocks: items.length > 0 ? items.map((item) => item.block) : [createBlock([createWord('')])] };
+    });
+};
+
+export type { iBlockItem, iCollection, iSettingsItem, tRow, tServerRow };
+export {
+    assembleNotes,
+    blockCollection,
+    blockItemsOf,
+    folderCollection,
+    historyCollection,
+    noteCollection,
+    settingsCollection,
+};
