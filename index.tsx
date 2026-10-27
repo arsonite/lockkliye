@@ -30,3 +30,8 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
         <NotesApp />
     </React.StrictMode>,
 );
+
+// Lets the browser start the app without a connection, only in a build: a dev server is not meant to be cached
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+    window.addEventListener('load', () => void navigator.serviceWorker.register('/sw.js'));
+}

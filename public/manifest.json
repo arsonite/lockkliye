@@ -1,29 +1,32 @@
 {
-    "background_color": "#CBC1FF",
+    "background_color": "#0a0a0b",
+    "description": "Rich text notes that work offline and sync to your own server",
     "display": "standalone",
-    "display_override": ["standalone", "window-controls-overlay"],
     "icons": [
         {
-            "src": "/public/img/cir.log-logo-app-192.png",
+            "purpose": "any",
             "sizes": "192x192",
+            "src": "/icons/icon-192.png",
             "type": "image/png"
         },
         {
-            "src": "/public/img/cir.log-logo-app-512.png",
+            "purpose": "any",
             "sizes": "512x512",
+            "src": "/icons/icon-512.png",
             "type": "image/png"
         },
         {
             "purpose": "maskable",
             "sizes": "512x512",
-            "src": "/public/img/cir.log-logo-app-512.png",
+            "src": "/icons/icon-maskable-512.png",
             "type": "image/png"
         }
     ],
-    "name": "Cir.Log",
-    "orientation": "landscape",
+    "id": "/",
+    "name": "Lockkliye",
+    "orientation": "any",
     "scope": "/",
-    "short_name": "Cir.Log",
-    "start_url": "/index.html",
-    "theme_color": "#CBC1FF"
+    "short_name": "Lockkliye",
+    "start_url": "/",
+    "theme_color": "#0a0a0b"
 }

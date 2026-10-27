@@ -24,23 +24,24 @@ import LinkModal from '@/components/LinkModal';
 import { createWord, iWord, iWordFormat, tFormatMode } from '@/types';
 
 interface iRichTextEditorProps {
-    words: iWord[];
     formatMode: tFormatMode;
+    placeholder?: string;
     selectedColor: string;
     selectedSize: string;
+    words: iWord[];
+
     onWordsChange: (words: iWord[]) => void;
     onAddBlockAfter: () => void;
     onClearFormatMode?: () => void;
-    placeholder?: string;
 }
 
 // Link modal state
 interface iLinkModalState {
-    isOpen: boolean;
-    wordId: string | null;
     currentLink?: string;
-    wordText: string;
+    isOpen: boolean;
     position: { x: number; y: number };
+    wordId: string | null;
+    wordText: string;
 }
 
 // Generate inline styles from word format
