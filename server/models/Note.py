@@ -18,9 +18,9 @@ from .Folder import Folder
 
 # The text itself lives in Block entries that point back to the note
 class Note(HSDBModel):
+    created_ms = HSDBAttribute(int,  required=True)
+    folder     = HSDBRelation.ManyToOne(Folder) # Optional, left out for a note without folder
+    pinned     = HSDBAttribute(bool, required=True)
     rev        = HSDBAttribute(int,  required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
     title      = HSDBAttribute(str,  required=True)
-    pinned     = HSDBAttribute(bool, required=True)
-    created_ms = HSDBAttribute(int,  required=True)
     updated_ms = HSDBAttribute(int,  required=True)
-    folder     = HSDBRelation.ManyToOne(Folder) # Optional, left out for a note without folder

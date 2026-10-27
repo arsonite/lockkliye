@@ -15,9 +15,9 @@ from teatype.db.hsdb.core import HSDBAttribute, HSDBModel
 
 # There is one row, its id is "main"
 class Settings(HSDBModel):
-    rev               = HSDBAttribute(int,  required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
-    light_mode        = HSDBAttribute(bool, required=True)
-    sidebar_expanded  = HSDBAttribute(bool, required=True)
-    editor_width      = HSDBAttribute(int,  required=True)
-    confirm_deletions = HSDBAttribute(bool, required=True)
     block_presets     = HSDBAttribute(str,  required=True, description='JSON array of saved block styles')
+    confirm_deletions = HSDBAttribute(bool, required=True)
+    editor_width      = HSDBAttribute(int,  required=True)
+    light_mode        = HSDBAttribute(bool, required=True)
+    rev               = HSDBAttribute(int,  required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
+    sidebar_expanded  = HSDBAttribute(bool, required=True)

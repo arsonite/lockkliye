@@ -15,8 +15,8 @@ from teatype.db.hsdb.core import HSDBAttribute, HSDBModel
 
 # The entry id is the id the browser generated, there is no separate client id
 class Folder(HSDBModel):
-    rev      = HSDBAttribute(int,  required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
-    name     = HSDBAttribute(str,  required=True)
-    icon     = HSDBAttribute(str,  required=True)
     color    = HSDBAttribute(str,  required=True)
     expanded = HSDBAttribute(bool, required=True)
+    icon     = HSDBAttribute(str,  required=True)
+    name     = HSDBAttribute(str,  required=True)
+    rev      = HSDBAttribute(int,  required=True, description='Save timestamp (ms), changes whenever the row is written by a client')

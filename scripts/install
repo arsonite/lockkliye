@@ -15,13 +15,30 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEATYPE_ROOT="$(cd "$SCRIPT_DIR/../../teatype" && pwd)"
 # The pnpm workspace root lives in teatype/ts, installing from here would not resolve workspace:* deps
-WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../../teatype/ts" && pwd)"
+WORKSPACE_ROOT="$TEATYPE_ROOT/ts"
+# The backend (lockkliye_server.py, scripts/launch-server) runs in the teatype venv
+VENV="$TEATYPE_ROOT/teatype-venv"
+PYTHON="${PYTHON:-python3.13}"
 
 if ! command -v pnpm &> /dev/null; then
     echo "Error: pnpm not found. Install it first (e.g. 'corepack enable')"
     exit 1
 fi
 
-cd "$WORKSPACE_ROOT"
-pnpm install
+if [ ! -x "$VENV/bin/python" ]; then
+    if ! command -v "$PYTHON" &> /dev/null; then
+        echo "Error: $PYTHON not found. Install it or run with PYTHON=<interpreter>"
+        exit 1
+    fi
+    "$PYTHON" -m venv "$VENV"
+fi
+
+echo "Installing frontend dependencies ..."
+(cd "$WORKSPACE_ROOT" && pnpm install)
+
+echo "Installing backend dependencies ..."
+# Editable teatype brings its own requirements, FastAPI and uvicorn serve the HSDB unit and are pinned in the fastapi extras
+"$VENV/bin/pip" install -e "$TEATYPE_ROOT/py"
+grep -E '^(fastapi|uvicorn)==' "$TEATYPE_ROOT/py/requirements/fastapi-support.txt" | xargs "$VENV/bin/pip" install

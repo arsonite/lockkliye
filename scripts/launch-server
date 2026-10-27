@@ -21,8 +21,7 @@ class LaunchServer(BaseStartCLI):
     def pre_execute(self):
         self.process_name = 'lockkliye_server'
         # The HSDB unit needs fastapi and uvicorn, which the teatype venv provides
-        venv_python = path.join(self.parent_path, '..', '..', 'teatype', 'teatype-venv', 'bin', 'python')
-        self.start_command = f'{venv_python} {self.process_name}.py'
+        self.start_command = f'python3 {path.caller_parent(reverse_depth=2)}/{self.process_name}.py'
 
 if __name__ == '__main__':
     LaunchServer()

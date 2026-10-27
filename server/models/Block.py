@@ -17,8 +17,8 @@ from teatype.db.hsdb.core import HSDBAttribute, HSDBModel, HSDBRelation
 from .Note import Note
 
 class Block(HSDBModel):
-    rev      = HSDBAttribute(int, required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
-    position = HSDBAttribute(int, required=True, description='Index of the block within its note')
-    words    = HSDBAttribute(str, required=True, description='JSON array of words with their formatting')
-    style    = HSDBAttribute(str, required=True, description='JSON object with the block style (border, background, ...)')
     note     = HSDBRelation.ManyToOne(Note, required=True)
+    position = HSDBAttribute(int, required=True, description='Index of the block within its note')
+    rev      = HSDBAttribute(int, required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
+    style    = HSDBAttribute(str, required=True, description='JSON object with the block style (border, background, ...)')
+    words    = HSDBAttribute(str, required=True, description='JSON array of words with their formatting')

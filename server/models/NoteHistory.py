@@ -18,8 +18,8 @@ from .Note import Note
 
 # The entry id is <note id>_<timestamp>
 class NoteHistory(HSDBModel):
-    rev         = HSDBAttribute(int, required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
-    timestamp   = HSDBAttribute(int, required=True)
     description = HSDBAttribute(str, required=True)
-    snapshot    = HSDBAttribute(str, required=True, description='JSON of the whole note before the change, for undo')
     note        = HSDBRelation.ManyToOne(Note, required=True)
+    rev         = HSDBAttribute(int, required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
+    snapshot    = HSDBAttribute(str, required=True, description='JSON of the whole note before the change, for undo')
+    timestamp   = HSDBAttribute(int, required=True)
