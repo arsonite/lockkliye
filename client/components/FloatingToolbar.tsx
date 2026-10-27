@@ -16,7 +16,7 @@
 // Types
 import { useState } from 'react';
 import AnchorIcon from '@/components/AnchorIcon';
-import { FORMAT_COLORS, iNote, tFormatMode } from '@/types';
+import { FORMAT_COLORS, HYPERLINKS_ENABLED, iNote, tFormatMode } from '@/types';
 
 interface iFloatingToolbarProps {
     formatMode: tFormatMode;
@@ -103,7 +103,7 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
         <div className='floating-toolbar'>
             <div className='floating-toolbar__inner'>
                 <div className='floating-toolbar__tools'>
-                    {tools.map((tool) => (
+                    {tools.filter((tool) => HYPERLINKS_ENABLED || tool.mode !== 'link').map((tool) => (
                         <button
                             key={tool.mode}
                             className={`floating-toolbar__btn ${
@@ -164,7 +164,6 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                                                     onAnchorChange(matchingAnchors[0].id);
                                                 }
                                             }}
-                                            autoFocus
                                         />
                                         <div className='floating-toolbar__anchor-list'>
                                             {matchingAnchors.length === 0 ? (

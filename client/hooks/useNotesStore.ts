@@ -29,6 +29,9 @@ const STORAGE_KEY = 'lockkliye-data';
 const HISTORY_KEY = 'lockkliye-history';
 const REDO_KEY = 'lockkliye-redo';
 const MAX_HISTORY_SIZE = 100;
+// Edits of one kind within this time are one undo step: a typed sentence is not one step per keystroke
+const COALESCE_MS = 1500;
+const COALESCED = ['Edit text', 'Update block style', 'Update note'];
 
 const getInitialState = (): iNotesState => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -96,12 +99,6 @@ const getInitialState = (): iNotesState => {
             createWord('→'),
             createWord('Underline', { underline: true }),
             createWord('text'),
-            createWord('\n'),
-            createWord('•'),
-            createWord('CTRL+K', { bold: true, highlight: 'rgba(105,219,124,0.3)' }),
-            createWord('→'),
-            createWord('Add', {}),
-            createWord('hyperlink', { link: 'https://example.com', color: '#0a84ff' }),
         ], {
             borderStyle: 'solid',
             borderRadius: 8,
@@ -307,6 +304,7 @@ const useNotesStore = () => {
     const [history, setHistory] = useState<iHistoryEntry[]>(getInitialHistory);
     const [redoStack, setRedoStack] = useState<iHistoryEntry[]>(getInitialRedo);
     const isUndoing = useRef(false);
+    const lastChange = useRef<{ noteId: string; group: string; time: number } | null>(null);
 
     const sync = useSync({ state, history, historyLimit: MAX_HISTORY_SIZE, freshInstall, setState, setHistory });
 
@@ -326,11 +324,22 @@ const useNotesStore = () => {
     }, [redoStack]);
 
     // Save state to history before modifications (per-note)
-    const saveToHistory = useCallback((noteId: string, description: string) => {
+    // Edits with the same group within a short time are one step, the group tells a block from another
+    const saveToHistory = useCallback((noteId: string, description: string, group = description) => {
         if (isUndoing.current) return;
 
         const note = state.notes.find((n: iNote) => n.id === noteId);
         if (!note) return;
+
+        // Any new change ends what could be redone
+        setRedoStack([]);
+
+        const now = Date.now();
+        const last = lastChange.current;
+        lastChange.current = { noteId, group, time: now };
+        if (last && last.noteId === noteId && last.group === group && COALESCED.includes(description) && now - last.time < COALESCE_MS) {
+            return;
+        }
 
         setHistory((prev: iHistoryEntry[]) => {
             const newEntry: iHistoryEntry = {
@@ -346,9 +355,6 @@ const useNotesStore = () => {
             }
             return newHistory;
         });
-
-        // Clear redo stack on new change
-        setRedoStack([]);
     }, [state.notes]);
 
     // Get history for active note
@@ -369,16 +375,18 @@ const useNotesStore = () => {
         if (noteHistory.length === 0) return;
 
         isUndoing.current = true;
+        lastChange.current = null;
         const previousEntry = noteHistory[noteHistory.length - 1];
 
-        // Save current state to redo stack
+        // What is undone can be redone, under the name of the change
+        // (the redo stack is not history, it only remembers what was undone)
         const currentNote = state.notes.find((n: iNote) => n.id === state.activeNoteId);
         if (currentNote) {
             setRedoStack((prev: iHistoryEntry[]) => [...prev, {
                 noteId: currentNote.id,
                 note: JSON.parse(JSON.stringify(currentNote)),
                 timestamp: Date.now(),
-                description: 'Redo',
+                description: previousEntry.description,
             }]);
         }
 
@@ -402,16 +410,17 @@ const useNotesStore = () => {
         if (noteRedos.length === 0) return;
 
         isUndoing.current = true;
+        lastChange.current = null;
         const redoEntry = noteRedos[noteRedos.length - 1];
 
-        // Save current state to history
+        // Redoing is the change again, so it is undone as that change and keeps its name
         const currentNote = state.notes.find((n: iNote) => n.id === state.activeNoteId);
         if (currentNote) {
             setHistory((prev: iHistoryEntry[]) => [...prev, {
                 noteId: currentNote.id,
                 note: JSON.parse(JSON.stringify(currentNote)),
                 timestamp: Date.now(),
-                description: 'Before redo',
+                description: redoEntry.description,
             }]);
         }
 
@@ -683,7 +692,7 @@ const useNotesStore = () => {
     const updateBlockStyle = useCallback((noteId: string, blockId: string, style: Partial<iBlockStyle>) => {
         const current = state.notes.find((n: iNote) => n.id === noteId)?.blocks.find((b: iTextBlock) => b.id === blockId);
         if (current && Object.entries(style).every(([key, value]) => current.style[key as keyof iBlockStyle] === value)) return;
-        saveToHistory(noteId, 'Update block style');
+        saveToHistory(noteId, 'Update block style', `Update block style ${blockId}`);
         setState((prev: iNotesState) => ({
             ...prev,
             notes: prev.notes.map((note: iNote) => {
@@ -737,7 +746,7 @@ const useNotesStore = () => {
         // Clicking around a note reports its text again, that is no edit and no undo step
         const current = state.notes.find((n: iNote) => n.id === noteId)?.blocks.find((b: iTextBlock) => b.id === blockId);
         if (current && sameWords(current.words, words)) return;
-        saveToHistory(noteId, 'Edit text');
+        saveToHistory(noteId, 'Edit text', `Edit text ${blockId}`);
         setState((prev: iNotesState) => ({
             ...prev,
             notes: prev.notes.map((note: iNote) => {

@@ -87,18 +87,13 @@
 
     &__chevron {
         flex-shrink: 0;
-        font-size: 8px;
+        font-size: 12px;
         color: var(--text-muted);
         transition: transform 0.2s;
 
         &--open {
             transform: rotate(90deg);
         }
-    }
-
-    &__icon {
-        flex-shrink: 0;
-        font-size: 1rem;
     }
 
     &__dot {
@@ -170,6 +165,19 @@
             color: var(--error, #ff453a);
         }
     }
+}
+
+// Date and first words of a note are secondary
+.sidebar-row .tea-sidebar-item__meta {
+    color: var(--text-tertiary);
+    font-size: 0.6875rem;
+    opacity: 0.85;
+}
+
+// The not-saved dot sits at the right end of the note
+.sidebar-row .sync-dot {
+    flex-shrink: 0;
+    margin: 0 0 0 6px;
 }
 
 // The title of a note row has to leave room for the actions

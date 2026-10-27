@@ -149,6 +149,9 @@ const BLOCK_GRADIENTS = [
     'linear-gradient(135deg, rgba(64,224,208,0.2) 0%, rgba(116,192,252,0.2) 100%)', // Turquoise to Blue
 ];
 
+// Hyperlinks are switched off for now: no toolbar button, no shortcut, no click handling. Stored links are kept.
+const HYPERLINKS_ENABLED = false;
+
 // Keyboard shortcuts mapping
 const SHORTCUTS: Record<string, tFormatMode> = {
     'ctrl+b': 'bold',
@@ -157,7 +160,7 @@ const SHORTCUTS: Record<string, tFormatMode> = {
     'ctrl+shift+s': 'strikethrough',
     'ctrl+shift+c': 'color',
     'ctrl+shift+h': 'highlight',
-    'ctrl+k': 'link',
+    ...(HYPERLINKS_ENABLED ? { 'ctrl+k': 'link' as const } : {}),
     'ctrl+]': 'larger',
     'ctrl+[': 'smaller',
 };
@@ -333,6 +336,7 @@ export type {
 export {
     BLOCK_GRADIENTS,
     FORMAT_COLORS,
+    HYPERLINKS_ENABLED,
     SHORTCUTS,
 
     createBlock,

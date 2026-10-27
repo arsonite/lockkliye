@@ -243,7 +243,7 @@ export const Sidebar = ({
     const folderIds = new Set(folders.map((folder) => folder.id));
     const parentOf = (folder: iFolder) => (folder.parentId && folderIds.has(folder.parentId) ? folder.parentId : null);
     const foldersIn = (parentId: string | null) => folders.filter((f) => parentOf(f) === parentId).sort(byName);
-    const sortedNotes = [...notes].sort((a, b) => b.updatedAt - a.updatedAt);
+    const sortedNotes = [...notes].sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
     const notesIn = (folderId: string | null) =>
         sortedNotes.filter((n) => (n.folderId && folderIds.has(n.folderId) ? n.folderId : null) === folderId);
     const countNotes = (folderId: string) => {
@@ -401,11 +401,6 @@ export const Sidebar = ({
             tabIndex={0}
             onKeyDown={(event) => event.key === 'Enter' && onNoteSelect(note.id)}
         >
-            {dirtyNoteIds.has(note.id) && (
-                <span className='tea-sidebar-item__icon'>
-                    <span className='sync-dot' title='Not saved yet (Ctrl+S)' />
-                </span>
-            )}
             <div className='tea-sidebar-item__content'>
                 <div className='tea-sidebar-item__header'>
                     <span className='tea-sidebar-item__title'>
@@ -428,6 +423,7 @@ export const Sidebar = ({
                             ×
                         </button>
                     </span>
+                    {dirtyNoteIds.has(note.id) && <span className='sync-dot' title='Not saved yet (Ctrl+S)' />}
                 </div>
                 <div className='tea-sidebar-item__meta'>
                     <span className='tea-sidebar-item__date'>{formatDate(note.updatedAt)}</span>
@@ -460,7 +456,6 @@ export const Sidebar = ({
                     onKeyDown={(event) => event.key === 'Enter' && toggleCollapsed(folder.id)}
                 >
                     <span className={`folder-row__chevron ${open ? 'folder-row__chevron--open' : ''}`}>▶</span>
-                    <span className='folder-row__icon'>{open ? '📂' : '📁'}</span>
                     {folder.color && <span className='folder-row__dot' style={{ background: folder.color }} />}
                     <span className='tea-sidebar-item__title folder-row__name'>{folder.name}</span>
                     <span className='folder-row__count'>{countNotes(folder.id)}</span>

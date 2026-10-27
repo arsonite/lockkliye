@@ -21,7 +21,7 @@ import { applyFormatMode } from '@/components/WordComponent';
 import LinkModal from '@/components/LinkModal';
 
 // Types
-import { createWord, iWord, iWordFormat, tFormatMode } from '@/types';
+import { createWord, HYPERLINKS_ENABLED, iWord, iWordFormat, tFormatMode } from '@/types';
 
 interface iRichTextEditorProps {
     formatMode: tFormatMode;
@@ -46,6 +46,15 @@ interface iLinkModalState {
     wordText: string;
 }
 
+const placeCaretAtEnd = (element: HTMLElement) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    range.collapse(false);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+};
+
 // Generate inline styles from word format
 const getWordStyle = (format: iWordFormat): React.CSSProperties => {
     const style: React.CSSProperties = {};
@@ -57,7 +66,7 @@ const getWordStyle = (format: iWordFormat): React.CSSProperties => {
     // 'inherit' means use the default text color, so don't set any color style
     if (format.color && format.color !== 'inherit') style.color = format.color;
     if (format.highlight) style.backgroundColor = format.highlight;
-    if (format.link) {
+    if (HYPERLINKS_ENABLED && format.link) {
         if (!format.color || format.color === 'inherit') style.color = '#0a84ff';
         style.textDecoration = (style.textDecoration || '') + ' underline';
         style.cursor = 'pointer';
@@ -116,6 +125,8 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
     const editorRef = useRef<HTMLDivElement>(null);
     const [isFocused, setIsFocused] = useState(false);
     const wordsRef = useRef(words);
+    // The markup of the words as the editor last knew them, to tell a change from outside (undo) from its own
+    const renderedHtmlRef = useRef('');
 
     // Link modal state
     const [linkModal, setLinkModal] = useState<iLinkModalState>({
@@ -154,7 +165,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                     span.setAttribute('style', styleStr);
 
                     // Update link class
-                    if (word.format.link) {
+                    if (HYPERLINKS_ENABLED && word.format.link) {
                         span.classList.add('rich-text-editor__linked');
                     } else {
                         span.classList.remove('rich-text-editor__linked');
@@ -197,7 +208,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                         : '';
 
                 // Add link class for hyperlinked words (indicator is added via CSS ::after)
-                const linkClass = word.format.link ? ' rich-text-editor__linked' : '';
+                const linkClass = HYPERLINKS_ENABLED && word.format.link ? ' rich-text-editor__linked' : '';
 
                 const anchorClass = word.format.anchor ? ' rich-text-editor__anchored' : '';
                 const anchorTitle = word.format.anchor ? ' title="Ctrl+click to open the anchor note"' : '';
@@ -209,6 +220,16 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
             })
             .join('');
     }, []);
+
+    // Reports new words and remembers what they look like, so they are not mistaken for an outside change
+    const emit = useCallback(
+        (next: iWord[]) => {
+            wordsRef.current = next;
+            renderedHtmlRef.current = renderWordsAsHTML(next);
+            onWordsChange(next);
+        },
+        [onWordsChange, renderWordsAsHTML],
+    );
 
     // Parse HTML content back to words
     const parseHTMLToWords = useCallback((element: HTMLElement): iWord[] => {
@@ -480,11 +501,8 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
             return word;
         });
 
-        // Update words ref immediately for instant update
-        wordsRef.current = newWords;
-
         // Update state
-        onWordsChange(newWords);
+        emit(newWords);
 
         // Update styles in-place to preserve cursor/selection
         updateWordStylesInPlace(selectedIds, newWords);
@@ -501,7 +519,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
         selectedColor,
         selectedAnchorId,
         getSelectedWordIds,
-        onWordsChange,
+        emit,
         updateWordStylesInPlace,
         onClearFormatMode,
         isFocused,
@@ -520,10 +538,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 return word;
             });
 
-            // Update words ref immediately
-            wordsRef.current = newWords;
-
-            onWordsChange(newWords);
+            emit(newWords);
 
             // Update style in-place to preserve cursor
             updateWordStylesInPlace([wordId], newWords);
@@ -534,7 +549,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 onClearFormatMode();
             }
         },
-        [formatMode, selectedColor, selectedAnchorId, onWordsChange, updateWordStylesInPlace, onClearFormatMode, isFocused],
+        [formatMode, selectedColor, selectedAnchorId, emit, updateWordStylesInPlace, onClearFormatMode, isFocused],
     );
 
     // Track previous format mode to detect changes
@@ -577,10 +592,10 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
             return word;
         });
 
-        onWordsChange(convertedWords);
+        emit(convertedWords);
 
         // Don't restore cursor here - let the content update naturally
-    }, [parseHTMLToWords, onWordsChange]);
+    }, [parseHTMLToWords, emit]);
 
     // Handle keyboard shortcuts
     const handleKeyDown = useCallback(
@@ -623,11 +638,10 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 return word;
             });
 
-            wordsRef.current = newWords;
-            onWordsChange(newWords);
+            emit(newWords);
             updateDOMContent(newWords);
         },
-        [linkModal.wordId, onWordsChange, updateDOMContent],
+        [linkModal.wordId, emit, updateDOMContent],
     );
 
     // Handle deleting a link from a word
@@ -642,10 +656,9 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
             return word;
         });
 
-        wordsRef.current = newWords;
-        onWordsChange(newWords);
+        emit(newWords);
         updateDOMContent(newWords);
-    }, [linkModal.wordId, onWordsChange, updateDOMContent]);
+    }, [linkModal.wordId, emit, updateDOMContent]);
 
     // Close link modal
     const handleLinkModalClose = useCallback(() => {
@@ -689,7 +702,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                     const word = wordsRef.current.find((w) => w.id === wordId);
 
                     // Check if it's a linked word
-                    if (word?.format.link) {
+                    if (HYPERLINKS_ENABLED && word?.format.link) {
                         if (e.ctrlKey || e.metaKey) {
                             // Ctrl+click opens the link
                             e.preventDefault();
@@ -711,7 +724,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                     }
 
                     // Handle link format mode - open modal for adding link
-                    if (formatMode === 'link') {
+                    if (HYPERLINKS_ENABLED && formatMode === 'link') {
                         e.preventDefault();
                         openLinkModal(wordId, wordSpan);
                         return;
@@ -787,9 +800,20 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
 
     // Sync content when words change externally
     useEffect(() => {
-        if (!editorRef.current || isFocused) return;
+        if (!editorRef.current) return;
 
         const html = renderWordsAsHTML(words);
+        if (isFocused) {
+            // Undo and redo change the words while the editor is being typed in, what the editor reported itself is already on screen
+            if (html !== renderedHtmlRef.current) {
+                editorRef.current.innerHTML = html;
+                renderedHtmlRef.current = html;
+                placeCaretAtEnd(editorRef.current);
+            }
+            return;
+        }
+
+        renderedHtmlRef.current = html;
         if (editorRef.current.innerHTML !== html) {
             editorRef.current.innerHTML = html || `<span class="rich-text-editor__placeholder">${placeholder}</span>`;
         }
@@ -799,6 +823,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
     useEffect(() => {
         if (editorRef.current) {
             const html = renderWordsAsHTML(words);
+            renderedHtmlRef.current = html;
             editorRef.current.innerHTML = html || `<span class="rich-text-editor__placeholder">${placeholder}</span>`;
         }
     }, []);
