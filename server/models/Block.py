@@ -14,11 +14,14 @@
 from teatype.db.hsdb.core import HSDBAttribute, HSDBModel, HSDBRelation
 
 # Local imports
+from .BlockStyle import BlockStyle
 from .Note import Note
+from .NoteSnapshot import NoteSnapshot
 
+# A block of a live note, or of a snapshot in the undo history: exactly one of note and snapshot is set
 class Block(HSDBModel):
-    note     = HSDBRelation.ManyToOne(Note, required=True)
-    position = HSDBAttribute(int, required=True, description='Index of the block within its note')
+    note     = HSDBRelation.ManyToOne(Note)
+    position = HSDBAttribute(int, required=True, description='Index of the block within its note or snapshot')
     rev      = HSDBAttribute(int, required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
-    style    = HSDBAttribute(str, required=True, description='JSON object with the block style (border, background, ...)')
-    words    = HSDBAttribute(str, required=True, description='JSON array of words with their formatting')
+    snapshot = HSDBRelation.ManyToOne(NoteSnapshot)
+    style    = HSDBRelation.ManyToOne(BlockStyle, required=True)

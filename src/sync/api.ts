@@ -28,6 +28,14 @@ class BlockAPI extends HSDBBaseAPI {
     static resource = 'Block';
 }
 
+class BlockPresetAPI extends HSDBBaseAPI {
+    static resource = 'BlockPreset';
+}
+
+class BlockStyleAPI extends HSDBBaseAPI {
+    static resource = 'BlockStyle';
+}
+
 class FolderAPI extends HSDBBaseAPI {
     static resource = 'Folder';
 }
@@ -40,8 +48,16 @@ class NoteHistoryAPI extends HSDBBaseAPI {
     static resource = 'NoteHistory';
 }
 
+class NoteSnapshotAPI extends HSDBBaseAPI {
+    static resource = 'NoteSnapshot';
+}
+
 class SettingsAPI extends HSDBBaseAPI {
     static resource = 'Settings';
 }
 
-export { BlockAPI, FolderAPI, NoteAPI, NoteHistoryAPI, SettingsAPI };
+class WordAPI extends HSDBBaseAPI {
+    static resource = 'Word';
+}
+
+export { BlockAPI, BlockPresetAPI, BlockStyleAPI, FolderAPI, NoteAPI, NoteHistoryAPI, NoteSnapshotAPI, SettingsAPI, WordAPI };

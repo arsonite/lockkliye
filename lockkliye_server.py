@@ -18,10 +18,10 @@ from teatype.logging import log
 from teatype.modulo.hsdb import hsdb
 
 # Local imports
-from server.models import Block, Folder, Note, NoteHistory, Settings
+from server.models import Block, BlockPreset, BlockStyle, Folder, Note, NoteHistory, NoteSnapshot, Settings, Word
 
 DB_NAME = 'lockkliye'
-MODELS = [Folder, Note, Block, NoteHistory, Settings]
+MODELS = [Folder, Note, NoteSnapshot, Settings, BlockStyle, Block, Word, BlockPreset, NoteHistory]
 PORT = int(os.environ.get('LOCKKLIYE_PORT', 8765)) # The client reads the same port from VITE_HSDB_PORT
 # Browser origins that may call the server, the default allows the Vite dev server on this machine only
 CORS_ORIGINS = os.environ.get('LOCKKLIYE_CORS_ORIGINS', r'https?://(localhost|127\.0\.0\.1)(:\d+)?')

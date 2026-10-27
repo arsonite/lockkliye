@@ -12,7 +12,11 @@
 
 # Local imports
 from .Block import Block
+from .BlockPreset import BlockPreset
+from .BlockStyle import BlockStyle
 from .Folder import Folder
 from .Note import Note
 from .NoteHistory import NoteHistory
+from .NoteSnapshot import NoteSnapshot
 from .Settings import Settings
+from .Word import Word

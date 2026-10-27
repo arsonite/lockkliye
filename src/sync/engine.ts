@@ -125,6 +125,7 @@ const syncCollection = async <L extends object>(
                 plan.push({ key, item, step: row.rev === known.rev ? 'keep' : 'pull' });
             }
         } else if (seed[key] === current && remote.size > 0) {
+            localKeys.delete(key); // A server row with the same id (settings, presets) is then pulled as new
             continue;
         } else if (push) {
             if (known && row && row.rev !== known.rev) {

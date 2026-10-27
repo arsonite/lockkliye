@@ -19,25 +19,39 @@ import type { Dispatch, SetStateAction } from 'react';
 
 // Sync
 import {
-    assembleNotes,
     blockCollection,
-    blockItemsOf,
     folderCollection,
     historyCollection,
     noteCollection,
+    presetCollection,
     settingsCollection,
+    snapshotCollection,
+    styleCollection,
+    wordCollection,
     type iCollection,
     type iSettingsItem,
 } from '@/sync/collections';
 import { findDirty, hashOf, syncCollection, type tSeed, type tSynced } from '@/sync/engine';
+import { assemble, deriveItems, type iSyncItems } from '@/sync/tree';
 
 // Types
 import type { iHistoryEntry, iNotesState } from '@/types';
 
 const META_KEY = 'lockkliye-sync';
 // Bump when the row format changes: an older meta would otherwise make unchanged-looking entities count as deleted on the server
-const META_VERSION = 2;
-const COLLECTIONS = ['folders', 'notes', 'blocks', 'settings', 'history'] as const;
+const META_VERSION = 3;
+// Entries point to entries of the collections before them, so this is also the order of saving
+const COLLECTIONS = [
+    'folders',
+    'notes',
+    'snapshots',
+    'settings',
+    'styles',
+    'blocks',
+    'words',
+    'presets',
+    'history',
+] as const;
 
 type tSyncStatus = 'idle' | 'syncing' | 'offline';
 
@@ -72,7 +86,6 @@ const settingsOf = (state: iNotesState): iSettingsItem => ({
     sidebarExpanded: state.sidebarExpanded,
     editorWidth: state.editorWidth,
     confirmDeletions: state.confirmDeletions,
-    blockPresets: state.blockPresets,
 });
 
 const emptyMeta = (): iSyncMeta => ({
@@ -96,16 +109,19 @@ const loadMeta = (state: iNotesState, freshInstall: boolean): iSyncMeta => {
 
     const meta = emptyMeta();
     if (freshInstall) {
-        for (const folder of state.folders) {
-            meta.seed.folders[folder.id] = hashOf(folderCollection, folder);
-        }
-        for (const note of state.notes) {
-            meta.seed.notes[note.id] = hashOf(noteCollection, note);
-        }
-        for (const item of blockItemsOf(state.notes)) {
-            meta.seed.blocks[item.block.id] = hashOf(blockCollection, item);
-        }
-        meta.seed.settings.main = hashOf(settingsCollection, settingsOf(state));
+        const items = deriveItems(state.folders, state.notes, state.blockPresets, settingsOf(state), []);
+        const addSeed = <L extends object>(collection: iCollection<L>, list: L[]) => {
+            for (const item of list) {
+                meta.seed[collection.name][collection.key(item)] = hashOf(collection, item);
+            }
+        };
+        addSeed(folderCollection, items.folders);
+        addSeed(noteCollection, items.notes);
+        addSeed(settingsCollection, items.settings);
+        addSeed(styleCollection, items.styles);
+        addSeed(blockCollection, items.blocks);
+        addSeed(wordCollection, items.words);
+        addSeed(presetCollection, items.presets);
     }
     return meta;
 };
@@ -158,16 +174,22 @@ const useSync = ({ state, history, historyLimit, freshInstall, setState, setHist
     const settings = useMemo(
         () => settingsOf(state),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.blockPresets],
+        [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions],
+    );
+    const presets = useMemo(
+        () => deriveItems([], [], state.blockPresets, settings, []).presets,
+        [state.blockPresets, settings],
     );
 
+    // Edits of blocks and words always change the note itself (updatedAt), so the note row also shows those
     const dirty = useMemo(
         () => ({
             folders: findDirty(folderCollection, state.folders, meta.synced.folders, meta.seed.folders),
             notes: findDirty(noteCollection, state.notes, meta.synced.notes, meta.seed.notes),
             settings: findDirty(settingsCollection, [settings], meta.synced.settings, meta.seed.settings),
+            presets: findDirty(presetCollection, presets, meta.synced.presets, meta.seed.presets),
         }),
-        [state.folders, state.notes, settings, meta],
+        [state.folders, state.notes, settings, presets, meta],
     );
 
     // History is saved along with the notes, it does not count as an unsaved change on its own
@@ -194,28 +216,62 @@ const useSync = ({ state, history, historyLimit, freshInstall, setState, setHist
                         snapshotMeta.seed[collection.name],
                         push,
                     );
-                const folders = await run(folderCollection, snapshot.folders);
-                const notes = await run(noteCollection, snapshot.notes);
-                const blocks = await run(blockCollection, blockItemsOf(snapshot.notes));
-                const settingsResult = await run(settingsCollection, [snapshotSettings]);
-                const historyResult = await run(historyCollection, snapshotHistory);
-                const results = [folders, notes, blocks, settingsResult, historyResult];
+                const items: iSyncItems = deriveItems(
+                    snapshot.folders,
+                    snapshot.notes,
+                    snapshot.blockPresets,
+                    snapshotSettings,
+                    snapshotHistory,
+                );
+                // Same order as COLLECTIONS
+                const results = {
+                    folders: await run(folderCollection, items.folders),
+                    notes: await run(noteCollection, items.notes),
+                    snapshots: await run(snapshotCollection, items.snapshots),
+                    settings: await run(settingsCollection, items.settings),
+                    styles: await run(styleCollection, items.styles),
+                    blocks: await run(blockCollection, items.blocks),
+                    words: await run(wordCollection, items.words),
+                    presets: await run(presetCollection, items.presets),
+                    history: await run(historyCollection, items.history),
+                };
 
-                const syncedNotes = assembleNotes(notes.items, blocks.items);
+                const assembled = assemble(
+                    {
+                        notes: results.notes.items,
+                        blocks: results.blocks.items,
+                        words: results.words.items,
+                        styles: results.styles.items,
+                        snapshots: results.snapshots.items,
+                        presets: results.presets.items,
+                        history: results.history.items,
+                    },
+                    snapshotHistory,
+                    snapshot.blockPresets,
+                );
                 // Notes the sync removed (deleted elsewhere), their history entries have nothing left to point to
                 const removedNoteIds = new Set(snapshot.notes.map((note) => note.id));
-                syncedNotes.forEach((note) => removedNoteIds.delete(note.id));
+                assembled.notes.forEach((note) => removedNoteIds.delete(note.id));
 
                 setState((current) => {
-                    const mergedNotes = mergeItems(noteCollection, current.notes, snapshot.notes, syncedNotes);
-                    const mergedFolders = mergeItems(folderCollection, current.folders, snapshot.folders, folders.items);
-                    // Only overwrite the settings if they were not changed while saving
-                    const settingsUntouched =
-                        hashOf(settingsCollection, settingsOf(current)) === hashOf(settingsCollection, snapshotSettings);
+                    const mergedNotes = mergeItems(noteCollection, current.notes, snapshot.notes, assembled.notes);
+                    const mergedFolders = mergeItems(
+                        folderCollection,
+                        current.folders,
+                        snapshot.folders,
+                        results.folders.items,
+                    );
                     const next = { ...current, notes: mergedNotes, folders: mergedFolders };
-                    const syncedSettings = settingsResult.items[0];
-                    if (syncedSettings && settingsUntouched) {
+                    // Only overwrite settings and presets if they were not changed while saving
+                    const syncedSettings = results.settings.items[0];
+                    if (
+                        syncedSettings &&
+                        hashOf(settingsCollection, settingsOf(current)) === hashOf(settingsCollection, snapshotSettings)
+                    ) {
                         Object.assign(next, syncedSettings);
+                    }
+                    if (current.blockPresets === snapshot.blockPresets) {
+                        next.blockPresets = assembled.presets;
                     }
                     if (next.activeNoteId && !mergedNotes.some((note) => note.id === next.activeNoteId)) {
                         next.activeNoteId = mergedNotes[0]?.id ?? null;
@@ -226,31 +282,27 @@ const useSync = ({ state, history, historyLimit, freshInstall, setState, setHist
                     return next;
                 });
                 setHistory((current) =>
-                    mergeItems(historyCollection, current, snapshotHistory, historyResult.items)
+                    mergeItems(historyCollection, current, snapshotHistory, assembled.history)
                         .filter((entry) => !removedNoteIds.has(entry.noteId))
                         .sort((a, b) => a.timestamp - b.timestamp)
                         .slice(-historyLimit),
                 );
 
                 const nextMeta = emptyMeta();
-                [folderCollection, noteCollection, blockCollection, settingsCollection, historyCollection].forEach((collection, index) => {
-                    nextMeta.synced[collection.name] = results[index].synced;
+                for (const name of COLLECTIONS) {
+                    nextMeta.synced[name] = results[name].synced;
                     // A placeholder that is synced (or gone) is no placeholder anymore
-                    nextMeta.seed[collection.name] = Object.fromEntries(
-                        Object.entries(snapshotMeta.seed[collection.name]).filter(
-                            ([key]) => !(key in results[index].synced),
-                        ),
+                    nextMeta.seed[name] = Object.fromEntries(
+                        Object.entries(snapshotMeta.seed[name]).filter(([key]) => !(key in results[name].synced)),
                     );
-                });
+                    report.pushed += results[name].pushed;
+                    report.pulled += results[name].pulled;
+                    report.removed += results[name].removed;
+                    report.overwritten += results[name].overwritten;
+                    report.failed += results[name].failed;
+                }
                 setMeta(nextMeta);
 
-                for (const result of results) {
-                    report.pushed += result.pushed;
-                    report.pulled += result.pulled;
-                    report.removed += result.removed;
-                    report.overwritten += result.overwritten;
-                    report.failed += result.failed;
-                }
                 setStatus('idle');
                 return { ...report, ok: true };
             } catch (error) {

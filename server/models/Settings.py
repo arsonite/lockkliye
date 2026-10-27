@@ -13,9 +13,8 @@
 # Third-party imports
 from teatype.db.hsdb.core import HSDBAttribute, HSDBModel
 
-# There is one row, its id is "main"
+# There is one row, its id is "main". The saved block styles are BlockPreset entries pointing to it.
 class Settings(HSDBModel):
-    block_presets     = HSDBAttribute(str,  required=True, description='JSON array of saved block styles')
     confirm_deletions = HSDBAttribute(bool, required=True)
     editor_width      = HSDBAttribute(int,  required=True)
     light_mode        = HSDBAttribute(bool, required=True)

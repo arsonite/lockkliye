@@ -15,11 +15,12 @@ from teatype.db.hsdb.core import HSDBAttribute, HSDBModel, HSDBRelation
 
 # Local imports
 from .Note import Note
+from .NoteSnapshot import NoteSnapshot
 
-# The entry id is <note id>_<timestamp>
+# One undo step of a note, the entry id is <note id>_<timestamp>
 class NoteHistory(HSDBModel):
     description = HSDBAttribute(str, required=True)
     note        = HSDBRelation.ManyToOne(Note, required=True)
     rev         = HSDBAttribute(int, required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
-    snapshot    = HSDBAttribute(str, required=True, description='JSON of the whole note before the change, for undo')
+    snapshot    = HSDBRelation.ManyToOne(NoteSnapshot, required=True)
     timestamp   = HSDBAttribute(int, required=True)
