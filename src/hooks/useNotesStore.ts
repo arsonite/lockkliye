@@ -309,6 +309,12 @@ const useNotesStore = () => {
         return history.filter((h: iHistoryEntry) => h.noteId === state.activeNoteId);
     }, [history, state.activeNoteId]);
 
+    const clearActiveNoteHistory = useCallback(() => {
+        const noteId = state.activeNoteId;
+        setHistory((prev: iHistoryEntry[]) => prev.filter((h: iHistoryEntry) => h.noteId !== noteId));
+        setRedoStack((prev: iHistoryEntry[]) => prev.filter((r: iHistoryEntry) => r.noteId !== noteId));
+    }, [state.activeNoteId]);
+
     // Undo - restore previous state for active note
     const undo = useCallback(() => {
         const noteHistory = getActiveNoteHistory();
@@ -932,6 +938,7 @@ const useNotesStore = () => {
         undo,
         redo,
         getActiveNoteHistory,
+        clearActiveNoteHistory,
 
         // Export/Import
         exportAsText,

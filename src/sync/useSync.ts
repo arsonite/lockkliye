@@ -25,8 +25,6 @@ import {
     noteCollection,
     presetCollection,
     settingsCollection,
-    snapshotCollection,
-    styleCollection,
     wordCollection,
     type iCollection,
     type iSettingsItem,
@@ -39,14 +37,12 @@ import type { iHistoryEntry, iNotesState } from '@/types';
 
 const META_KEY = 'lockkliye-sync';
 // Bump when the row format changes: an older meta would otherwise make unchanged-looking entities count as deleted on the server
-const META_VERSION = 3;
+const META_VERSION = 4;
 // Entries point to entries of the collections before them, so this is also the order of saving
 const COLLECTIONS = [
     'folders',
     'notes',
-    'snapshots',
     'settings',
-    'styles',
     'blocks',
     'words',
     'presets',
@@ -118,7 +114,6 @@ const loadMeta = (state: iNotesState, freshInstall: boolean): iSyncMeta => {
         addSeed(folderCollection, items.folders);
         addSeed(noteCollection, items.notes);
         addSeed(settingsCollection, items.settings);
-        addSeed(styleCollection, items.styles);
         addSeed(blockCollection, items.blocks);
         addSeed(wordCollection, items.words);
         addSeed(presetCollection, items.presets);
@@ -208,14 +203,20 @@ const useSync = ({ state, history, historyLimit, freshInstall, setState, setHist
             const snapshotSettings = settingsOf(snapshot);
 
             try {
-                const run = <L extends object>(collection: iCollection<L>, items: L[]) =>
-                    syncCollection(
+                // What the collections saved so far ended up as, later ones look up the server ids of their relations here
+                const done: Record<string, tSynced> = {};
+                const run = async <L extends object>(collection: iCollection<L>, items: L[]) => {
+                    const result = await syncCollection(
                         collection,
                         items,
                         snapshotMeta.synced[collection.name],
                         snapshotMeta.seed[collection.name],
                         push,
+                        done,
                     );
+                    done[collection.name] = result.synced;
+                    return result;
+                };
                 const items: iSyncItems = deriveItems(
                     snapshot.folders,
                     snapshot.notes,
@@ -227,9 +228,7 @@ const useSync = ({ state, history, historyLimit, freshInstall, setState, setHist
                 const results = {
                     folders: await run(folderCollection, items.folders),
                     notes: await run(noteCollection, items.notes),
-                    snapshots: await run(snapshotCollection, items.snapshots),
                     settings: await run(settingsCollection, items.settings),
-                    styles: await run(styleCollection, items.styles),
                     blocks: await run(blockCollection, items.blocks),
                     words: await run(wordCollection, items.words),
                     presets: await run(presetCollection, items.presets),
@@ -241,8 +240,6 @@ const useSync = ({ state, history, historyLimit, freshInstall, setState, setHist
                         notes: results.notes.items,
                         blocks: results.blocks.items,
                         words: results.words.items,
-                        styles: results.styles.items,
-                        snapshots: results.snapshots.items,
                         presets: results.presets.items,
                         history: results.history.items,
                     },

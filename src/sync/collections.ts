@@ -20,11 +20,9 @@ import type { HSDBBaseAPI, HSDBEntity } from '@teatype/api';
 import {
     BlockAPI,
     BlockPresetAPI,
-    BlockStyleAPI,
     FolderAPI,
     NoteAPI,
     NoteHistoryAPI,
-    NoteSnapshotAPI,
     SettingsAPI,
     WordAPI,
 } from '@/sync/api';
@@ -35,50 +33,46 @@ import type { iBlockStyle, iFolder, iHistoryEntry, iNote, iTextBlock, iWord, iWo
 type tRow = Record<string, string | number | boolean>;
 type tServerRow = HSDBEntity & { rev: number } & Record<string, unknown>;
 
-// Maps one local entity type to one HSDB model. The key is also the entry id on the server.
-// toRow() must produce the same key order every time: its JSON decides whether an entity changed
-// since the last sync, so it contains neither the id nor the rev. Relation fields hold the id of the related entry.
+// Maps one local entity type to one HSDB model. The key identifies the entity in the browser only: the server
+// hands out its own entry ids, the sync keeps track of which key belongs to which id (see engine.ts).
+// toRow() must produce the same key order every time: its JSON decides whether an entity changed since the last
+// sync, so it contains neither the id nor the rev. Relation fields hold the key of the related entity, the sync
+// swaps keys and server ids at the boundary.
 interface iCollection<L extends object> {
     name: string;
     api: typeof HSDBBaseAPI;
     key: (item: L) => string;
     toRow: (item: L) => tRow;
-    fromRow: (row: tServerRow) => L;
+    fromRow: (row: tServerRow, key: string) => L;
+    relations?: Record<string, string>; // Relation field -> name of the collection it points to
+    // For models where the content decides which row is which (the single settings row, presets by position):
+    // a server row without a known key is matched to the local entity with this key. Needs the fields it reads.
+    slot?: (row: tServerRow) => string;
+    listFields?: string[];
 }
 
-// The text of a note is a tree of server entries: Note <- Block <- Word, and Block -> BlockStyle.
-// Items carry the ids of their parents, the tree is put back together from them (see tree.ts).
+// The text of a note is a tree of server entries: Note <- Block <- Word
 interface iBlockItem {
     id: string;
-    noteId: string | null; // A block belongs to a note ...
-    snapshotId: string | null; // ... or to a snapshot of the undo history
+    noteId: string;
     position: number;
     block: iTextBlock;
 }
 
 interface iWordItem {
     id: string;
-    blockRowId: string;
+    blockId: string;
     position: number;
     word: iWord;
-}
-
-interface iStyleItem {
-    id: string;
-    style: iBlockStyle;
 }
 
 interface iPresetItem {
     id: string;
     position: number;
+    style: iBlockStyle;
 }
 
-interface iSnapshotItem {
-    id: string;
-    note: iNote; // Without its blocks
-}
-
-// The app settings are one row, 'main'
+// The app settings are one row
 interface iSettingsItem {
     lightMode: boolean;
     sidebarExpanded: boolean;
@@ -86,16 +80,11 @@ interface iSettingsItem {
     confirmDeletions: boolean;
 }
 
-const SETTINGS_ID = 'main';
+const SETTINGS_KEY = 'settings';
 
-// Entry ids are global on the server, so every kind of entry derives its id from its owner
+// A history entry has no identity of its own, the note and the time of the change are enough
 const historyKeyOf = (entry: iHistoryEntry): string => `${entry.noteId}_${entry.timestamp}`;
-const snapshotIdOf = (historyKey: string): string => `${historyKey}__snapshot`;
-const styleIdOf = (ownerId: string): string => `${ownerId}__style`;
-const snapshotChildIdOf = (historyKey: string, kind: 'block' | 'word', id: string): string =>
-    `${historyKey}__${kind}__${id}`;
-// Live entries use the browser's ids as they are, snapshot entries are prefixed
-const originalIdOf = (id: string): string => (id.includes('__') ? id.slice(id.lastIndexOf('__') + 2) : id);
+const presetKeyOf = (position: number): string => `preset_${position}`;
 
 const text = (value: unknown): string => (value as string | undefined) ?? '';
 
@@ -139,7 +128,7 @@ const wordRow = (word: iWord): tRow => ({
     underline: word.format.underline ?? false,
 });
 
-const wordFromRow = (row: tServerRow): iWord => {
+const wordFromRow = (row: tServerRow, key: string): iWord => {
     const format: iWordFormat = {};
     if (row.bold) format.bold = true;
     if (row.color) format.color = text(row.color);
@@ -149,7 +138,7 @@ const wordFromRow = (row: tServerRow): iWord => {
     if (row.link) format.link = text(row.link);
     if (row.strikethrough) format.strikethrough = true;
     if (row.underline) format.underline = true;
-    return { id: originalIdOf(row.id), text: text(row.text), format };
+    return { id: key, text: text(row.text), format };
 };
 
 const folderCollection: iCollection<iFolder> = {
@@ -162,8 +151,8 @@ const folderCollection: iCollection<iFolder> = {
         icon: folder.icon ?? '',
         name: folder.name,
     }),
-    fromRow: (row) => ({
-        id: row.id,
+    fromRow: (row, key) => ({
+        id: key,
         name: text(row.name),
         icon: text(row.icon) || undefined,
         color: text(row.color) || undefined,
@@ -183,8 +172,8 @@ const noteCollection: iCollection<iNote> = {
         updated_ms: note.updatedAt,
         ...(note.folderId ? { folder: note.folderId } : {}),
     }),
-    fromRow: (row) => ({
-        id: row.id,
+    fromRow: (row, key) => ({
+        id: key,
         title: text(row.title),
         blocks: [],
         folderId: (row.folder as string | undefined) ?? null,
@@ -192,37 +181,13 @@ const noteCollection: iCollection<iNote> = {
         createdAt: row.created_ms as number,
         updatedAt: row.updated_ms as number,
     }),
-};
-
-const snapshotCollection: iCollection<iSnapshotItem> = {
-    name: 'snapshots',
-    api: NoteSnapshotAPI,
-    key: (item) => item.id,
-    toRow: ({ note }) => ({
-        created_ms: note.createdAt,
-        folder_id: note.folderId ?? '',
-        pinned: note.pinned ?? false,
-        title: note.title,
-        updated_ms: note.updatedAt,
-    }),
-    fromRow: (row) => ({
-        id: row.id,
-        note: {
-            id: '', // Set from the history entry
-            title: text(row.title),
-            blocks: [],
-            folderId: text(row.folder_id) || null,
-            pinned: row.pinned as boolean,
-            createdAt: row.created_ms as number,
-            updatedAt: row.updated_ms as number,
-        },
-    }),
+    relations: { folder: 'folders' },
 };
 
 const settingsCollection: iCollection<iSettingsItem> = {
     name: 'settings',
     api: SettingsAPI,
-    key: () => SETTINGS_ID,
+    key: () => SETTINGS_KEY,
     toRow: (settings) => ({
         confirm_deletions: settings.confirmDeletions,
         editor_width: settings.editorWidth,
@@ -235,57 +200,59 @@ const settingsCollection: iCollection<iSettingsItem> = {
         editorWidth: row.editor_width as number,
         confirmDeletions: row.confirm_deletions as boolean,
     }),
-};
-
-const styleCollection: iCollection<iStyleItem> = {
-    name: 'styles',
-    api: BlockStyleAPI,
-    key: (item) => item.id,
-    toRow: (item) => styleRow(item.style),
-    fromRow: (row) => ({ id: row.id, style: styleFromRow(row) }),
+    slot: () => SETTINGS_KEY,
 };
 
 const blockCollection: iCollection<iBlockItem> = {
     name: 'blocks',
     api: BlockAPI,
     key: (item) => item.id,
-    toRow: (item) => ({
-        position: item.position,
-        style: styleIdOf(item.id),
-        ...(item.noteId ? { note: item.noteId } : {}),
-        ...(item.snapshotId ? { snapshot: item.snapshotId } : {}),
-    }),
-    fromRow: (row) => ({
-        id: row.id,
-        noteId: (row.note as string | undefined) ?? null,
-        snapshotId: (row.snapshot as string | undefined) ?? null,
+    toRow: (item) => ({ position: item.position, note: item.noteId, ...styleRow(item.block.style) }),
+    fromRow: (row, key) => ({
+        id: key,
+        noteId: text(row.note),
         position: row.position as number,
-        block: { id: originalIdOf(row.id), words: [], style: {} },
+        block: { id: key, words: [], style: styleFromRow(row) },
     }),
+    relations: { note: 'notes' },
 };
 
 const wordCollection: iCollection<iWordItem> = {
     name: 'words',
     api: WordAPI,
     key: (item) => item.id,
-    toRow: (item) => ({ position: item.position, ...wordRow(item.word), block: item.blockRowId }),
-    fromRow: (row) => ({
-        id: row.id,
-        blockRowId: text(row.block),
+    toRow: (item) => ({ position: item.position, block: item.blockId, ...wordRow(item.word) }),
+    fromRow: (row, key) => ({
+        id: key,
+        blockId: text(row.block),
         position: row.position as number,
-        word: wordFromRow(row),
+        word: wordFromRow(row, key),
     }),
+    relations: { block: 'blocks' },
 };
 
 const presetCollection: iCollection<iPresetItem> = {
     name: 'presets',
     api: BlockPresetAPI,
     key: (item) => item.id,
-    toRow: (item) => ({ position: item.position, settings: SETTINGS_ID, style: styleIdOf(item.id) }),
-    fromRow: (row) => ({ id: row.id, position: row.position as number }),
+    toRow: (item) => ({ position: item.position, settings: SETTINGS_KEY, ...styleRow(item.style) }),
+    fromRow: (row, key) => ({ id: key, position: row.position as number, style: styleFromRow(row) }),
+    relations: { settings: 'settings' },
+    slot: (row) => presetKeyOf(row.position as number),
+    listFields: ['position'],
 };
 
-// The note of the entry is put in from its snapshot (see tree.ts)
+// What the note looked like before the change. Folder and id are left out, they are the note's current ones.
+const snapshotOf = (note: iNote): string =>
+    JSON.stringify({
+        title: note.title,
+        blocks: note.blocks,
+        pinned: note.pinned,
+        createdAt: note.createdAt,
+        updatedAt: note.updatedAt,
+    });
+
+// The folder of a pulled entry is filled in from its note (see tree.ts)
 const historyCollection: iCollection<iHistoryEntry> = {
     name: 'history',
     api: NoteHistoryAPI,
@@ -293,42 +260,30 @@ const historyCollection: iCollection<iHistoryEntry> = {
     toRow: (entry) => ({
         description: entry.description,
         note: entry.noteId,
-        snapshot: snapshotIdOf(historyKeyOf(entry)),
+        snapshot: snapshotOf(entry.note),
         timestamp: entry.timestamp,
     }),
-    fromRow: (row) => ({
-        noteId: text(row.note),
-        note: { id: text(row.note), title: '', blocks: [], folderId: null, createdAt: 0, updatedAt: 0 },
-        timestamp: row.timestamp as number,
-        description: text(row.description),
-    }),
+    fromRow: (row) => {
+        const noteId = text(row.note);
+        return {
+            noteId,
+            note: { ...JSON.parse(text(row.snapshot)), id: noteId, folderId: null },
+            timestamp: row.timestamp as number,
+            description: text(row.description),
+        };
+    },
+    relations: { note: 'notes' },
 };
 
-export type {
-    iBlockItem,
-    iCollection,
-    iPresetItem,
-    iSettingsItem,
-    iSnapshotItem,
-    iStyleItem,
-    iWordItem,
-    tRow,
-    tServerRow,
-};
+export type { iBlockItem, iCollection, iPresetItem, iSettingsItem, iWordItem, tRow, tServerRow };
 export {
     blockCollection,
     folderCollection,
     historyCollection,
     historyKeyOf,
     noteCollection,
-    originalIdOf,
     presetCollection,
-    SETTINGS_ID,
+    presetKeyOf,
     settingsCollection,
-    snapshotChildIdOf,
-    snapshotCollection,
-    snapshotIdOf,
-    styleCollection,
-    styleIdOf,
     wordCollection,
 };

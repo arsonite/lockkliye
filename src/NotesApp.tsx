@@ -173,6 +173,7 @@ const NotesApp: React.FC = () => {
                         onUndo={store.undo}
                         onRedo={store.redo}
                         getHistory={store.getActiveNoteHistory}
+                        onClearHistory={store.clearActiveNoteHistory}
                         onAddBlockPreset={store.addBlockPreset}
                         onRemoveBlockPreset={store.removeBlockPreset}
                         onUpdateBlockPreset={store.updateBlockPreset}

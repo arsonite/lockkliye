@@ -13,18 +13,15 @@
  * all copies or substantial portions of the Software.
  */
 
-// TeaType API
-import type { HSDBEntity } from '@teatype/api';
-
 // Sync
-import type { iCollection, tServerRow } from '@/sync/collections';
+import type { iCollection, tRow, tServerRow } from '@/sync/collections';
 import hash from '@/sync/hash';
 
-// What the server had when an entity was last synced: the local content hash and the server's rev
-type tSynced = Record<string, { hash: string; rev: number }>;
+// What the server had when an entity was last synced: the local content hash, the server's rev and the server's
+// entry id. The key of the entity is the key of this record.
+type tSynced = Record<string, { hash: string; id: string; rev: number }>;
 // Hashes of the first-run placeholder entities (welcome note, default settings), see syncCollection()
 type tSeed = Record<string, string>;
-type tRemote = HSDBEntity & { rev: number };
 
 interface iCollectionResult<L> {
     items: L[];
@@ -85,6 +82,8 @@ const findDirty = <L extends object>(
 
 /**
  * Compares the local items with the server rows of one model. Throws if the server cannot be reached.
+ * `parents` holds the synced records of the collections saved before this one, to swap the keys in relation
+ * fields for server ids and back.
  *
  * - local entity unchanged since the last sync: the server wins (changed or deleted elsewhere)
  * - local entity changed or never synced: pushed if `push`, otherwise kept as it is
@@ -92,7 +91,7 @@ const findDirty = <L extends object>(
  * - an unchanged first-run placeholder is dropped as soon as the server has data of its own
  *
  * Saving is last-write-wins: a changed local entity overwrites a row changed elsewhere (counted in `overwritten`).
- * Rows are created with the local key as their id, so relation fields can simply carry local keys.
+ * The server creates the entry ids, the synced record is what ties a local key to its id.
  */
 const syncCollection = async <L extends object>(
     collection: iCollection<L>,
@@ -100,14 +99,44 @@ const syncCollection = async <L extends object>(
     synced: tSynced,
     seed: tSeed,
     push: boolean,
+    parents: Record<string, tSynced>,
 ): Promise<iCollectionResult<L>> => {
     // Only ids and revs are listed, full rows are fetched for the entities that need pulling
-    const listing = await collection.api.fetchAll<tRemote>({ fields: ['rev'] });
-    const remote = new Map(listing.data.map((row) => [row.id, row]));
+    const listing = await collection.api.fetchAll<tServerRow>({ fields: ['rev', ...(collection.listFields ?? [])] });
+    const keyOfId = new Map(Object.entries(synced).map(([key, known]) => [known.id, key]));
+
+    // Server rows by the key of the local entity they belong to, rows known from an earlier sync come first
+    const remote = new Map<string, tServerRow>();
+    const knownFirst = [...listing.data].sort((a, b) => Number(keyOfId.has(b.id)) - Number(keyOfId.has(a.id)));
+    for (const row of knownFirst) {
+        const key = keyOfId.get(row.id) ?? collection.slot?.(row) ?? row.id;
+        if (!remote.has(key)) {
+            remote.set(key, row);
+        }
+    }
+
+    const relations = Object.entries(collection.relations ?? {});
+    const parentKeys = new Map<string, Map<string, string>>();
+    const toServerId = (parent: string, key: string): string => {
+        const id = parents[parent]?.[key]?.id;
+        if (!id) {
+            throw new Error(`${parent} "${key}" is not on the server`);
+        }
+        return id;
+    };
+    const toLocalKey = (parent: string, id: string): string => {
+        if (!parentKeys.has(parent)) {
+            parentKeys.set(
+                parent,
+                new Map(Object.entries(parents[parent] ?? {}).map(([key, known]) => [known.id, key])),
+            );
+        }
+        return parentKeys.get(parent)?.get(id) ?? id;
+    };
 
     const nextSynced: tSynced = { ...synced };
     const plan: tStep<L>[] = [];
-    const toDelete: tRemote[] = [];
+    const toDelete: [string, tServerRow][] = [];
     const localKeys = new Set<string>();
     let overwritten = 0;
 
@@ -125,7 +154,7 @@ const syncCollection = async <L extends object>(
                 plan.push({ key, item, step: row.rev === known.rev ? 'keep' : 'pull' });
             }
         } else if (seed[key] === current && remote.size > 0) {
-            localKeys.delete(key); // A server row with the same id (settings, presets) is then pulled as new
+            localKeys.delete(key); // The server row for the same thing (settings, presets) is then pulled as new
             continue;
         } else if (push) {
             if (known && row && row.rev !== known.rev) {
@@ -144,21 +173,21 @@ const syncCollection = async <L extends object>(
         if (!synced[key]) {
             plan.push({ key, step: 'pull' });
         } else if (push) {
-            toDelete.push(row);
+            toDelete.push([key, row]);
         }
     }
 
-    const pullKeys = plan.filter((entry) => entry.step === 'pull').map((entry) => entry.key);
+    const pullIds = plan.filter((entry) => entry.step === 'pull').map((entry) => (remote.get(entry.key) as tServerRow).id);
     const pulledRows = new Map<string, tServerRow>();
-    if (pullKeys.length > 0) {
+    if (pullIds.length > 0) {
         const options = { includeRelations: true };
         const fetched =
-            pullKeys.length > PULL_ONE_BY_ONE_LIMIT
+            pullIds.length > PULL_ONE_BY_ONE_LIMIT
                 ? (await collection.api.fetchAll<tServerRow>(options)).data
                 : (
-                    await inChunks(pullKeys, async (key) => {
+                    await inChunks(pullIds, async (id) => {
                         try {
-                            return (await collection.api.fetchOne<tServerRow>(key, options)).data;
+                            return (await collection.api.fetchOne<tServerRow>(id, options)).data;
                         } catch (error) {
                             if (isNotFound(error)) {
                                 return undefined; // Deleted on the server between listing and fetching
@@ -183,27 +212,45 @@ const syncCollection = async <L extends object>(
         }
 
         if (step === 'pull') {
-            const row = pulledRows.get(key);
+            const row = pulledRows.get((remote.get(key) as tServerRow).id);
             if (!row) {
                 delete nextSynced[key];
                 return undefined;
             }
-            const pulledItem = collection.fromRow(row);
-            nextSynced[key] = { hash: hashOf(collection, pulledItem), rev: row.rev };
+            const local = { ...row };
+            for (const [field, parent] of relations) {
+                if (typeof local[field] === 'string') {
+                    local[field] = toLocalKey(parent, local[field] as string);
+                }
+            }
+            const pulledItem = collection.fromRow(local, key);
+            const itemKey = collection.key(pulledItem);
+            if (itemKey !== key) {
+                delete nextSynced[key]; // Entities whose key is made of their content
+            }
+            nextSynced[itemKey] = { hash: hashOf(collection, pulledItem), id: row.id, rev: row.rev };
+            localKeys.add(itemKey);
             pulled++;
             return pulledItem;
         }
 
         const localItem = item as L;
         const rev = Date.now();
-        const payload = { ...collection.toRow(localItem), rev };
         try {
-            if (remote.has(key)) {
-                await collection.api.update(key, payload, { partial: true });
-            } else {
-                await collection.api.create({ id: key, ...payload });
+            const payload: tRow = { ...collection.toRow(localItem), rev };
+            for (const [field, parent] of relations) {
+                if (field in payload) {
+                    payload[field] = toServerId(parent, String(payload[field]));
+                }
             }
-            nextSynced[key] = { hash: hashOf(collection, localItem), rev };
+            const row = remote.get(key);
+            let id = row?.id;
+            if (id) {
+                await collection.api.update(id, payload, { partial: true });
+            } else {
+                id = (await collection.api.create<tServerRow>(payload)).data.id;
+            }
+            nextSynced[key] = { hash: hashOf(collection, localItem), id, rev };
             pushed++;
         } catch {
             failed++; // Stays dirty, the next save tries again
@@ -211,10 +258,10 @@ const syncCollection = async <L extends object>(
         return localItem;
     });
 
-    await inChunks(toDelete, async (row) => {
+    await inChunks(toDelete, async ([key, row]) => {
         try {
             await collection.api.delete(row.id);
-            delete nextSynced[row.id];
+            delete nextSynced[key];
             removed++;
         } catch {
             failed++;

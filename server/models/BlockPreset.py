@@ -11,15 +11,14 @@
 # all copies or substantial portions of the Software.
 
 # Third-party imports
-from teatype.db.hsdb.core import HSDBAttribute, HSDBModel, HSDBRelation
+from teatype.db.hsdb.core import HSDBAttribute, HSDBRelation
 
 # Local imports
-from .BlockStyle import BlockStyle
+from .BlockStyleFields import BlockStyleFields
 from .Settings import Settings
 
-# A saved block style, every preset has a style entry of its own
-class BlockPreset(HSDBModel):
+# A saved block style
+class BlockPreset(BlockStyleFields):
     position = HSDBAttribute(int, required=True, description='Index of the preset in the preset list')
     rev      = HSDBAttribute(int, required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
     settings = HSDBRelation.ManyToOne(Settings, required=True)
-    style    = HSDBRelation.ManyToOne(BlockStyle, required=True)

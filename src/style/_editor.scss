@@ -194,7 +194,10 @@
         position: relative;
         display: flex;
         align-items: flex-start;
-        transition: transform 0.15s ease-out, opacity 0.15s ease, margin 0.15s ease-out;
+        transition:
+            transform 0.15s ease-out,
+            opacity 0.15s ease,
+            margin 0.15s ease-out;
 
         &--dragging {
             // Keep the wrapper in place for the placeholder
@@ -209,7 +212,9 @@
         display: flex;
         align-items: flex-start;
         width: 100%;
-        transition: opacity 0.1s ease, transform 0.1s ease;
+        transition:
+            opacity 0.1s ease,
+            transform 0.1s ease;
     }
 
     &__block-placeholder {
@@ -228,7 +233,9 @@
         pointer-events: none;
         opacity: 0.95;
         transform: rotate(1deg);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), 0 0 0 2px var(--accent);
+        box-shadow:
+            0 12px 40px rgba(0, 0, 0, 0.35),
+            0 0 0 2px var(--accent);
         border-radius: var(--radius-md);
         animation: ghostAppear 0.1s ease-out;
         cursor: grabbing;
@@ -262,7 +269,10 @@
         opacity: 0;
         cursor: grab;
         color: var(--text-tertiary);
-        transition: opacity var(--transition), color var(--transition), transform 0.2s ease;
+        transition:
+            opacity var(--transition),
+            color var(--transition),
+            transform 0.2s ease;
         user-select: none;
 
         &:hover {
@@ -542,6 +552,17 @@
                 color: var(--text-primary);
             }
         }
+    }
+
+    &__history-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    &__history-header &__history-clear {
+        font-size: 12px;
+        font-weight: 500;
     }
 
     &__history-list {

@@ -13,7 +13,7 @@
 # Third-party imports
 from teatype.db.hsdb.core import HSDBAttribute, HSDBModel
 
-# The entry id is the id the browser generated, there is no separate client id
+# A folder of notes
 class Folder(HSDBModel):
     color    = HSDBAttribute(str,  required=True)
     expanded = HSDBAttribute(bool, required=True)

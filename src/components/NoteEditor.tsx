@@ -56,6 +56,7 @@ interface iNoteEditorProps {
     onUndo: () => void;
     onRedo: () => void;
     getHistory: () => iHistoryEntry[];
+    onClearHistory: () => void;
     onAddBlockPreset: (preset: iBlockStyle) => void;
     onRemoveBlockPreset: (index: number) => void;
     onUpdateBlockPreset: (index: number, preset: iBlockStyle) => void;
@@ -88,6 +89,7 @@ export const NoteEditor = ({
     onUndo,
     onRedo,
     getHistory,
+    onClearHistory,
     onAddBlockPreset,
     onRemoveBlockPreset,
     onUpdateBlockPreset,
@@ -536,7 +538,19 @@ export const NoteEditor = ({
                         <div className='note-editor__history-dropdown'>
                             <div className='note-editor__history-header'>
                                 <span>History ({historyCount})</span>
-                                <button onClick={() => setShowHistory(false)}>×</button>
+                                <div className='note-editor__history-actions'>
+                                    <button
+                                        className='note-editor__history-clear'
+                                        title='Delete the history of this note, on the server with the next save'
+                                        onClick={() => {
+                                            onClearHistory();
+                                            setShowHistory(false);
+                                        }}
+                                    >
+                                        Clear
+                                    </button>
+                                    <button onClick={() => setShowHistory(false)}>×</button>
+                                </div>
                             </div>
                             <div className='note-editor__history-list'>
                                 {getHistory()

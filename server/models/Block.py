@@ -11,17 +11,14 @@
 # all copies or substantial portions of the Software.
 
 # Third-party imports
-from teatype.db.hsdb.core import HSDBAttribute, HSDBModel, HSDBRelation
+from teatype.db.hsdb.core import HSDBAttribute, HSDBRelation
 
 # Local imports
-from .BlockStyle import BlockStyle
+from .BlockStyleFields import BlockStyleFields
 from .Note import Note
-from .NoteSnapshot import NoteSnapshot
 
-# A block of a live note, or of a snapshot in the undo history: exactly one of note and snapshot is set
-class Block(HSDBModel):
-    note     = HSDBRelation.ManyToOne(Note)
-    position = HSDBAttribute(int, required=True, description='Index of the block within its note or snapshot')
+# One block of a note, the words point to it
+class Block(BlockStyleFields):
+    note     = HSDBRelation.ManyToOne(Note, required=True)
+    position = HSDBAttribute(int, required=True, description='Index of the block within its note')
     rev      = HSDBAttribute(int, required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
-    snapshot = HSDBRelation.ManyToOne(NoteSnapshot)
-    style    = HSDBRelation.ManyToOne(BlockStyle, required=True)
