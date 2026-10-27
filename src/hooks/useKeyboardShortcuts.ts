@@ -25,6 +25,7 @@ import {
 interface iUseKeyboardShortcutsProps {
     onEscape: () => void;
     onFormatToggle: (mode: tFormatMode) => void;
+    onSave?: () => void;
     onUndo?: () => void;
     onRedo?: () => void;
 }
@@ -58,6 +59,13 @@ const useKeyboardShortcuts: React.FC<iUseKeyboardShortcutsProps> = (props) => {
             return;
         }
 
+        // Check for save (Ctrl+S), always swallow it so the browser does not open its own save dialog
+        if (shortcut === 'ctrl+s') {
+            e.preventDefault();
+            props.onSave?.();
+            return;
+        }
+
         // Check for redo (Ctrl+Shift+Z or Ctrl+Y)
         if ((shortcut === 'ctrl+shift+z' || shortcut === 'ctrl+y') && props.onRedo) {
             e.preventDefault();
@@ -79,7 +87,7 @@ const useKeyboardShortcuts: React.FC<iUseKeyboardShortcutsProps> = (props) => {
 
             props.onFormatToggle(mode);
         }
-    }, [props.onFormatToggle, props.onEscape, props.onUndo, props.onRedo]);
+    }, [props.onFormatToggle, props.onEscape, props.onSave, props.onUndo, props.onRedo]);
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);

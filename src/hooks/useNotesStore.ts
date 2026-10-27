@@ -22,6 +22,7 @@ import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyl
 // Util
 import { createNote, createFolder, createBlock, createWord, FORMAT_COLORS, exportNotesAsText, exportNotesAsJson, exportSettingsAsJson, importFromJson as parseImportJson } from '@/types';
 import { generateRandomNote } from '@/util/randomGenerator';
+import useSync from '@/sync/useSync';
 
 const STORAGE_KEY = 'lockkliye-data';
 const HISTORY_KEY = 'lockkliye-history';
@@ -252,10 +253,14 @@ const getInitialRedo = (): iHistoryEntry[] => {
 };
 
 const useNotesStore = () => {
+    // Read before the state initializer below, once data is persisted the browser is no longer fresh
+    const [freshInstall] = useState(() => localStorage.getItem(STORAGE_KEY) === null);
     const [state, setState] = useState<iNotesState>(getInitialState);
     const [history, setHistory] = useState<iHistoryEntry[]>(getInitialHistory);
     const [redoStack, setRedoStack] = useState<iHistoryEntry[]>(getInitialRedo);
     const isUndoing = useRef(false);
+
+    const sync = useSync({ state, history, historyLimit: MAX_HISTORY_SIZE, freshInstall, setState, setHistory });
 
     // Persist to localStorage
     useEffect(() => {
@@ -950,6 +955,12 @@ const useNotesStore = () => {
         // Dev
         clearAllData,
         createRandomNote,
+
+        // Server sync
+        dirtyNoteIds: sync.dirtyNoteIds,
+        save: sync.save,
+        syncStatus: sync.syncStatus,
+        unsavedCount: sync.unsavedCount,
     };
 };
 

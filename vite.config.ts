@@ -26,6 +26,17 @@ export const getBaseViteConfig = (): UserConfig => ({
             '@teatype': resolve(__dirname, '../teatype/ts'),
         },
     },
+    css: {
+        preprocessorOptions: {
+            scss: {
+                // Shared components' SCSS relies on globvars being available everywhere
+                additionalData: (source: string, filename: string) =>
+                    filename.includes('globvars')
+                        ? source
+                        : `@use "${resolve(__dirname, '../teatype/ts/style/globvars').replace(/\\/g, '/')}" as *;\n${source}`,
+            },
+        },
+    },
     server: {
         cors: true,
         host: '0.0.0.0',

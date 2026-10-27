@@ -32,9 +32,26 @@ const NotesApp: React.FC = () => {
     const store = useNotesStore();
     const toast = useTeaToast();
 
+    const handleSave = async () => {
+        const report = await store.save();
+        if (report.busy) {
+            return;
+        }
+        if (!report.ok) {
+            toast.warning('Server not reachable. Changes are kept in this browser and stay marked as unsaved.');
+        } else if (report.failed > 0) {
+            toast.error(`${report.failed} item(s) could not be saved and stay marked as unsaved.`);
+        } else if (report.overwritten > 0) {
+            toast.warning(`Saved, but replaced a newer version of ${report.overwritten} item(s) saved elsewhere.`);
+        } else {
+            toast.success('Saved');
+        }
+    };
+
     useKeyboardShortcuts({
         onEscape: () => store.setFormatMode(null),
         onFormatToggle: store.toggleFormatMode,
+        onSave: handleSave,
         onUndo: store.undo,
         onRedo: store.redo,
     });
@@ -104,7 +121,11 @@ const NotesApp: React.FC = () => {
                 lightMode={store.lightMode}
                 editorWidth={store.editorWidth}
                 confirmDeletions={store.confirmDeletions}
+                dirtyNoteIds={store.dirtyNoteIds}
+                syncStatus={store.syncStatus}
+                unsavedCount={store.unsavedCount}
                 onToggle={store.toggleSidebar}
+                onSave={handleSave}
                 onNoteSelect={store.setActiveNote}
                 onCreateNote={() => store.createNewNote()}
                 onDeleteNote={store.deleteNote}

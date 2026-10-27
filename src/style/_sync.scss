@@ -1,0 +1,59 @@
+/**
+ * @license
+ * Copyright (C) 2024-2026 Burak Günaydin
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ */
+
+$sync-saved: #69db7c;
+$sync-unsaved: #ffa94d;
+$sync-offline: #ff6b6b;
+
+// Marks a note in the sidebar that has changes the server does not have yet
+.sync-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: $sync-unsaved;
+    box-shadow: 0 0 6px rgba($sync-unsaved, 0.6);
+}
+
+.sync-status {
+    &__dot {
+        flex-shrink: 0;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: $sync-saved;
+    }
+
+    &--unsaved &__dot {
+        background: $sync-unsaved;
+        box-shadow: 0 0 6px rgba($sync-unsaved, 0.6);
+    }
+
+    &--offline &__dot {
+        background: $sync-offline;
+    }
+
+    &--syncing &__dot {
+        background: $sync-unsaved;
+        animation: sync-pulse 1s ease-in-out infinite;
+    }
+}
+
+@keyframes sync-pulse {
+    50% {
+        opacity: 0.3;
+    }
+}

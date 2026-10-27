@@ -31,6 +31,7 @@ import {
 
 // Types
 import type { iNote } from '@/types';
+import type { tSyncStatus } from '@/sync/useSync';
 
 // Utils
 import { generateShortText, generateLongText, generateTitle, copyToClipboard } from '@/util/randomGenerator';
@@ -42,7 +43,11 @@ interface iSidebarProps {
     lightMode: boolean;
     editorWidth: number;
     confirmDeletions: boolean;
+    dirtyNoteIds: Set<string>;
+    syncStatus: tSyncStatus;
+    unsavedCount: number;
     onToggle: () => void;
+    onSave: () => void;
     onNoteSelect: (noteId: string) => void;
     onCreateNote: () => void;
     onDeleteNote: (noteId: string) => void;
@@ -68,7 +73,11 @@ export const Sidebar = ({
     lightMode,
     editorWidth,
     confirmDeletions,
+    dirtyNoteIds,
+    syncStatus,
+    unsavedCount,
     onToggle,
+    onSave,
     onNoteSelect,
     onCreateNote,
     onDeleteNote,
@@ -153,6 +162,7 @@ export const Sidebar = ({
             subtitle: getNotePreview(note),
             meta: formatDate(note.updatedAt),
             active: activeNoteId === note.id,
+            icon: dirtyNoteIds.has(note.id) ? <span className='sync-dot' title='Not saved yet (Ctrl+S)' /> : undefined,
         }));
 
     const sections: tSidebarSection[] = [
@@ -394,8 +404,27 @@ export const Sidebar = ({
         },
     ];
 
+    const syncLabel =
+        syncStatus === 'syncing'
+            ? 'Saving...'
+            : unsavedCount > 0
+              ? `${unsavedCount} unsaved change${unsavedCount > 1 ? 's' : ''}${syncStatus === 'offline' ? ' (offline)' : ''}`
+              : syncStatus === 'offline'
+                ? 'Offline, saved locally'
+                : 'All changes saved';
+
     const footer = (
         <>
+            <button
+                className={`tea-sidebar-footer-btn sync-status sync-status--${
+                    syncStatus === 'idle' && unsavedCount > 0 ? 'unsaved' : syncStatus
+                }`}
+                onClick={onSave}
+                title='Save to the server (Ctrl+S)'
+            >
+                <span className='sync-status__dot' />
+                <span>{syncLabel}</span>
+            </button>
             <button className='tea-sidebar-footer-btn' onClick={handleSettingsToggle}>
                 <span>⚙</span>
                 <span>Settings</span>
