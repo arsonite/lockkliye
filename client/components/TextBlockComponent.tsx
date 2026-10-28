@@ -13,7 +13,7 @@
  * all copies or substantial portions of the Software.
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import type { iTextBlock, tFormatMode, iWord, iBlockStyle } from '@/types';
 import { RichTextEditor } from './RichTextEditor';
 import { TeaModal } from '@teatype/components';
@@ -30,6 +30,9 @@ interface iTextBlockComponentProps {
     onStyleChange: (blockId: string, style: Partial<iTextBlock['style']>) => void;
     onDelete: (blockId: string) => void;
     onAddBlockAfter: (blockId: string) => void;
+    onAddBlockBefore: (blockId: string) => void;
+    autoFocus?: boolean; // The block was just added, its editor takes the focus
+    onAutoFocused?: () => void;
     onEditingChange?: (blockId: string, isEditing: boolean) => void;
     onClearFormatMode?: () => void;
     onSaveAsPreset?: (style: iBlockStyle) => void;
@@ -46,6 +49,9 @@ export const TextBlockComponent = ({
     onStyleChange,
     onDelete,
     onAddBlockAfter,
+    onAddBlockBefore,
+    autoFocus,
+    onAutoFocused,
     onClearFormatMode,
     onSaveAsPreset,
     confirmDeletions = true,
@@ -53,6 +59,8 @@ export const TextBlockComponent = ({
     confirmDeletions?: boolean;
 }) => {
     const [showStyleMenu, setShowStyleMenu] = useState(false);
+    // Where a right-click opened the menu, null when the button did
+    const [menuPoint, setMenuPoint] = useState<{ x: number; y: number } | null>(null);
     const [isResizing, setIsResizing] = useState(false);
     const [isNearEdge, setIsNearEdge] = useState(false);
     const [titleInput, setTitleInput] = useState(block.style.title || '');
@@ -87,6 +95,21 @@ export const TextBlockComponent = ({
         observer.observe(appElement, { attributes: true });
         return () => observer.disconnect();
     }, []);
+
+    // Place the menu at the mouse, kept inside the window
+    useLayoutEffect(() => {
+        const menu = styleMenuRef.current;
+        const block = blockRef.current;
+        if (!showStyleMenu || !menuPoint || !menu || !block) return;
+        const blockRect = block.getBoundingClientRect();
+        // Not the rect, that is scaled by the opening animation
+        const { offsetWidth: width, offsetHeight: height } = menu;
+        const x = Math.max(8, Math.min(menuPoint.x, window.innerWidth - width - 8));
+        const y = Math.max(8, Math.min(menuPoint.y, window.innerHeight - height - 8));
+        menu.style.left = `${x - blockRect.left}px`;
+        menu.style.top = `${y - blockRect.top}px`;
+        menu.style.marginTop = '0';
+    }, [showStyleMenu, menuPoint]);
 
     // Close style menu on outside click
     useEffect(() => {
@@ -360,6 +383,12 @@ export const TextBlockComponent = ({
                 style={getBlockStyles()}
                 onMouseMove={handleMouseMoveOnBlock}
                 onMouseLeave={handleMouseLeave}
+                onContextMenu={(e) => {
+                    if (styleMenuRef.current?.contains(e.target as Node)) return;
+                    e.preventDefault();
+                    setMenuPoint({ x: e.clientX, y: e.clientY });
+                    setShowStyleMenu(true);
+                }}
             >
                 {/* Block title (legend-style) with color based on background */}
                 {blockStyle.title && (
@@ -388,17 +417,27 @@ export const TextBlockComponent = ({
                 <div className='text-block__controls'>
                     <button
                         className='text-block__style-btn'
-                        onClick={() => setShowStyleMenu(!showStyleMenu)}
+                        onClick={() => {
+                            setMenuPoint(null);
+                            setShowStyleMenu(!showStyleMenu);
+                        }}
                         title='Block style'
                     >
                         ◐
+                    </button>
+                    <button
+                        className='text-block__add-above-btn'
+                        onClick={() => onAddBlockBefore(block.id)}
+                        title='Add block above'
+                    >
+                        +↑
                     </button>
                     <button
                         className='text-block__add-btn'
                         onClick={() => onAddBlockAfter(block.id)}
                         title='Add block below'
                     >
-                        +
+                        +↓
                     </button>
                     <button className='text-block__delete-btn' onClick={handleDelete} title='Delete block'>
                         ×
@@ -599,6 +638,8 @@ export const TextBlockComponent = ({
                     onOpenAnchor={onOpenAnchor}
                     onWordsChange={(newWords) => onWordsChange(block.id, newWords)}
                     onAddBlockAfter={() => onAddBlockAfter(block.id)}
+                    autoFocus={autoFocus}
+                    onAutoFocused={onAutoFocused}
                     onClearFormatMode={onClearFormatMode}
                     placeholder='Click to edit...'
                 />

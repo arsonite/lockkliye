@@ -29,13 +29,13 @@ import {
     type iCollection,
     type iSettingsItem,
 } from '@/sync/collections';
-import { findDirty, hashOf, syncCollection, type tSeed, type tSynced } from '@/sync/engine';
+import { findDirty, hashOf, syncCollection, type iCollectionResult, type tSeed, type tSynced } from '@/sync/engine';
 import { assemble, deriveItems, type iSyncItems } from '@/sync/tree';
+import usePersist from '@/storage/usePersist';
 
 // Types
 import type { iHistoryEntry, iNotesState } from '@/types';
 
-const META_KEY = 'lockkliye-sync';
 // Bump when the row format changes: an older meta would otherwise make unchanged-looking entities count as deleted on the server
 const META_VERSION = 4;
 // Entries point to entries of the collections before them, so this is also the order of saving
@@ -73,6 +73,7 @@ interface iUseSyncProps {
     history: iHistoryEntry[];
     historyLimit: number;
     freshInstall: boolean; // The browser had no stored data, so the state is the generated welcome content
+    storedMeta?: unknown; // The sync meta of the last session
     setState: Dispatch<SetStateAction<iNotesState>>;
     setHistory: Dispatch<SetStateAction<iHistoryEntry[]>>;
 }
@@ -90,17 +91,9 @@ const emptyMeta = (): iSyncMeta => ({
     seed: Object.fromEntries(COLLECTIONS.map((name) => [name, {}])),
 });
 
-const loadMeta = (state: iNotesState, freshInstall: boolean): iSyncMeta => {
-    const stored = localStorage.getItem(META_KEY);
-    if (stored) {
-        try {
-            const parsed = JSON.parse(stored);
-            if (parsed.version === META_VERSION) {
-                return parsed;
-            }
-        } catch {
-            // Fall through to a fresh meta
-        }
+const loadMeta = (state: iNotesState, freshInstall: boolean, stored: unknown): iSyncMeta => {
+    if ((stored as iSyncMeta | undefined)?.version === META_VERSION) {
+        return stored as iSyncMeta;
     }
 
     const meta = emptyMeta();
@@ -155,16 +148,14 @@ const mergeItems = <L extends object>(
     return merged;
 };
 
-const useSync = ({ state, history, historyLimit, freshInstall, setState, setHistory }: iUseSyncProps) => {
-    const [meta, setMeta] = useState<iSyncMeta>(() => loadMeta(state, freshInstall));
+const useSync = ({ state, history, historyLimit, freshInstall, storedMeta, setState, setHistory }: iUseSyncProps) => {
+    const [meta, setMeta] = useState<iSyncMeta>(() => loadMeta(state, freshInstall, storedMeta));
     const [status, setStatus] = useState<tSyncStatus>('idle');
     const syncing = useRef(false);
     const latest = useRef({ state, history, meta });
     latest.current = { state, history, meta };
 
-    useEffect(() => {
-        localStorage.setItem(META_KEY, JSON.stringify(meta));
-    }, [meta]);
+    usePersist('sync', meta);
 
     const settings = useMemo(
         () => settingsOf(state),
@@ -201,6 +192,8 @@ const useSync = ({ state, history, historyLimit, freshInstall, setState, setHist
 
             const { state: snapshot, history: snapshotHistory, meta: snapshotMeta } = latest.current;
             const snapshotSettings = settingsOf(snapshot);
+            // The collections that were synced, if a later one fails the writes of these must not be forgotten
+            const finished: Record<string, iCollectionResult<object>> = {};
 
             try {
                 // What the collections saved so far ended up as, later ones look up the server ids of their relations here
@@ -215,6 +208,7 @@ const useSync = ({ state, history, historyLimit, freshInstall, setState, setHist
                         done,
                     );
                     done[collection.name] = result.synced;
+                    finished[collection.name] = result;
                     return result;
                 };
                 const items: iSyncItems = deriveItems(
@@ -303,6 +297,18 @@ const useSync = ({ state, history, historyLimit, freshInstall, setState, setHist
                 setStatus('idle');
                 return { ...report, ok: true };
             } catch (error) {
+                // Rows that were created or deleted on the server stay known, or they would come back as strangers
+                // and rows deleted here would not be deleted there
+                const partial = emptyMeta();
+                partial.seed = snapshotMeta.seed;
+                for (const name of COLLECTIONS) {
+                    const synced = { ...snapshotMeta.synced[name] };
+                    const result = finished[name];
+                    result?.pushedKeys.forEach((key) => (synced[key] = result.synced[key]));
+                    result?.removedKeys.forEach((key) => delete synced[key]);
+                    partial.synced[name] = synced;
+                }
+                setMeta(partial);
                 setStatus('offline');
                 return { ...report, error: error instanceof Error ? error.message : String(error) };
             } finally {

@@ -14,7 +14,7 @@
  */
 
 // React imports
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 
 // External
 import { Flipper, Flipped } from 'react-flip-toolkit';
@@ -58,6 +58,9 @@ interface iNoteEditorProps {
     onBlockStyleChange: (blockId: string, style: Partial<iTextBlock['style']>) => void;
     onBlockDelete: (blockId: string) => void;
     onBlockAdd: (afterBlockId?: string) => void;
+    onBlockAddBefore: (beforeBlockId: string) => void;
+    focusBlockId?: string | null; // A block that was just added, its editor takes the focus
+    onFocusHandled: () => void;
     onBlockAddWithPreset: (preset: iBlockStyle, afterBlockId?: string) => void;
     onBlockReorder: (fromIndex: number, toIndex: number) => void;
     onFormatModeChange: (mode: tFormatMode) => void;
@@ -98,6 +101,9 @@ export const NoteEditor = ({
     onBlockStyleChange,
     onBlockDelete,
     onBlockAdd,
+    onBlockAddBefore,
+    focusBlockId,
+    onFocusHandled,
     onBlockAddWithPreset,
     onBlockReorder,
     onFormatModeChange,
@@ -122,73 +128,71 @@ export const NoteEditor = ({
     const [showUnanchorModal, setShowUnanchorModal] = useState(false);
     const [draggedBlockIndex, setDraggedBlockIndex] = useState<number | null>(null);
     const [previewOrder, setPreviewOrder] = useState<number[] | null>(null);
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [draggedBlockRect, setDraggedBlockRect] = useState<DOMRect | null>(null);
     const editorRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
     const presetMenuRef = useRef<HTMLDivElement>(null);
     const blockRefs = useRef<Map<string, HTMLDivElement>>(new Map());
     const dragGhostRef = useRef<HTMLDivElement>(null);
+    const mouseRef = useRef({ x: 0, y: 0 });
+    const orderRef = useRef<number[]>([]);
+
+    // The ghost follows the mouse without a render, a render per mouse move is what made the drag jerky
+    const moveGhost = () => {
+        if (dragGhostRef.current) {
+            dragGhostRef.current.style.translate = `${mouseRef.current.x + 15}px ${mouseRef.current.y - 20}px`;
+        }
+    };
+    useLayoutEffect(moveGhost, [isDragging]);
 
     // Mouse-based drag system for full control
     useEffect(() => {
-        if (!isDragging) return;
+        if (!isDragging || draggedBlockIndex === null) return;
 
-        const handleMouseMove = (e: MouseEvent) => {
-            setMousePosition({ x: e.clientX, y: e.clientY });
-
-            // Find which block we're over based on mouse Y position
-            if (draggedBlockIndex === null || !previewOrder) return;
-
-            const blockEntries = Array.from(blockRefs.current.entries());
-            for (let i = 0; i < blockEntries.length; i++) {
-                const [blockId, el] = blockEntries[i];
-                const rect = el.getBoundingClientRect();
-                const midY = rect.top + rect.height / 2;
-
-                // Find the visual index of this block
-                const block = note.blocks.find((b) => b.id === blockId);
-                if (!block) continue;
-                const originalIdx = note.blocks.indexOf(block);
-                const visualIdx = previewOrder.indexOf(originalIdx);
-
-                // If mouse is above the midpoint of this block, move dragged block here
-                if (e.clientY < midY && visualIdx !== -1) {
-                    const currentDraggedVisualIndex = previewOrder.indexOf(draggedBlockIndex);
-                    if (currentDraggedVisualIndex !== visualIdx && currentDraggedVisualIndex !== -1) {
-                        const newOrder = [...previewOrder];
-                        newOrder.splice(currentDraggedVisualIndex, 1);
-                        newOrder.splice(visualIdx, 0, draggedBlockIndex);
-                        setPreviewOrder(newOrder);
-                    }
+        // The position of a block is worked out from the heights of the ones above it, the rects of the
+        // blocks are shifted by the move animation and would flip the order back and forth
+        const reorder = (y: number) => {
+            const content = contentRef.current;
+            if (!content) return;
+            const order = orderRef.current;
+            const from = order.indexOf(draggedBlockIndex);
+            let top = content.getBoundingClientRect().top + parseFloat(getComputedStyle(content).paddingTop);
+            let to = -1;
+            for (let i = 0; i < order.length; i++) {
+                const el = blockRefs.current.get(note.blocks[order[i]].id);
+                if (!el) continue;
+                const height = el.offsetHeight;
+                const mid = top + height / 2;
+                if (i !== from && y >= top && y < top + height) {
+                    if ((i > from && y > mid) || (i < from && y < mid)) to = i;
                     break;
                 }
-                // If this is the last block and mouse is below it
-                if (i === blockEntries.length - 1 && e.clientY >= midY) {
-                    const currentDraggedVisualIndex = previewOrder.indexOf(draggedBlockIndex);
-                    const targetIdx = previewOrder.length - 1;
-                    if (currentDraggedVisualIndex !== targetIdx && currentDraggedVisualIndex !== -1) {
-                        const newOrder = [...previewOrder];
-                        newOrder.splice(currentDraggedVisualIndex, 1);
-                        newOrder.push(draggedBlockIndex);
-                        setPreviewOrder(newOrder);
-                    }
-                }
+                if (i === 0 && y < top) to = 0;
+                if (i === order.length - 1 && y >= top + height) to = i;
+                top += height;
             }
+            if (to === -1 || to === from) return;
+            order.splice(from, 1);
+            order.splice(to, 0, draggedBlockIndex);
+            setPreviewOrder([...order]);
+        };
+
+        const handleMouseMove = (e: MouseEvent) => {
+            mouseRef.current = { x: e.clientX, y: e.clientY };
+            moveGhost();
+            reorder(e.clientY);
         };
 
         const handleMouseUp = () => {
-            if (draggedBlockIndex !== null && previewOrder) {
-                const finalIndex = previewOrder.indexOf(draggedBlockIndex);
-                if (finalIndex !== draggedBlockIndex) {
-                    onBlockReorder(draggedBlockIndex, finalIndex);
-                }
+            const finalIndex = orderRef.current.indexOf(draggedBlockIndex);
+            if (finalIndex !== draggedBlockIndex) {
+                onBlockReorder(draggedBlockIndex, finalIndex);
             }
             setDraggedBlockIndex(null);
             setPreviewOrder(null);
             setIsDragging(false);
             setDraggedBlockRect(null);
-            document.body.style.cursor = '';
         };
 
         document.body.style.cursor = 'grabbing';
@@ -200,7 +204,7 @@ export const NoteEditor = ({
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [isDragging, draggedBlockIndex, previewOrder, note.blocks, onBlockReorder]);
+    }, [isDragging, draggedBlockIndex, note.blocks, onBlockReorder]);
 
     // Compute the visual order of blocks (with preview reordering)
     const getVisualBlocks = useCallback(() => {
@@ -221,8 +225,9 @@ export const NoteEditor = ({
 
             setDraggedBlockIndex(index);
             setIsDragging(true);
-            setMousePosition({ x: e.clientX, y: e.clientY });
-            setPreviewOrder(note.blocks.map((_, i) => i));
+            mouseRef.current = { x: e.clientX, y: e.clientY };
+            orderRef.current = note.blocks.map((_, i) => i);
+            setPreviewOrder(orderRef.current);
         },
         [note.blocks],
     );
@@ -303,44 +308,46 @@ export const NoteEditor = ({
                         </div>
                     )}
                     <div className='note-editor__title-row'>
-                    {isEditingTitle ? (
-                        <input
-                            className='note-editor__title-input'
-                            value={titleValue}
-                            onChange={(e) => setTitleValue(e.target.value)}
-                            onBlur={handleTitleSubmit}
-                            onKeyDown={(e) => e.key === 'Enter' && handleTitleSubmit()}
-                            autoFocus
-                        />
-                    ) : (
-                        <h1
-                            className='note-editor__title'
-                            onClick={() => {
-                                setTitleValue(note.title);
-                                setIsEditingTitle(true);
-                            }}
+                        <button
+                            className={`note-editor__anchor-btn ${
+                                note.isAnchor ? 'note-editor__anchor-btn--active' : ''
+                            }`}
+                            onClick={handleAnchorToggle}
+                            title={
+                                note.isAnchor
+                                    ? 'This note is an anchor. Click to stop it being one.'
+                                    : 'Make this note an anchor, so words in other notes can open it'
+                            }
                         >
-                            {note.title}
-                        </h1>
-                    )}
-                    <button
-                        className={`note-editor__anchor-btn ${note.isAnchor ? 'note-editor__anchor-btn--active' : ''}`}
-                        onClick={handleAnchorToggle}
-                        title={
-                            note.isAnchor
-                                ? 'This note is an anchor. Click to stop it being one.'
-                                : 'Make this note an anchor, so words in other notes can open it'
-                        }
-                    >
-                        <AnchorIcon />
-                    </button>
+                            <AnchorIcon />
+                        </button>
+                        {isEditingTitle ? (
+                            <input
+                                className='note-editor__title-input'
+                                value={titleValue}
+                                onChange={(e) => setTitleValue(e.target.value)}
+                                onBlur={handleTitleSubmit}
+                                onKeyDown={(e) => e.key === 'Enter' && handleTitleSubmit()}
+                                autoFocus
+                            />
+                        ) : (
+                            <h1
+                                className='note-editor__title'
+                                onClick={() => {
+                                    setTitleValue(note.title);
+                                    setIsEditingTitle(true);
+                                }}
+                            >
+                                {note.title}
+                            </h1>
+                        )}
                     </div>
                     <p className='note-editor__date'>Last edited: {formatDate(note.updatedAt)}</p>
                 </div>
 
-                <div className='note-editor__content'>
+                <div className='note-editor__content' ref={contentRef}>
                     <Flipper
-                        flipKey={previewOrder ? previewOrder.join('-') : note.blocks.map((b) => b.id).join('-')}
+                        flipKey={getVisualBlocks().map((b) => b.id).join('-')}
                         spring={{ stiffness: 500, damping: 40 }}
                     >
                         {getVisualBlocks().map((block) => {
@@ -348,7 +355,7 @@ export const NoteEditor = ({
                             const isBeingDragged = originalIndex === draggedBlockIndex;
 
                             return (
-                                <Flipped key={block.id} flipId={block.id}>
+                                <Flipped key={block.id} flipId={block.id} translate>
                                     <div
                                         ref={(el) => {
                                             if (el) blockRefs.current.set(block.id, el);
@@ -392,6 +399,9 @@ export const NoteEditor = ({
                                                     onStyleChange={onBlockStyleChange}
                                                     onDelete={onBlockDelete}
                                                     onAddBlockAfter={onBlockAdd}
+                                                    onAddBlockBefore={onBlockAddBefore}
+                                                    autoFocus={block.id === focusBlockId}
+                                                    onAutoFocused={onFocusHandled}
                                                     onClearFormatMode={onClearFormatMode}
                                                     onSaveAsPreset={onAddBlockPreset}
                                                 />
@@ -409,8 +419,6 @@ export const NoteEditor = ({
                             ref={dragGhostRef}
                             className='note-editor__drag-ghost'
                             style={{
-                                left: mousePosition.x + 15,
-                                top: mousePosition.y - 20,
                                 width: draggedBlockRect ? draggedBlockRect.width : 300,
                             }}
                         >
@@ -425,6 +433,7 @@ export const NoteEditor = ({
                                 onStyleChange={() => {}}
                                 onDelete={() => {}}
                                 onAddBlockAfter={() => {}}
+                                onAddBlockBefore={() => {}}
                                 onClearFormatMode={() => {}}
                                 onSaveAsPreset={() => {}}
                             />

@@ -32,6 +32,8 @@ interface iRichTextEditorProps {
     words: iWord[];
 
     onOpenAnchor?: (noteId: string) => void;
+    autoFocus?: boolean; // Takes the focus and scrolls into view when it appears, for a block that was just added
+    onAutoFocused?: () => void;
     onWordsChange: (words: iWord[]) => void;
     onAddBlockAfter: () => void;
     onClearFormatMode?: () => void;
@@ -117,6 +119,8 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
     selectedSize: _selectedSize,
     selectedAnchorId,
     onOpenAnchor,
+    autoFocus,
+    onAutoFocused,
     onWordsChange,
     onAddBlockAfter,
     onClearFormatMode,
@@ -827,6 +831,19 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
             editorRef.current.innerHTML = html || `<span class="rich-text-editor__placeholder">${placeholder}</span>`;
         }
     }, []);
+
+    useEffect(() => {
+        const editor = editorRef.current;
+        if (!autoFocus || !editor) return;
+        // Later than the first render, which still writes the placeholder, and the blocks move into place first
+        const timer = setTimeout(() => {
+            editor.focus({ preventScroll: true });
+            placeCaretAtEnd(editor);
+            editor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            onAutoFocused?.();
+        }, 80);
+        return () => clearTimeout(timer);
+    }, [autoFocus]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleFocus = () => {
         setIsFocused(true);

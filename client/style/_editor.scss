@@ -150,6 +150,10 @@
         color: var(--text-tertiary);
         font-size: 12px;
         opacity: 0.85;
+
+        // Not selectable, a selection of it could be dragged around as a ghost of the text
+        user-select: none;
+        -webkit-user-drag: none;
     }
 
     &__breadcrumb-separator {
@@ -262,10 +266,6 @@
         position: relative;
         display: flex;
         align-items: flex-start;
-        transition:
-            transform 0.15s ease-out,
-            opacity 0.15s ease,
-            margin 0.15s ease-out;
 
         &--dragging {
             // Keep the wrapper in place for the placeholder
@@ -277,13 +277,14 @@
             position: absolute;
             top: 0;
             bottom: 0;
-            left: -56px;
-            width: 56px;
+            left: -64px;
+            width: 64px;
         }
 
         &:hover .note-editor__drag-handle,
         &:hover .text-block__controls {
             opacity: 1;
+            pointer-events: auto;
         }
     }
 
@@ -291,9 +292,6 @@
         display: flex;
         align-items: flex-start;
         width: 100%;
-        transition:
-            opacity 0.1s ease,
-            transform 0.1s ease;
     }
 
     &__block-placeholder {
@@ -308,10 +306,13 @@
 
     &__drag-ghost {
         position: fixed;
+        top: 0;
+        left: 0;
         z-index: 9999;
         pointer-events: none;
         opacity: 0.95;
         transform: rotate(1deg);
+        will-change: translate;
         box-shadow:
             0 12px 40px rgba(0, 0, 0, 0.35),
             0 0 0 2px var(--accent);

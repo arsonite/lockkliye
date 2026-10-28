@@ -13,24 +13,32 @@
  * all copies or substantial portions of the Software.
  */
 
+// React imports
+import { useEffect, useState } from 'react';
+
 // TeaType components
 import { TeaToastContainer, useTeaToast } from '@teatype/components';
 
 // Components
 import ModeCursor from '@/components/ModeCursor';
 import { NoteEditor } from '@/components/NoteEditor';
+import { SettingsView } from '@/components/SettingsView';
 import { Sidebar } from '@/components/Sidebar';
 
 // Hooks
 import useNotesStore from '@/hooks/useNotesStore';
 import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 
+// Storage
+import { loadPersisted, type iPersisted } from '@/storage/indexedDb';
+
 // Types
 import type { iBlockStyle } from '@/types';
 
-const NotesApp: React.FC = () => {
-    const store = useNotesStore();
+const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => {
+    const store = useNotesStore(persisted);
     const toast = useTeaToast();
+    const [showSettings, setShowSettings] = useState(false);
 
     const handleSave = async () => {
         const report = await store.save();
@@ -49,7 +57,10 @@ const NotesApp: React.FC = () => {
     };
 
     useKeyboardShortcuts({
-        onEscape: () => store.setFormatMode(null),
+        onEscape: () => {
+            store.setFormatMode(null);
+            setShowSettings(false);
+        },
         onFormatToggle: store.toggleFormatMode,
         onSave: handleSave,
         onUndo: store.undo,
@@ -90,6 +101,12 @@ const NotesApp: React.FC = () => {
         }
     };
 
+    const handleBlockAddBefore = (beforeBlockId: string) => {
+        if (store.activeNoteId) {
+            store.addBlockBefore(store.activeNoteId, beforeBlockId);
+        }
+    };
+
     const handleBlockAddWithPreset = (preset: iBlockStyle, afterBlockId?: string) => {
         if (store.activeNoteId) {
             store.addBlockWithPreset(store.activeNoteId, preset, afterBlockId);
@@ -125,38 +142,51 @@ const NotesApp: React.FC = () => {
                 folders={store.folders}
                 activeNoteId={store.activeNoteId}
                 expanded={store.sidebarExpanded}
-                lightMode={store.lightMode}
-                editorWidth={store.editorWidth}
                 confirmDeletions={store.confirmDeletions}
                 dirtyNoteIds={store.dirtyNoteIds}
                 syncStatus={store.syncStatus}
                 unsavedCount={store.unsavedCount}
                 onToggle={store.toggleSidebar}
                 onSave={handleSave}
-                onNoteSelect={store.setActiveNote}
-                onCreateNote={(folderId) => store.createNewNote(folderId)}
+                onNoteSelect={(noteId) => {
+                    setShowSettings(false);
+                    store.setActiveNote(noteId);
+                }}
+                onCreateNote={(folderId) => {
+                    setShowSettings(false);
+                    store.createNewNote(folderId);
+                }}
                 onDeleteNote={store.deleteNote}
                 onMoveNote={store.moveNote}
                 onCreateFolder={store.createNewFolder}
                 onUpdateFolder={store.updateFolder}
                 onDeleteFolder={store.deleteFolder}
-                onClearAllData={store.clearAllData}
-                onToggleLightMode={store.toggleLightMode}
-                onEditorWidthChange={store.setEditorWidth}
-                onConfirmDeletionsChange={store.setConfirmDeletions}
-                onExportText={store.exportAsText}
-                onExportJson={store.exportAsJson}
-                onExportSettings={store.exportSettings}
-                onExportHistory={store.exportHistory}
-                onImportNotes={store.importNotes}
-                onImportSettings={store.importSettings}
-                onImportHistory={store.importHistory}
-                onCreateRandomNote={store.createRandomNote}
-                toast={toast}
+                settingsOpen={showSettings}
+                onOpenSettings={() => setShowSettings((open) => !open)}
             />
 
             <main className='notes-app__main'>
-                {store.activeNote ? (
+                {showSettings ? (
+                    <SettingsView
+                        lightMode={store.lightMode}
+                        editorWidth={store.editorWidth}
+                        confirmDeletions={store.confirmDeletions}
+                        onToggleLightMode={store.toggleLightMode}
+                        onEditorWidthChange={store.setEditorWidth}
+                        onConfirmDeletionsChange={store.setConfirmDeletions}
+                        onExportText={store.exportAsText}
+                        onExportJson={store.exportAsJson}
+                        onExportSettings={store.exportSettings}
+                        onExportHistory={store.exportHistory}
+                        onImportNotes={store.importNotes}
+                        onImportSettings={store.importSettings}
+                        onImportHistory={store.importHistory}
+                        onCreateRandomNote={store.createRandomNote}
+                        onClearAllData={store.clearAllData}
+                        onClose={() => setShowSettings(false)}
+                        toast={toast}
+                    />
+                ) : store.activeNote ? (
                     <NoteEditor
                         note={store.activeNote}
                         folders={store.folders}
@@ -182,6 +212,9 @@ const NotesApp: React.FC = () => {
                         onBlockStyleChange={handleBlockStyleChange}
                         onBlockDelete={handleBlockDelete}
                         onBlockAdd={handleBlockAdd}
+                        onBlockAddBefore={handleBlockAddBefore}
+                        focusBlockId={store.focusBlockId}
+                        onFocusHandled={() => store.setFocusBlockId(null)}
                         onBlockAddWithPreset={handleBlockAddWithPreset}
                         onBlockReorder={handleBlockReorder}
                         onFormatModeChange={store.setFormatMode}
@@ -210,6 +243,17 @@ const NotesApp: React.FC = () => {
             <TeaToastContainer toasts={toast.toasts} onRemove={toast.removeToast} position={toast.position} />
         </div>
     );
+};
+
+// The saved data comes from IndexedDB, so the app starts once that is read
+const NotesApp: React.FC = () => {
+    const [persisted, setPersisted] = useState<iPersisted | null>(null);
+
+    useEffect(() => {
+        loadPersisted().then(setPersisted);
+    }, []);
+
+    return persisted ? <NotesAppContent persisted={persisted} /> : null;
 };
 
 export default NotesApp;

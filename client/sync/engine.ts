@@ -26,6 +26,8 @@ type tSeed = Record<string, string>;
 interface iCollectionResult<L> {
     items: L[];
     synced: tSynced;
+    pushedKeys: string[]; // What was written to the server and what was deleted there, to keep that even if a later step fails
+    removedKeys: string[];
     pushed: number;
     pulled: number;
     removed: number;
@@ -221,6 +223,8 @@ const syncCollection = async <L extends object>(
         }
     }
 
+    const pushedKeys: string[] = [];
+    const removedKeys: string[] = [];
     let pushed = 0;
     let pulled = 0;
     let removed = 0;
@@ -276,6 +280,7 @@ const syncCollection = async <L extends object>(
                 id = (await collection.api.create<tServerRow>(payload)).data.id;
             }
             nextSynced[key] = { hash: hashOf(collection, localItem), id, rev };
+            pushedKeys.push(key);
             pushed++;
         } catch {
             failed++; // Stays dirty, the next save tries again
@@ -289,6 +294,7 @@ const syncCollection = async <L extends object>(
         try {
             await collection.api.delete(row.id);
             delete nextSynced[key];
+            removedKeys.push(key);
             removed++;
         } catch {
             failed++;
@@ -304,6 +310,8 @@ const syncCollection = async <L extends object>(
     return {
         items: resolved.filter((item): item is L => item !== undefined),
         synced: nextSynced,
+        pushedKeys,
+        removedKeys,
         pushed,
         pulled,
         removed,

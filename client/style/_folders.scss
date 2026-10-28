@@ -144,7 +144,7 @@
     border: 1px solid var(--glass-border, var(--border));
     border-radius: 8px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    animation: settings-fade-in 120ms ease-out;
+    animation: sidebar-menu-in 120ms ease-out;
 
     &__item {
         padding: 8px 12px;
@@ -242,64 +242,14 @@
     }
 }
 
-// Settings open: the footer covers the sidebar below the header and the panel slides up from the footer buttons,
-// the notes stay in place underneath and are hidden as the panel grows
-.tea-sidebar {
-    position: relative;
-
-    &:has(.tea-sidebar-settings) .tea-sidebar__footer {
-        position: absolute;
-        inset: 61px 0 0; // 61px is the height of the sidebar header
-        justify-content: flex-end;
-        max-height: none;
-        padding-top: 0;
-        border-top: none;
-        pointer-events: none;
-
-        > * {
-            pointer-events: auto;
-        }
-    }
-
-    .tea-sidebar-settings {
-        order: -1;
-        flex: 1;
-        min-height: 0;
-        margin-top: 0;
-        animation: settings-slide-in 250ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
-
-        &--closing {
-            animation: settings-slide-out 200ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-    }
+// The settings button while the settings page is open
+.tea-sidebar-footer-btn--active {
+    background: var(--surface-elevated);
+    color: var(--text-primary);
 }
 
-@keyframes settings-slide-in {
+@keyframes sidebar-menu-in {
     from {
         opacity: 0;
-        max-height: 0;
-        padding-top: 0;
-        padding-bottom: 0;
-    }
-    to {
-        opacity: 1;
-        max-height: 100vh;
-        padding-top: 12px;
-        padding-bottom: 12px;
-    }
-}
-
-@keyframes settings-slide-out {
-    from {
-        opacity: 1;
-        max-height: 100vh;
-        padding-top: 12px;
-        padding-bottom: 12px;
-    }
-    to {
-        opacity: 0;
-        max-height: 0;
-        padding-top: 0;
-        padding-bottom: 0;
     }
 }

@@ -18,13 +18,7 @@ import { useState, useRef, useEffect } from 'react';
 // TeaType components
 import {
     TeaSidebar,
-    TeaSidebarSettings,
-    TeaSidebarSlider,
-    TeaSidebarToggle,
-    TeaSidebarButton,
-    TeaSidebarButtonGroup,
     TeaModal,
-    type iUseTeaToastReturn,
 } from '@teatype/components';
 
 // Types
@@ -37,7 +31,6 @@ import AnchorIcon from '@/components/AnchorIcon';
 
 // Utils
 import { descendantIds, folderPath } from '@/util/folderTree';
-import { generateShortText, generateLongText, generateTitle, copyToClipboard } from '@/util/randomGenerator';
 
 const COLLAPSED_KEY = 'lockkliye-folders-collapsed';
 const FOLDER_COLORS = FORMAT_COLORS.filter((color) => color !== 'inherit');
@@ -47,8 +40,6 @@ interface iSidebarProps {
     folders: iFolder[];
     activeNoteId: string | null;
     expanded: boolean;
-    lightMode: boolean;
-    editorWidth: number;
     confirmDeletions: boolean;
     dirtyNoteIds: Set<string>;
     syncStatus: tSyncStatus;
@@ -62,19 +53,8 @@ interface iSidebarProps {
     onCreateFolder: (name: string, parentId: string | null, color?: string) => void;
     onUpdateFolder: (folderId: string, updates: Partial<iFolder>) => void;
     onDeleteFolder: (folderId: string) => void;
-    onClearAllData: () => void;
-    onToggleLightMode: () => void;
-    onEditorWidthChange: (width: number) => void;
-    onConfirmDeletionsChange: (value: boolean) => void;
-    onExportText: () => string;
-    onExportJson: () => string;
-    onExportSettings: () => string;
-    onExportHistory: () => string;
-    onImportNotes: (json: string) => boolean;
-    onImportSettings: (json: string) => boolean;
-    onImportHistory: (json: string) => boolean;
-    onCreateRandomNote: () => void;
-    toast: iUseTeaToastReturn;
+    settingsOpen: boolean;
+    onOpenSettings: () => void;
 }
 
 // What is being dragged from the list, notes and folders can both be dropped on a folder
@@ -113,8 +93,6 @@ export const Sidebar = ({
     folders,
     activeNoteId,
     expanded,
-    lightMode,
-    editorWidth,
     confirmDeletions,
     dirtyNoteIds,
     syncStatus,
@@ -128,23 +106,9 @@ export const Sidebar = ({
     onCreateFolder,
     onUpdateFolder,
     onDeleteFolder,
-    onClearAllData,
-    onToggleLightMode,
-    onEditorWidthChange,
-    onConfirmDeletionsChange,
-    onExportText,
-    onExportJson,
-    onExportSettings,
-    onExportHistory,
-    onImportNotes,
-    onImportSettings,
-    onImportHistory,
-    onCreateRandomNote,
-    toast,
+    settingsOpen,
+    onOpenSettings,
 }: iSidebarProps) => {
-    const [showSettings, setShowSettings] = useState(false);
-    const [isSettingsClosing, setIsSettingsClosing] = useState(false);
-    const [showClearDataModal, setShowClearDataModal] = useState(false);
     const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
     const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
     const [folderForm, setFolderForm] = useState<iFolderForm | null>(null);
@@ -154,9 +118,6 @@ export const Sidebar = ({
     const [dropTarget, setDropTarget] = useState<string | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: iMenuItem[] } | null>(null);
     const dragged = useRef<iDragged | null>(null);
-    const notesInputRef = useRef<HTMLInputElement>(null);
-    const settingsInputRef = useRef<HTMLInputElement>(null);
-    const historyInputRef = useRef<HTMLInputElement>(null);
 
     // Whether a folder is open is a matter of this browser, so it is not part of the synced data
     useEffect(() => {
@@ -188,26 +149,6 @@ export const Sidebar = ({
             document.removeEventListener('scroll', close, true);
         };
     }, [contextMenu]);
-
-    // Handle settings toggle with closing animation
-    const handleSettingsToggle = () => {
-        if (showSettings) {
-            setIsSettingsClosing(true);
-        } else {
-            setShowSettings(true);
-        }
-    };
-
-    // Handle animation end for closing
-    useEffect(() => {
-        if (isSettingsClosing) {
-            const timer = setTimeout(() => {
-                setShowSettings(false);
-                setIsSettingsClosing(false);
-            }, 200);
-            return () => clearTimeout(timer);
-        }
-    }, [isSettingsClosing]);
 
     const formatDate = (timestamp: number) => {
         const date = new Date(timestamp);
@@ -488,223 +429,6 @@ export const Sidebar = ({
         </div>
     );
 
-    // Hidden file inputs for import
-    const fileInputs = (
-        <>
-            <input
-                type='file'
-                ref={notesInputRef}
-                accept='.json'
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            const content = event.target?.result as string;
-                            const success = onImportNotes(content);
-                            if (success) {
-                                toast.success('Notes imported successfully!');
-                            } else {
-                                toast.error('Failed to import notes. Invalid file format.');
-                            }
-                        };
-                        reader.readAsText(file);
-                    }
-                    e.target.value = '';
-                }}
-            />
-            <input
-                type='file'
-                ref={settingsInputRef}
-                accept='.json'
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            const content = event.target?.result as string;
-                            const success = onImportSettings(content);
-                            if (success) {
-                                toast.success('Settings & presets imported!');
-                            } else {
-                                toast.error('Failed to import settings. Invalid file format.');
-                            }
-                        };
-                        reader.readAsText(file);
-                    }
-                    e.target.value = '';
-                }}
-            />
-            <input
-                type='file'
-                ref={historyInputRef}
-                accept='.json'
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            const content = event.target?.result as string;
-                            const success = onImportHistory(content);
-                            if (success) {
-                                toast.success('History imported successfully!');
-                            } else {
-                                toast.error('Failed to import history. Invalid file format.');
-                            }
-                        };
-                        reader.readAsText(file);
-                    }
-                    e.target.value = '';
-                }}
-            />
-        </>
-    );
-
-    // Export helper
-    const downloadFile = (content: string, filename: string, mimeType: string) => {
-        const blob = new Blob([content], { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
-    };
-
-    // Settings panel content
-    const settingsSections = [
-        {
-            id: 'appearance',
-            label: 'Appearance',
-            children: (
-                <TeaSidebarButton onClick={onToggleLightMode}>
-                    {lightMode ? '🌙 Dark Mode' : '☀️ Light Mode'}
-                </TeaSidebarButton>
-            ),
-        },
-        {
-            id: 'editor-width',
-            label: 'Editor Width',
-            children: (
-                <TeaSidebarSlider
-                    min={50}
-                    max={100}
-                    step={5}
-                    value={editorWidth}
-                    onChange={onEditorWidthChange}
-                    unit='%'
-                />
-            ),
-        },
-        {
-            id: 'export',
-            label: 'Export',
-            children: (
-                <TeaSidebarButtonGroup>
-                    <TeaSidebarButton
-                        onClick={() => {
-                            downloadFile(onExportText(), 'lockkliye-notes.txt', 'text/plain');
-                            toast.success('Notes exported as text');
-                        }}
-                    >
-                        📄 Notes (Text)
-                    </TeaSidebarButton>
-                    <TeaSidebarButton
-                        onClick={() => {
-                            downloadFile(onExportJson(), 'lockkliye-notes.json', 'application/json');
-                            toast.success('Notes exported as JSON');
-                        }}
-                    >
-                        📝 Notes (JSON)
-                    </TeaSidebarButton>
-                    <TeaSidebarButton
-                        onClick={() => {
-                            downloadFile(onExportSettings(), 'lockkliye-settings.json', 'application/json');
-                            toast.success('Settings & presets exported');
-                        }}
-                    >
-                        ⚙️ Settings & Presets
-                    </TeaSidebarButton>
-                    <TeaSidebarButton
-                        onClick={() => {
-                            downloadFile(onExportHistory(), 'lockkliye-history.json', 'application/json');
-                            toast.success('History exported');
-                        }}
-                    >
-                        📜 History
-                    </TeaSidebarButton>
-                </TeaSidebarButtonGroup>
-            ),
-        },
-        {
-            id: 'import',
-            label: 'Import',
-            children: (
-                <TeaSidebarButtonGroup>
-                    <TeaSidebarButton onClick={() => notesInputRef.current?.click()}>📝 Notes</TeaSidebarButton>
-                    <TeaSidebarButton onClick={() => settingsInputRef.current?.click()}>
-                        ⚙️ Settings & Presets
-                    </TeaSidebarButton>
-                    <TeaSidebarButton onClick={() => historyInputRef.current?.click()}>📜 History</TeaSidebarButton>
-                </TeaSidebarButtonGroup>
-            ),
-        },
-        {
-            id: 'developer',
-            label: 'Developer',
-            children: (
-                <>
-                    <TeaSidebarToggle
-                        checked={confirmDeletions}
-                        onChange={onConfirmDeletionsChange}
-                        label='Show delete confirmations'
-                    />
-                    <div className='tea-sidebar-settings__sublabel'>Text Generators</div>
-                    <TeaSidebarButtonGroup>
-                        <TeaSidebarButton
-                            onClick={async () => {
-                                const text = generateShortText();
-                                const success = await copyToClipboard(text);
-                                if (success) toast.success('Short text copied!');
-                                else toast.error('Failed to copy');
-                            }}
-                        >
-                            📋 Short Text
-                        </TeaSidebarButton>
-                        <TeaSidebarButton
-                            onClick={async () => {
-                                const text = generateLongText();
-                                const success = await copyToClipboard(text);
-                                if (success) toast.success('Long text copied!');
-                                else toast.error('Failed to copy');
-                            }}
-                        >
-                            📋 Long Text
-                        </TeaSidebarButton>
-                        <TeaSidebarButton
-                            onClick={async () => {
-                                const text = generateTitle();
-                                const success = await copyToClipboard(text);
-                                if (success) toast.success('Title copied!');
-                                else toast.error('Failed to copy');
-                            }}
-                        >
-                            📋 Title
-                        </TeaSidebarButton>
-                    </TeaSidebarButtonGroup>
-                    <div className='tea-sidebar-settings__sublabel'>Note Generator</div>
-                    <TeaSidebarButton onClick={onCreateRandomNote}>🎲 Random Note</TeaSidebarButton>
-                    <TeaSidebarButton variant='danger' onClick={() => setShowClearDataModal(true)}>
-                        Clear All Data
-                    </TeaSidebarButton>
-                </>
-            ),
-        },
-    ];
-
     const syncLabel =
         syncStatus === 'syncing'
             ? 'Saving...'
@@ -726,12 +450,13 @@ export const Sidebar = ({
                 <span className='sync-status__dot' />
                 <span>{syncLabel}</span>
             </button>
-            <button className='tea-sidebar-footer-btn' onClick={handleSettingsToggle}>
+            <button
+                className={`tea-sidebar-footer-btn ${settingsOpen ? 'tea-sidebar-footer-btn--active' : ''}`}
+                onClick={onOpenSettings}
+            >
                 <span>⚙</span>
                 <span>Settings</span>
             </button>
-            <TeaSidebarSettings isOpen={showSettings} isClosing={isSettingsClosing} sections={settingsSections} />
-            {fileInputs}
         </>
     );
 
@@ -902,35 +627,6 @@ export const Sidebar = ({
                         </select>
                     </label>
                 </div>
-            </TeaModal>
-
-            {/* Clear All Data Confirmation Modal */}
-            <TeaModal
-                isOpen={showClearDataModal}
-                title='Clear All Data'
-                onClose={() => setShowClearDataModal(false)}
-                size='sm'
-                footer={
-                    <>
-                        <button
-                            className='tea-modal-btn tea-modal-btn--secondary'
-                            onClick={() => setShowClearDataModal(false)}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            className='tea-modal-btn tea-modal-btn--danger'
-                            onClick={() => {
-                                onClearAllData();
-                                setShowClearDataModal(false);
-                            }}
-                        >
-                            Clear All
-                        </button>
-                    </>
-                }
-            >
-                <p>Are you sure you want to clear all data? This cannot be undone.</p>
             </TeaModal>
 
             {/* Delete Folder Confirmation Modal */}

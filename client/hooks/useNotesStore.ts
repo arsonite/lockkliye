@@ -14,7 +14,7 @@
  */
 
 // React imports
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 // Types
 import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyle, iHistoryEntry } from '@/types';
@@ -24,31 +24,24 @@ import { createNote, createFolder, createBlock, createWord, FORMAT_COLORS, expor
 import { descendantIds, repairFolders } from '@/util/folderTree';
 import { generateRandomNote } from '@/util/randomGenerator';
 import useSync from '@/sync/useSync';
+import type { iPersisted } from '@/storage/indexedDb';
+import usePersist from '@/storage/usePersist';
 
-const STORAGE_KEY = 'lockkliye-data';
-const HISTORY_KEY = 'lockkliye-history';
-const REDO_KEY = 'lockkliye-redo';
 const MAX_HISTORY_SIZE = 100;
 // Edits of one kind within this time are one undo step: a typed sentence is not one step per keystroke
 const COALESCE_MS = 1500;
 const COALESCED = ['Edit text', 'Update block style', 'Update note'];
 
-const getInitialState = (): iNotesState => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+const getInitialState = (stored?: iNotesState): iNotesState => {
     if (stored) {
-        try {
-            const parsed = JSON.parse(stored);
-            // Ensure lightMode, selectedSize, and editorWidth exist
-            return {
-                ...parsed,
-                lightMode: parsed.lightMode ?? false,
-                selectedSize: parsed.selectedSize ?? 'normal',
-                selectedAnchorId: parsed.selectedAnchorId ?? null,
-                editorWidth: parsed.editorWidth ?? 70,
-            };
-        } catch {
-            // Fall through to default state
-        }
+        // Older versions saved less
+        return {
+            ...stored,
+            lightMode: stored.lightMode ?? false,
+            selectedSize: stored.selectedSize ?? 'normal',
+            selectedAnchorId: stored.selectedAnchorId ?? null,
+            editorWidth: stored.editorWidth ?? 70,
+        };
     }
 
     // Create default state with sample data
@@ -273,55 +266,30 @@ const withValidReferences = (notes: iNote[], folders: iFolder[]): { notes: iNote
     };
 };
 
-const getInitialHistory = (): iHistoryEntry[] => {
-    const stored = localStorage.getItem(HISTORY_KEY);
-    if (stored) {
-        try {
-            return JSON.parse(stored);
-        } catch {
-            return [];
-        }
-    }
-    return [];
-};
-
-const getInitialRedo = (): iHistoryEntry[] => {
-    const stored = localStorage.getItem(REDO_KEY);
-    if (stored) {
-        try {
-            return JSON.parse(stored);
-        } catch {
-            return [];
-        }
-    }
-    return [];
-};
-
-const useNotesStore = () => {
-    // Read before the state initializer below, once data is persisted the browser is no longer fresh
-    const [freshInstall] = useState(() => localStorage.getItem(STORAGE_KEY) === null);
-    const [state, setState] = useState<iNotesState>(getInitialState);
-    const [history, setHistory] = useState<iHistoryEntry[]>(getInitialHistory);
-    const [redoStack, setRedoStack] = useState<iHistoryEntry[]>(getInitialRedo);
+const useNotesStore = (persisted: iPersisted) => {
+    // Nothing saved yet means the state is the generated welcome content
+    const [freshInstall] = useState(() => persisted.data === undefined);
+    const [state, setState] = useState<iNotesState>(() => getInitialState(persisted.data));
+    const [history, setHistory] = useState<iHistoryEntry[]>(() => persisted.history ?? []);
+    const [redoStack, setRedoStack] = useState<iHistoryEntry[]>(() => persisted.redo ?? []);
+    // A block that was just added, the editor of it takes the focus and scrolls into view
+    const [focusBlockId, setFocusBlockId] = useState<string | null>(null);
     const isUndoing = useRef(false);
     const lastChange = useRef<{ noteId: string; group: string; time: number } | null>(null);
 
-    const sync = useSync({ state, history, historyLimit: MAX_HISTORY_SIZE, freshInstall, setState, setHistory });
+    const sync = useSync({
+        state,
+        history,
+        historyLimit: MAX_HISTORY_SIZE,
+        freshInstall,
+        storedMeta: persisted.sync,
+        setState,
+        setHistory,
+    });
 
-    // Persist to localStorage
-    useEffect(() => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }, [state]);
-
-    // Persist history to localStorage
-    useEffect(() => {
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-    }, [history]);
-
-    // Persist redo to localStorage
-    useEffect(() => {
-        localStorage.setItem(REDO_KEY, JSON.stringify(redoStack));
-    }, [redoStack]);
+    usePersist('data', state);
+    usePersist('history', history);
+    usePersist('redo', redoStack);
 
     // Save state to history before modifications (per-note)
     // Edits with the same group within a short time are one step, the group tells a block from another
@@ -669,6 +637,24 @@ const useNotesStore = () => {
                 return { ...note, blocks: newBlocks, updatedAt: Date.now() };
             }),
         }));
+        setFocusBlockId(newBlock.id);
+        return newBlock;
+    }, [saveToHistory]);
+
+    const addBlockBefore = useCallback((noteId: string, beforeBlockId: string) => {
+        saveToHistory(noteId, 'Add block');
+        const newBlock = createBlock([createWord('')]);
+        setState((prev: iNotesState) => ({
+            ...prev,
+            notes: prev.notes.map((note: iNote) => {
+                if (note.id !== noteId) return note;
+                const idx = note.blocks.findIndex((b: iTextBlock) => b.id === beforeBlockId);
+                const newBlocks = [...note.blocks];
+                newBlocks.splice(Math.max(idx, 0), 0, newBlock);
+                return { ...note, blocks: newBlocks, updatedAt: Date.now() };
+            }),
+        }));
+        setFocusBlockId(newBlock.id);
         return newBlock;
     }, [saveToHistory]);
 
@@ -946,9 +932,6 @@ const useNotesStore = () => {
 
     // Clear all data
     const clearAllData = useCallback(() => {
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(HISTORY_KEY);
-        localStorage.removeItem(REDO_KEY);
         setHistory([]);
         setRedoStack([]);
         setState(getInitialState());
@@ -1003,6 +986,7 @@ const useNotesStore = () => {
                 return { ...note, blocks, updatedAt: Date.now() };
             }),
         }));
+        setFocusBlockId(newBlock.id);
     }, [saveToHistory]);
 
     return {
@@ -1050,6 +1034,9 @@ const useNotesStore = () => {
         // Word/Block operations
         updateWordFormat,
         addBlock,
+        addBlockBefore,
+        focusBlockId,
+        setFocusBlockId,
         updateBlock,
         updateBlockStyle,
         deleteBlock,
