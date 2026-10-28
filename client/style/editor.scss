@@ -351,8 +351,9 @@
 
         // The ghost has the width of the block, so the block fills it and its margins stay outside
         .text-block {
-            width: 100% !important;
             margin: 0;
+            width: 100% !important;
+
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
         }
