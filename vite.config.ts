@@ -40,7 +40,7 @@ export const getBaseViteConfig = (): UserConfig => ({
     server: {
         cors: true,
         host: '0.0.0.0',
-        port: 3000,
+        port: 3001,
         open: false,
     },
 });

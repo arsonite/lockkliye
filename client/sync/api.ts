@@ -13,7 +13,7 @@
  * all copies or substantial portions of the Software.
  */
 
-// TeaType API
+// API
 import { HSDBBaseAPI } from '@teatype/api';
 
 // The server (lockkliye_server.py) serves the HSDB unit under /hsdb/<Model>

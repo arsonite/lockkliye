@@ -31,7 +31,7 @@ import {
 } from '@/sync/collections';
 import { findDirty, hashOf, syncCollection, type iCollectionResult, type tSeed, type tSynced } from '@/sync/engine';
 import { assemble, deriveItems, type iSyncItems } from '@/sync/tree';
-import usePersist from '@/storage/usePersist';
+import usePersist from '@/hooks/usePersist';
 
 // Types
 import type { iHistoryEntry, iNotesState } from '@/types';

@@ -21,12 +21,12 @@ import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyl
 
 // Util
 import { createNote, createFolder, createBlock, createWord, FORMAT_COLORS, exportNotesAsText, exportNotesAsJson, exportSettingsAsJson, importFromJson as parseImportJson } from '@/types';
-import { descendantIds, repairFolders } from '@/util/folderTree';
-import { MAX_ENABLED, catalogOf, defaultPalette, sanitizePalette } from '@/util/palette';
-import { generateRandomNote } from '@/util/randomGenerator';
+import { descendantIds, repairFolders } from '@/tools/folderTree';
+import { MAX_ENABLED, catalogOf, defaultPalette, sanitizePalette } from '@/tools/palette';
+import { generateRandomNote } from '@/tools/randomGenerator';
 import useSync from '@/sync/useSync';
-import type { iPersisted } from '@/storage/indexedDb';
-import usePersist from '@/storage/usePersist';
+import type { iPersisted } from '@/tools/indexedDB';
+import usePersist from '@/hooks/usePersist';
 
 const MAX_HISTORY_SIZE = 100;
 // Edits of one kind within this time are one undo step: a typed sentence is not one step per keystroke

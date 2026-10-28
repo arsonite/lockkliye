@@ -31,7 +31,7 @@ import { TextBlockComponent } from './TextBlockComponent';
 import type { iFolder, iNote, iTextBlock, iWord, tFormatMode, iHistoryEntry, iBlockStyle, iPalette } from '@/types';
 
 // Utils
-import { folderChain } from '@/util/folderTree';
+import { folderChain } from '@/tools/folderTree';
 
 interface iNoteEditorProps {
     note: iNote;
@@ -233,7 +233,12 @@ export const NoteEditor = ({
             if (textBlock) {
                 const { width, height } = textBlock.getBoundingClientRect();
                 const { marginTop, marginBottom } = getComputedStyle(textBlock);
-                setDraggedBlockRect({ width, height, marginTop: parseFloat(marginTop), marginBottom: parseFloat(marginBottom) });
+                setDraggedBlockRect({
+                    width,
+                    height,
+                    marginTop: parseFloat(marginTop),
+                    marginBottom: parseFloat(marginBottom),
+                });
             }
 
             setDraggedBlockIndex(index);
@@ -361,7 +366,9 @@ export const NoteEditor = ({
 
                 <div className='note-editor__content' ref={contentRef}>
                     <Flipper
-                        flipKey={getVisualBlocks().map((b) => b.id).join('-')}
+                        flipKey={getVisualBlocks()
+                            .map((b) => b.id)
+                            .join('-')}
                         spring={{ stiffness: 500, damping: 40 }}
                     >
                         {getVisualBlocks().map((block) => {

@@ -31,7 +31,7 @@ import {
 import type { iBlockStyle, iFolder, iHistoryEntry, iNote, iPalette, iTextBlock, iWord, iWordFormat } from '@/types';
 
 // Util
-import { sanitizePalette } from '@/util/palette';
+import { sanitizePalette } from '@/tools/palette';
 
 type tRow = Record<string, string | number | boolean>;
 type tServerRow = HSDBEntity & { rev: number } & Record<string, unknown>;

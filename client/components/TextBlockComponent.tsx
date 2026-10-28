@@ -15,7 +15,7 @@
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import type { iTextBlock, tFormatMode, iWord, iBlockStyle, iPalette } from '@/types';
-import { enabledOf } from '@/util/palette';
+import { enabledOf } from '@/tools/palette';
 import { RichTextEditor } from './RichTextEditor';
 import { TeaModal } from '@teatype/components';
 

@@ -13,7 +13,7 @@ import { TeaButton } from '@teatype/components';
 import type { iPalette, tPaletteKind } from '@/types';
 
 // Util
-import { MAX_ENABLED, catalogOf, customValueOf } from '@/util/palette';
+import { MAX_ENABLED, catalogOf, customValueOf } from '@/tools/palette';
 
 interface iPaletteEditorProps {
     kind: tPaletteKind;

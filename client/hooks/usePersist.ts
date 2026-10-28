@@ -16,8 +16,8 @@
 // React imports
 import { useEffect, useRef } from 'react';
 
-// Storage
-import { write, type tKey } from '@/storage/indexedDb';
+// Utility
+import { write, type tKey } from '@/tools/indexedDB';
 
 const DEBOUNCE_MS = 250;
 

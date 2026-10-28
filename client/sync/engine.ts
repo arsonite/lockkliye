@@ -13,13 +13,16 @@
  * all copies or substantial portions of the Software.
  */
 
-// Sync
-import type { iCollection, tServerRow } from '@/sync/collections';
+// Utility
 import hash from '@/sync/hash';
+
+// Types
+import type { iCollection, tServerRow } from '@/sync/collections';
 
 // What the server had when an entity was last synced: the local content hash, the server's rev and the server's
 // entry id. The key of the entity is the key of this record.
 type tSynced = Record<string, { hash: string; id: string; rev: number }>;
+
 // Hashes of the first-run placeholder entities (welcome note, default settings), see syncCollection()
 type tSeed = Record<string, string>;
 
@@ -321,4 +324,5 @@ const syncCollection = async <L extends object>(
 };
 
 export type { iCollectionResult, tSeed, tSynced };
+
 export { findDirty, hashOf, syncCollection };

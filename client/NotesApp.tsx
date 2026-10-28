@@ -16,7 +16,7 @@
 // React imports
 import { useEffect, useState } from 'react';
 
-// TeaType components
+// TeaType
 import { TeaToastContainer, useTeaToast } from '@teatype/components';
 
 // Components
@@ -29,15 +29,27 @@ import { Sidebar } from '@/components/Sidebar';
 import useNotesStore from '@/hooks/useNotesStore';
 import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 
-// Storage
-import { loadPersisted, type iPersisted } from '@/storage/indexedDb';
+// Utility
+import { loadPersisted, type iPersisted } from '@/tools/indexedDB';
 
 // Types
 import type { iBlockStyle } from '@/types';
 
+/**
+ * Main application shell.
+ *
+ * Wires the notes store to the sidebar, the note editor and the settings view,
+ * and provides save handling with user feedback via toasts.
+ * Rendered only after the persisted data has been read from IndexedDB.
+ *
+ * @param persisted Data loaded from IndexedDB, used to initialize the store
+ */
 const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => {
+    // Central state and actions for notes, folders, formatting, history and settings
     const store = useNotesStore(persisted);
+    // Toast notifications for save results and settings feedback
     const toast = useTeaToast();
+    // When true, the settings view replaces the editor in the main area
     const [showSettings, setShowSettings] = useState(false);
 
     // The toast is rendered in the body, so its light mode comes from the body
@@ -45,11 +57,18 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
         document.body.classList.toggle('light-mode', store.lightMode);
     }, [store.lightMode]);
 
+    /**
+     * Saves unsaved changes to the server and reports the outcome via toast.
+     * Outcomes: busy (a save is already running, stay silent), server
+     * unreachable, partial failure, overwritten newer remote versions, success.
+     */
     const handleSave = async () => {
         const report = await store.save();
+        // Another save is in progress, nothing to report
         if (report.busy) {
             return;
         }
+        // Server unreachable: data is kept locally and stays marked as unsaved
         if (!report.ok) {
             toast.warning('Server not reachable. Changes are kept in this browser and stay marked as unsaved.');
         } else if (report.failed > 0) {
@@ -61,6 +80,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
         }
     };
 
+    // Global keyboard shortcuts: Escape leaves format mode and closes settings
     useKeyboardShortcuts({
         onEscape: () => {
             store.setFormatMode(null);
@@ -72,6 +92,10 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
         onRedo: store.redo,
     });
 
+    // The handlers below bind editor events to the active note.
+    // They do nothing when no note is active.
+
+    // Applies a format to a single word of a block
     const handleWordFormatChange = (
         blockId: string,
         wordId: string,
@@ -219,7 +243,9 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         onTitleChange={handleTitleChange}
                         onToggleAnchor={handleToggleAnchor}
                         onAnchorChange={store.setSelectedAnchor}
-                        onOpenNote={(noteId) => store.notes.some((note) => note.id === noteId) && store.setActiveNote(noteId)}
+                        onOpenNote={(noteId) =>
+                            store.notes.some((note) => note.id === noteId) && store.setActiveNote(noteId)
+                        }
                         onWordFormatChange={handleWordFormatChange}
                         onWordsChange={handleWordsChange}
                         onBlockStyleChange={handleBlockStyleChange}
@@ -258,7 +284,10 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
     );
 };
 
-// The saved data comes from IndexedDB, so the app starts once that is read
+/**
+ * Root component. Loads the persisted data from IndexedDB first and renders
+ * nothing until it is available, then mounts the actual app.
+ */
 const NotesApp: React.FC = () => {
     const [persisted, setPersisted] = useState<iPersisted | null>(null);
 

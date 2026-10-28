@@ -16,10 +16,7 @@
 import { useState, useRef, useEffect } from 'react';
 
 // TeaType components
-import {
-    TeaSidebar,
-    TeaModal,
-} from '@teatype/components';
+import { TeaSidebar, TeaModal } from '@teatype/components';
 
 // Types
 import type { iFolder, iNote } from '@/types';
@@ -30,7 +27,7 @@ import type { tSyncStatus } from '@/sync/useSync';
 import AnchorIcon from '@/components/AnchorIcon';
 
 // Utils
-import { descendantIds, folderPath } from '@/util/folderTree';
+import { descendantIds, folderPath } from '@/tools/folderTree';
 
 const COLLAPSED_KEY = 'lockkliye-folders-collapsed';
 const FOLDER_COLORS = FORMAT_COLORS.filter((color) => color !== 'inherit');
@@ -184,7 +181,9 @@ export const Sidebar = ({
     const folderIds = new Set(folders.map((folder) => folder.id));
     const parentOf = (folder: iFolder) => (folder.parentId && folderIds.has(folder.parentId) ? folder.parentId : null);
     const foldersIn = (parentId: string | null) => folders.filter((f) => parentOf(f) === parentId).sort(byName);
-    const sortedNotes = [...notes].sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
+    const sortedNotes = [...notes].sort((a, b) =>
+        a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }),
+    );
     const notesIn = (folderId: string | null) =>
         sortedNotes.filter((n) => (n.folderId && folderIds.has(n.folderId) ? n.folderId : null) === folderId);
     const countNotes = (folderId: string) => {
@@ -216,7 +215,11 @@ export const Sidebar = ({
         }
         const name = folderForm.name.trim();
         if (folderForm.id) {
-            onUpdateFolder(folderForm.id, { name, color: folderForm.color || undefined, parentId: folderForm.parentId });
+            onUpdateFolder(folderForm.id, {
+                name,
+                color: folderForm.color || undefined,
+                parentId: folderForm.parentId,
+            });
         } else {
             onCreateFolder(name, folderForm.parentId, folderForm.color || undefined);
             // Show the new folder, its parent may be closed
@@ -249,7 +252,10 @@ export const Sidebar = ({
                 });
             },
         },
-        { label: 'New subfolder', onClick: () => setFolderForm({ id: null, name: '', color: '', parentId: folder.id }) },
+        {
+            label: 'New subfolder',
+            onClick: () => setFolderForm({ id: null, name: '', color: '', parentId: folder.id }),
+        },
         {
             label: 'Edit folder',
             onClick: () =>

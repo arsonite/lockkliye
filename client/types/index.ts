@@ -13,7 +13,22 @@
  * all copies or substantial portions of the Software.
  */
 
-// Formatting modes that can be activated via shortcuts
+/**
+ * Shared types, constants and helpers of the client.
+ *
+ * Data model overview:
+ * - A note (iNote) holds an ordered list of text blocks (iTextBlock).
+ * - A block holds an ordered list of words (iWord) and a style (iBlockStyle).
+ * - A word holds its text and its formatting (iWordFormat).
+ * - Notes can be organized in folders (iFolder), which can be nested.
+ *
+ * Naming convention: `i` prefix for interfaces, `t` prefix for type aliases.
+ */
+
+/**
+ * Formatting modes that can be activated via shortcuts or the toolbar.
+ * `null` means no mode is active.
+ */
 type tFormatMode =
     | 'bold'
     | 'italic'
@@ -173,21 +188,34 @@ const SHORTCUTS: Record<string, tFormatMode> = {
     'ctrl+[': 'smaller',
 };
 
-// Helper to create a new word
+/**
+ * Creates a new word with a fresh unique id.
+ * @param text - The text of the word
+ * @param format - Optional formatting, defaults to none
+ */
 const createWord = (text: string, format: iWordFormat = {}): iWord => ({
     id: crypto.randomUUID(),
     text,
     format,
 });
 
-// Helper to create a new block
+/**
+ * Creates a new text block with a fresh unique id.
+ * @param words - The words of the block, defaults to empty
+ * @param style - Optional block style, defaults to none
+ */
 const createBlock = (words: iWord[] = [], style: iBlockStyle = {}): iTextBlock => ({
     id: crypto.randomUUID(),
     words,
     style,
 });
 
-// Helper to create a new note
+/**
+ * Creates a new note containing a single block with one empty word.
+ * Both timestamps are set to the current time (ms).
+ * @param title - The note title, defaults to 'Untitled'
+ * @param folderId - The folder of the note, null for none
+ */
 const createNote = (title: string = 'Untitled', folderId: string | null = null): iNote => ({
     id: crypto.randomUUID(),
     title,
@@ -197,7 +225,11 @@ const createNote = (title: string = 'Untitled', folderId: string | null = null):
     updatedAt: Date.now(),
 });
 
-// Helper to create a new folder
+/**
+ * Creates a new folder with a fresh unique id.
+ * @param name - The folder name
+ * @param parentId - The parent folder, null for a top-level folder
+ */
 const createFolder = (name: string, parentId: string | null = null): iFolder => ({
     id: crypto.randomUUID(),
     name,
@@ -210,7 +242,12 @@ const serializeNote = (note: iNote): string => JSON.stringify(note);
 // Deserialize note from storage
 const deserializeNote = (data: string): iNote => JSON.parse(data);
 
-// Export notes as plain text
+/**
+ * Exports notes as plain text (formatting is dropped).
+ * Each note starts with `# title`, blocks are separated by a blank line,
+ * words by a space, block titles are written as `[title]`,
+ * and notes are separated by `---`.
+ */
 const exportNotesAsText = (notes: iNote[]): string => {
     return notes.map(note => {
         const title = `# ${note.title}\n`;
@@ -280,8 +317,13 @@ const exportSettingsAsJson = (
     return JSON.stringify(exportData, null, 2);
 };
 
-// Import from JSON - handles notes, settings, or legacy combined format
-// Returns parsed data with type indicator for proper merging
+/**
+ * Parses an exported JSON string.
+ * Handles the 'notes' and 'settings' exports and the legacy combined format
+ * (no `type` field, but a `notes` array, with presets inside `settings`).
+ * The `type` of the result tells the caller how to merge the data.
+ * @returns The parsed data, or null if the input is invalid or unrecognized
+ */
 const importFromJson = (jsonString: string): {
     type: 'notes' | 'settings' | 'legacy';
     notes?: iNote[];

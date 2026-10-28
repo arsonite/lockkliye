@@ -26,7 +26,7 @@ import PaletteEditor from './PaletteEditor';
 import type { iPalette, tPaletteKind } from '@/types';
 
 // Utils
-import { generateShortText, generateLongText, generateTitle, copyToClipboard } from '@/util/randomGenerator';
+import { generateShortText, generateLongText, generateTitle, copyToClipboard } from '@/tools/randomGenerator';
 
 interface iSettingsViewProps {
     lightMode: boolean;
@@ -179,7 +179,8 @@ export const SettingsView = ({
                         {
                             id: 'show-block-borders',
                             label: 'Outline blocks on hover',
-                            description: 'Draws a border around the block under the mouse, to see which text belongs together.',
+                            description:
+                                'Draws a border around the block under the mouse, to see which text belongs together.',
                             control: { type: 'toggle', value: showBlockBorders, onChange: onShowBlockBordersChange },
                         },
                     ],

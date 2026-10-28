@@ -17,7 +17,7 @@
 import { useEffect, useState } from 'react';
 import AnchorIcon from '@/components/AnchorIcon';
 import { HYPERLINKS_ENABLED, iNote, iPalette, tFormatMode } from '@/types';
-import { enabledOf } from '@/util/palette';
+import { enabledOf } from '@/tools/palette';
 
 interface iFloatingToolbarProps {
     formatMode: tFormatMode;
@@ -142,38 +142,40 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
         <div className='floating-toolbar'>
             <div className='floating-toolbar__inner'>
                 <div className='floating-toolbar__tools'>
-                    {tools.filter((tool) => HYPERLINKS_ENABLED || tool.mode !== 'link').map((tool) => {
-                        // Holding Ctrl shows the shortcuts that are Ctrl plus a letter, adding Shift shows the next ones
-                        const shortcut = splitShortcut(tool.shortcut);
-                        const hinted = !!heldModifiers && shortcut?.modifiers === heldModifiers;
-                        return (
-                        <button
-                            key={tool.mode}
-                            className={`floating-toolbar__btn ${
-                                formatMode === tool.mode ? 'floating-toolbar__btn--active' : ''
-                            } ${hinted ? 'floating-toolbar__btn--hint' : ''}`}
-                            onClick={() => onFormatModeChange(formatMode === tool.mode ? null : tool.mode)}
-                            onMouseDown={(e) => e.preventDefault()}
-                            title={`${tool.label}${tool.shortcut ? ` (${tool.shortcut})` : ''}`}
-                            style={
-                                tool.mode === 'color' && selectedColor !== 'inherit'
-                                    ? { color: selectedColor }
-                                    : undefined
-                            }
-                        >
-                            <span
-                                className={`floating-toolbar__icon ${
-                                    tool.mode === 'bold' ? 'floating-toolbar__icon--bold' : ''
-                                } ${tool.mode === 'italic' ? 'floating-toolbar__icon--italic' : ''} ${
-                                    tool.mode === 'underline' ? 'floating-toolbar__icon--underline' : ''
-                                } ${tool.mode === 'strikethrough' ? 'floating-toolbar__icon--strike' : ''}`}
-                            >
-                                {tool.icon}
-                            </span>
-                            {hinted && <span className='floating-toolbar__key'>{shortcut?.letter}</span>}
-                        </button>
-                        );
-                    })}
+                    {tools
+                        .filter((tool) => HYPERLINKS_ENABLED || tool.mode !== 'link')
+                        .map((tool) => {
+                            // Holding Ctrl shows the shortcuts that are Ctrl plus a letter, adding Shift shows the next ones
+                            const shortcut = splitShortcut(tool.shortcut);
+                            const hinted = !!heldModifiers && shortcut?.modifiers === heldModifiers;
+                            return (
+                                <button
+                                    key={tool.mode}
+                                    className={`floating-toolbar__btn ${
+                                        formatMode === tool.mode ? 'floating-toolbar__btn--active' : ''
+                                    } ${hinted ? 'floating-toolbar__btn--hint' : ''}`}
+                                    onClick={() => onFormatModeChange(formatMode === tool.mode ? null : tool.mode)}
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    title={`${tool.label}${tool.shortcut ? ` (${tool.shortcut})` : ''}`}
+                                    style={
+                                        tool.mode === 'color' && selectedColor !== 'inherit'
+                                            ? { color: selectedColor }
+                                            : undefined
+                                    }
+                                >
+                                    <span
+                                        className={`floating-toolbar__icon ${
+                                            tool.mode === 'bold' ? 'floating-toolbar__icon--bold' : ''
+                                        } ${tool.mode === 'italic' ? 'floating-toolbar__icon--italic' : ''} ${
+                                            tool.mode === 'underline' ? 'floating-toolbar__icon--underline' : ''
+                                        } ${tool.mode === 'strikethrough' ? 'floating-toolbar__icon--strike' : ''}`}
+                                    >
+                                        {tool.icon}
+                                    </span>
+                                    {hinted && <span className='floating-toolbar__key'>{shortcut?.letter}</span>}
+                                </button>
+                            );
+                        })}
 
                     {/* Anchor button with the list of anchor notes */}
                     <div className='floating-toolbar__size-wrapper'>
