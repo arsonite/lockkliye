@@ -9,10 +9,11 @@
     padding: 16px;
     margin-bottom: 12px;
     border-radius: var(--radius-md);
-    // The outline of the hovered block appears at once
+    // The outline of the hovered block appears at once, its offset is not part of the outline shorthand
     transition:
         all var(--transition),
-        outline 0s;
+        outline 0s,
+        outline-offset 0s;
     min-height: 48px;
 
     &--has-title {

@@ -306,10 +306,10 @@
 
     &__block-placeholder {
         width: 100%;
-        background: var(--bg-secondary);
-        border: 2px dashed var(--border);
+        background: var(--accent-glow);
+        border: 2px dashed var(--accent);
         border-radius: var(--radius-md);
-        opacity: 0.5;
+        opacity: 0.7;
         box-sizing: border-box;
     }
 
