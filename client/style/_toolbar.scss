@@ -6,7 +6,9 @@
 // Floating Toolbar
 .floating-toolbar {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
 
     &__inner {
         display: flex;
@@ -23,12 +25,25 @@
             inset 0 -1px 0 rgba(0, 0, 0, 0.1);
     }
 
+    // The second bar, with the colors
+    &__inner--colors {
+        gap: 0;
+        padding: 8px 16px;
+        animation: colorsOpen 150ms ease-out;
+    }
+
+    &__no-colors {
+        color: var(--text-secondary);
+        font-size: 12px;
+    }
+
     &__tools {
         display: flex;
         gap: 4px;
     }
 
     &__btn {
+        position: relative;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -54,6 +69,26 @@
                 background: var(--accent-hover);
             }
         }
+
+        // The shortcut that completes what is held
+        &--hint:not(.floating-toolbar__btn--active) {
+            background: rgba(255, 149, 0, 0.18);
+            box-shadow: inset 0 0 0 1px rgba(255, 149, 0, 0.45);
+        }
+    }
+
+    // The letter of the shortcut, below its button
+    &__key {
+        position: absolute;
+        bottom: -12px;
+        left: 50%;
+        color: var(--accent);
+        font-family: monospace;
+        font-size: 10px;
+        font-weight: 700;
+        line-height: 1;
+        pointer-events: none;
+        transform: translateX(-50%);
     }
 
     &__icon {
@@ -261,6 +296,17 @@
         font-size: 10px;
         color: var(--text-tertiary);
         font-family: monospace;
+    }
+}
+
+@keyframes colorsOpen {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 

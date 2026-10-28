@@ -17,11 +17,12 @@
 import { useState, useCallback, useRef } from 'react';
 
 // Types
-import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyle, iHistoryEntry } from '@/types';
+import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyle, iHistoryEntry, tPaletteKind } from '@/types';
 
 // Util
 import { createNote, createFolder, createBlock, createWord, FORMAT_COLORS, exportNotesAsText, exportNotesAsJson, exportSettingsAsJson, importFromJson as parseImportJson } from '@/types';
 import { descendantIds, repairFolders } from '@/util/folderTree';
+import { MAX_ENABLED, catalogOf, defaultPalette, sanitizePalette } from '@/util/palette';
 import { generateRandomNote } from '@/util/randomGenerator';
 import useSync from '@/sync/useSync';
 import type { iPersisted } from '@/storage/indexedDb';
@@ -41,6 +42,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
             selectedSize: stored.selectedSize ?? 'normal',
             selectedAnchorId: stored.selectedAnchorId ?? null,
             editorWidth: stored.editorWidth ?? 70,
+            palette: sanitizePalette(stored.palette),
         };
     }
 
@@ -211,6 +213,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
         lightMode: false,
         editorWidth: 70,
         confirmDeletions: true,
+        palette: defaultPalette(),
         blockPresets: [
             // Default presets
             { title: 'Note', borderStyle: 'solid', borderRadius: 8, backgroundColor: 'rgba(255,212,59,0.1)' },
@@ -764,10 +767,11 @@ const useNotesStore = (persisted: iPersisted) => {
                 sidebarExpanded: state.sidebarExpanded,
                 editorWidth: state.editorWidth,
                 confirmDeletions: state.confirmDeletions,
+                palette: state.palette,
             },
             state.blockPresets
         );
-    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.blockPresets]);
+    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.palette, state.blockPresets]);
 
     const importFromJson = useCallback((jsonString: string) => {
         const result = parseImportJson(jsonString);
@@ -800,6 +804,7 @@ const useNotesStore = (persisted: iPersisted) => {
                     if (result.settings.sidebarExpanded !== undefined) newState.sidebarExpanded = result.settings.sidebarExpanded;
                     if (result.settings.editorWidth !== undefined) newState.editorWidth = result.settings.editorWidth;
                     if (result.settings.confirmDeletions !== undefined) newState.confirmDeletions = result.settings.confirmDeletions;
+                    if (result.settings.palette) newState.palette = sanitizePalette(result.settings.palette);
                 }
                 if (result.blockPresets) {
                     // Merge presets by title (presets don't have IDs)
@@ -859,6 +864,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 if (result.settings.sidebarExpanded !== undefined) newState.sidebarExpanded = result.settings.sidebarExpanded;
                 if (result.settings.editorWidth !== undefined) newState.editorWidth = result.settings.editorWidth;
                 if (result.settings.confirmDeletions !== undefined) newState.confirmDeletions = result.settings.confirmDeletions;
+                if (result.settings.palette) newState.palette = sanitizePalette(result.settings.palette);
             }
             if (result.blockPresets) {
                 const existingTitles = new Set(prev.blockPresets.map(p => p.title));
@@ -940,6 +946,50 @@ const useNotesStore = (persisted: iPersisted) => {
     // Toggle confirmation dialogs
     const setConfirmDeletions = useCallback((value: boolean) => {
         setState((prev: iNotesState) => ({ ...prev, confirmDeletions: value }));
+    }, []);
+
+    // Colors and gradients offered by the toolbar and the block style menu
+    const togglePaletteEntry = useCallback((kind: tPaletteKind, value: string) => {
+        setState((prev: iNotesState) => {
+            const { enabled, custom } = prev.palette[kind];
+            if (enabled.includes(value)) {
+                return { ...prev, palette: { ...prev.palette, [kind]: { custom, enabled: enabled.filter((entry) => entry !== value) } } };
+            }
+            if (enabled.length >= MAX_ENABLED) return prev;
+            return { ...prev, palette: { ...prev.palette, [kind]: { custom, enabled: [...enabled, value] } } };
+        });
+    }, []);
+
+    // A new custom entry is switched on right away if there is room
+    const addCustomPaletteEntry = useCallback((kind: tPaletteKind, value: string) => {
+        setState((prev: iNotesState) => {
+            if (catalogOf(kind, prev.palette).some((entry) => entry.value === value)) return prev;
+            const { enabled, custom } = prev.palette[kind];
+            return {
+                ...prev,
+                palette: {
+                    ...prev.palette,
+                    [kind]: {
+                        custom: [...custom, value],
+                        enabled: enabled.length < MAX_ENABLED ? [...enabled, value] : enabled,
+                    },
+                },
+            };
+        });
+    }, []);
+
+    // Words and blocks that already use it keep it
+    const removeCustomPaletteEntry = useCallback((kind: tPaletteKind, value: string) => {
+        setState((prev: iNotesState) => {
+            const { enabled, custom } = prev.palette[kind];
+            return {
+                ...prev,
+                palette: {
+                    ...prev.palette,
+                    [kind]: { custom: custom.filter((entry) => entry !== value), enabled: enabled.filter((entry) => entry !== value) },
+                },
+            };
+        });
     }, []);
 
     // Block presets management
@@ -1061,6 +1111,9 @@ const useNotesStore = (persisted: iPersisted) => {
 
         // Settings
         setConfirmDeletions,
+        togglePaletteEntry,
+        addCustomPaletteEntry,
+        removeCustomPaletteEntry,
 
         // Block presets
         addBlockPreset,

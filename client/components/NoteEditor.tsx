@@ -28,7 +28,7 @@ import FloatingToolbar from './FloatingToolbar';
 import { TextBlockComponent } from './TextBlockComponent';
 
 // Types
-import type { iFolder, iNote, iTextBlock, iWord, tFormatMode, iHistoryEntry, iBlockStyle } from '@/types';
+import type { iFolder, iNote, iTextBlock, iWord, tFormatMode, iHistoryEntry, iBlockStyle, iPalette } from '@/types';
 
 // Utils
 import { folderChain } from '@/util/folderTree';
@@ -40,6 +40,7 @@ interface iNoteEditorProps {
     anchorUsage: number; // Words anywhere that are anchored to this note
     formatMode: tFormatMode;
     selectedColor: string;
+    palette: iPalette;
     selectedSize: string;
     selectedAnchorId?: string | null;
     editorWidth: number;
@@ -83,6 +84,7 @@ export const NoteEditor = ({
     anchorUsage,
     formatMode,
     selectedColor,
+    palette,
     selectedSize,
     selectedAnchorId,
     editorWidth,
@@ -285,6 +287,7 @@ export const NoteEditor = ({
                 <FloatingToolbar
                     formatMode={formatMode}
                     selectedColor={selectedColor}
+                    palette={palette}
                     selectedSize={selectedSize}
                     anchorNotes={anchorNotes}
                     selectedAnchorId={selectedAnchorId}
@@ -390,6 +393,7 @@ export const NoteEditor = ({
                                                     block={block}
                                                     formatMode={formatMode}
                                                     selectedColor={selectedColor}
+                                                    palette={palette}
                                                     selectedSize={selectedSize}
                                                     selectedAnchorId={selectedAnchorId}
                                                     onOpenAnchor={onOpenNote}
@@ -426,6 +430,7 @@ export const NoteEditor = ({
                                 block={note.blocks[draggedBlockIndex]}
                                 formatMode={null}
                                 selectedColor={selectedColor}
+                                palette={palette}
                                 selectedSize={selectedSize}
                                 confirmDeletions={false}
                                 onWordFormatChange={() => {}}

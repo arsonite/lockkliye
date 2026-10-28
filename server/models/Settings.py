@@ -18,5 +18,6 @@ class Settings(HSDBModel):
     confirm_deletions = HSDBAttribute(bool, required=True)
     editor_width      = HSDBAttribute(int,  required=True)
     light_mode        = HSDBAttribute(bool, required=True)
+    palette           = HSDBAttribute(str,  description='JSON of the colors and gradients that are switched on and the ones the user made')
     rev               = HSDBAttribute(int,  required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
     sidebar_expanded  = HSDBAttribute(bool, required=True)

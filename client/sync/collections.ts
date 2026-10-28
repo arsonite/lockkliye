@@ -28,7 +28,10 @@ import {
 } from '@/sync/api';
 
 // Types
-import type { iBlockStyle, iFolder, iHistoryEntry, iNote, iTextBlock, iWord, iWordFormat } from '@/types';
+import type { iBlockStyle, iFolder, iHistoryEntry, iNote, iPalette, iTextBlock, iWord, iWordFormat } from '@/types';
+
+// Util
+import { sanitizePalette } from '@/util/palette';
 
 type tRow = Record<string, string | number | boolean>;
 type tServerRow = HSDBEntity & { rev: number } & Record<string, unknown>;
@@ -78,6 +81,7 @@ interface iSettingsItem {
     sidebarExpanded: boolean;
     editorWidth: number;
     confirmDeletions: boolean;
+    palette: iPalette;
 }
 
 const SETTINGS_KEY = 'settings';
@@ -197,6 +201,11 @@ const settingsCollection: iCollection<iSettingsItem> = {
         confirm_deletions: settings.confirmDeletions,
         editor_width: settings.editorWidth,
         light_mode: settings.lightMode,
+        palette: JSON.stringify({
+            text: settings.palette.text,
+            block: settings.palette.block,
+            gradient: settings.palette.gradient,
+        }),
         sidebar_expanded: settings.sidebarExpanded,
     }),
     fromRow: (row) => ({
@@ -204,6 +213,7 @@ const settingsCollection: iCollection<iSettingsItem> = {
         sidebarExpanded: row.sidebar_expanded as boolean,
         editorWidth: row.editor_width as number,
         confirmDeletions: row.confirm_deletions as boolean,
+        palette: sanitizePalette(row.palette ? JSON.parse(text(row.palette)) : undefined),
     }),
     slot: () => SETTINGS_KEY,
 };

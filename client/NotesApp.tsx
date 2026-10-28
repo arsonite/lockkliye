@@ -171,9 +171,13 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         lightMode={store.lightMode}
                         editorWidth={store.editorWidth}
                         confirmDeletions={store.confirmDeletions}
+                        palette={store.palette}
                         onToggleLightMode={store.toggleLightMode}
                         onEditorWidthChange={store.setEditorWidth}
                         onConfirmDeletionsChange={store.setConfirmDeletions}
+                        onTogglePaletteEntry={store.togglePaletteEntry}
+                        onAddPaletteEntry={store.addCustomPaletteEntry}
+                        onRemovePaletteEntry={store.removeCustomPaletteEntry}
                         onExportText={store.exportAsText}
                         onExportJson={store.exportAsJson}
                         onExportSettings={store.exportSettings}
@@ -194,6 +198,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         anchorUsage={store.anchorUsageCount(store.activeNote.id)}
                         formatMode={store.formatMode}
                         selectedColor={store.selectedColor}
+                        palette={store.palette}
                         selectedSize={store.selectedSize}
                         selectedAnchorId={store.selectedAnchorId}
                         editorWidth={store.editorWidth}

@@ -345,6 +345,7 @@ export const Sidebar = ({
             <div className='tea-sidebar-item__content'>
                 <div className='tea-sidebar-item__header'>
                     <span className='tea-sidebar-item__title'>
+                        {dirtyNoteIds.has(note.id) && <span className='sync-dot' title='Not saved yet (Ctrl+S)' />}
                         {note.isAnchor && (
                             <span className='sidebar-row__anchor' title='Anchor note'>
                                 <AnchorIcon size={12} />
@@ -364,7 +365,6 @@ export const Sidebar = ({
                             ×
                         </button>
                     </span>
-                    {dirtyNoteIds.has(note.id) && <span className='sync-dot' title='Not saved yet (Ctrl+S)' />}
                 </div>
                 <div className='tea-sidebar-item__meta'>
                     <span className='tea-sidebar-item__date'>{formatDate(note.updatedAt)}</span>

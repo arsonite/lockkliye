@@ -14,7 +14,8 @@
  */
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import type { iTextBlock, tFormatMode, iWord, iBlockStyle } from '@/types';
+import type { iTextBlock, tFormatMode, iWord, iBlockStyle, iPalette } from '@/types';
+import { enabledOf } from '@/util/palette';
 import { RichTextEditor } from './RichTextEditor';
 import { TeaModal } from '@teatype/components';
 
@@ -22,6 +23,7 @@ interface iTextBlockComponentProps {
     block: iTextBlock;
     formatMode: tFormatMode;
     selectedColor: string;
+    palette: iPalette;
     selectedSize: string;
     selectedAnchorId?: string | null;
     onOpenAnchor?: (noteId: string) => void;
@@ -42,6 +44,7 @@ export const TextBlockComponent = ({
     block,
     formatMode,
     selectedColor,
+    palette,
     selectedSize,
     selectedAnchorId,
     onOpenAnchor,
@@ -276,26 +279,8 @@ export const TextBlockComponent = ({
     };
 
     const borderStyles = ['none', 'solid', 'dashed', 'dotted', 'double'] as const;
-    const bgColors = [
-        'transparent',
-        'rgba(255,107,107,0.1)',
-        'rgba(255,169,77,0.1)',
-        'rgba(255,212,59,0.1)',
-        'rgba(105,219,124,0.1)',
-        'rgba(116,192,252,0.1)',
-        'rgba(177,151,252,0.1)',
-        'rgba(247,131,172,0.1)',
-    ];
-    const gradients = [
-        '',
-        'linear-gradient(135deg, rgba(255,107,107,0.15) 0%, rgba(255,169,77,0.15) 100%)',
-        'linear-gradient(135deg, rgba(116,192,252,0.15) 0%, rgba(177,151,252,0.15) 100%)',
-        'linear-gradient(135deg, rgba(105,219,124,0.15) 0%, rgba(116,192,252,0.15) 100%)',
-        'linear-gradient(135deg, rgba(247,131,172,0.15) 0%, rgba(177,151,252,0.15) 100%)',
-        'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(150,150,150,0.1) 100%)',
-        'linear-gradient(135deg, rgba(64,224,208,0.15) 0%, rgba(116,192,252,0.15) 100%)',
-        'linear-gradient(135deg, rgba(255,212,59,0.15) 0%, rgba(105,219,124,0.15) 100%)',
-    ];
+    const bgColors = enabledOf('block', palette).map((entry) => entry.value);
+    const gradients = enabledOf('gradient', palette).map((entry) => entry.value);
 
     // Check if block is empty (no content or just empty words)
     const isBlockEmpty = () => {

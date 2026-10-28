@@ -101,6 +101,17 @@ interface iHistoryEntry {
     description: string;
 }
 
+// The colors of the toolbar ('text'), the backgrounds of a block ('block') and the gradients of a block
+type tPaletteKind = 'text' | 'block' | 'gradient';
+
+// What is offered of one kind: the values that are switched on (in this order, 8 at most) and the ones made by the user
+interface iPaletteSlot {
+    enabled: string[];
+    custom: string[];
+}
+
+type iPalette = Record<tPaletteKind, iPaletteSlot>;
+
 // App settings
 interface iAppSettings {
     lightMode: boolean;
@@ -122,9 +133,10 @@ interface iNotesState {
     editorWidth: number; // percentage 50-100
     confirmDeletions: boolean; // Show confirmation dialogs for deletions
     blockPresets: iBlockStyle[]; // Saved block presets
+    palette: iPalette; // Which colors and gradients the toolbar and the block style menu offer
 }
 
-// Predefined colors for formatting
+// The text colors that are on by default, the full list is in util/palette.ts
 // 'inherit' is a special value that uses the default text color (white in dark mode, black in light mode)
 const FORMAT_COLORS = [
     'inherit', // default text color (adapts to theme)
@@ -134,19 +146,7 @@ const FORMAT_COLORS = [
     '#69db7c', // green
     '#74c0fc', // blue
     '#b197fc', // purple
-    '#f783ac', // pink
-];
-
-// Predefined gradients for blocks
-const BLOCK_GRADIENTS = [
-    'linear-gradient(135deg, rgba(255,107,107,0.2) 0%, rgba(255,169,77,0.2) 100%)',
-    'linear-gradient(135deg, rgba(116,192,252,0.2) 0%, rgba(177,151,252,0.2) 100%)',
-    'linear-gradient(135deg, rgba(105,219,124,0.2) 0%, rgba(116,192,252,0.2) 100%)',
-    'linear-gradient(135deg, rgba(247,131,172,0.2) 0%, rgba(177,151,252,0.2) 100%)',
-    'linear-gradient(135deg, rgba(255,212,59,0.2) 0%, rgba(255,169,77,0.2) 100%)',
-    // Additional gradients
-    'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(150,150,150,0.1) 100%)', // Silver/Gray
-    'linear-gradient(135deg, rgba(64,224,208,0.2) 0%, rgba(116,192,252,0.2) 100%)', // Turquoise to Blue
+    '#adb5bd', // gray
 ];
 
 // Hyperlinks are switched off for now: no toolbar button, no shortcut, no click handling. Stored links are kept.
@@ -232,6 +232,7 @@ interface iSettingsExportData {
         sidebarExpanded: boolean;
         editorWidth: number;
         confirmDeletions: boolean;
+        palette?: iPalette;
     };
     blockPresets: iBlockStyle[];
 }
@@ -255,6 +256,7 @@ const exportSettingsAsJson = (
         sidebarExpanded: boolean;
         editorWidth: number;
         confirmDeletions: boolean;
+        palette?: iPalette;
     },
     blockPresets: iBlockStyle[]
 ): string => {
@@ -279,6 +281,7 @@ const importFromJson = (jsonString: string): {
         sidebarExpanded?: boolean;
         editorWidth?: number;
         confirmDeletions?: boolean;
+        palette?: iPalette;
     };
     blockPresets?: iBlockStyle[];
 } | null => {
@@ -328,13 +331,15 @@ export type {
     iHistoryEntry,
     iNote,
     iNotesState,
+    iPalette,
+    iPaletteSlot,
     iTextBlock,
+    tPaletteKind,
     iWord,
     iWordFormat,
 };
 
 export {
-    BLOCK_GRADIENTS,
     FORMAT_COLORS,
     HYPERLINKS_ENABLED,
     SHORTCUTS,

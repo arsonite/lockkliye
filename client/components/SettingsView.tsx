@@ -19,6 +19,12 @@ import { useRef, useState } from 'react';
 // TeaType components
 import { TeaModal, TeaSettingsPage, type iTeaSettingsCategory, type iUseTeaToastReturn } from '@teatype/components';
 
+// Components
+import PaletteEditor from './PaletteEditor';
+
+// Types
+import type { iPalette, tPaletteKind } from '@/types';
+
 // Utils
 import { generateShortText, generateLongText, generateTitle, copyToClipboard } from '@/util/randomGenerator';
 
@@ -26,9 +32,13 @@ interface iSettingsViewProps {
     lightMode: boolean;
     editorWidth: number;
     confirmDeletions: boolean;
+    palette: iPalette;
     onToggleLightMode: () => void;
     onEditorWidthChange: (width: number) => void;
     onConfirmDeletionsChange: (value: boolean) => void;
+    onTogglePaletteEntry: (kind: tPaletteKind, value: string) => void;
+    onAddPaletteEntry: (kind: tPaletteKind, value: string) => void;
+    onRemovePaletteEntry: (kind: tPaletteKind, value: string) => void;
     onExportText: () => string;
     onExportJson: () => string;
     onExportSettings: () => string;
@@ -62,9 +72,13 @@ export const SettingsView = ({
     lightMode,
     editorWidth,
     confirmDeletions,
+    palette,
     onToggleLightMode,
     onEditorWidthChange,
     onConfirmDeletionsChange,
+    onTogglePaletteEntry,
+    onAddPaletteEntry,
+    onRemovePaletteEntry,
     onExportText,
     onExportJson,
     onExportSettings,
@@ -95,6 +109,25 @@ export const SettingsView = ({
         if (await copyToClipboard(text)) toast.success(`${name} copied!`);
         else toast.error('Failed to copy');
     };
+
+    const paletteItem = (kind: tPaletteKind, label: string, description: string) => ({
+        id: `palette-${kind}`,
+        label,
+        description,
+        layout: 'stacked' as const,
+        control: {
+            type: 'custom' as const,
+            render: () => (
+                <PaletteEditor
+                    kind={kind}
+                    palette={palette}
+                    onToggle={onTogglePaletteEntry}
+                    onAdd={onAddPaletteEntry}
+                    onRemove={onRemovePaletteEntry}
+                />
+            ),
+        },
+    });
 
     const categories: iTeaSettingsCategory[] = [
         {
@@ -145,6 +178,34 @@ export const SettingsView = ({
                             description: 'Ask before a note, folder, block or preset with content is deleted.',
                             control: { type: 'toggle', value: confirmDeletions, onChange: onConfirmDeletionsChange },
                         },
+                    ],
+                },
+            ],
+        },
+        {
+            id: 'colors',
+            label: 'Colors',
+            icon: '◉',
+            description:
+                'Choose which colors and gradients are offered, 8 of each at most, and make your own. Text that already uses a color keeps it when the color is switched off or deleted.',
+            groups: [
+                {
+                    id: 'text-colors',
+                    title: 'Toolbar',
+                    items: [
+                        paletteItem(
+                            'text',
+                            'Text and highlight colors',
+                            'Shown in the second bar while Text color or Highlight is chosen.',
+                        ),
+                    ],
+                },
+                {
+                    id: 'block-style',
+                    title: 'Block style',
+                    items: [
+                        paletteItem('block', 'Block colors', 'The Background row of the style menu of a block.'),
+                        paletteItem('gradient', 'Block gradients', 'The Gradient row of the style menu of a block.'),
                     ],
                 },
             ],

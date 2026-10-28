@@ -1,0 +1,121 @@
+/**
+ * @license
+ * Copyright (C) 2024-2026 Burak Günaydin
+ */
+
+// Colors and gradients in the settings
+.palette-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+
+    &__count {
+        color: var(--text-secondary);
+        font-size: 12px;
+    }
+
+    &__swatches {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    &__cell {
+        position: relative;
+    }
+
+    &__swatch {
+        position: relative;
+        display: block;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        background-color: var(--bg-tertiary);
+        border: 2px solid var(--border-strong);
+        border-radius: 50%;
+        cursor: pointer;
+        opacity: 0.55;
+        transition: all var(--transition);
+
+        &:hover:not(:disabled) {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: 0.25;
+        }
+
+        &--on {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--bg-tertiary);
+            opacity: 1;
+        }
+
+        // Nothing at all, crossed out
+        &--none::after {
+            content: '';
+            position: absolute;
+            inset: 50% 4px auto;
+            height: 2px;
+            background: var(--text-tertiary);
+            transform: rotate(-45deg);
+        }
+    }
+
+    &__remove {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        padding: 0;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-strong);
+        border-radius: 50%;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 12px;
+        line-height: 1;
+
+        &:hover {
+            color: #ff6b6b;
+        }
+    }
+
+    &__new {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border);
+
+        input[type='color'] {
+            width: 36px;
+            height: 32px;
+            padding: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+    }
+
+    &__opacity {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-secondary);
+        font-size: 12px;
+    }
+
+    &__preview {
+        opacity: 1;
+        cursor: default;
+    }
+}

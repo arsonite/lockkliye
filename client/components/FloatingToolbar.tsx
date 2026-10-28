@@ -14,13 +14,15 @@
  */
 
 // Types
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AnchorIcon from '@/components/AnchorIcon';
-import { FORMAT_COLORS, HYPERLINKS_ENABLED, iNote, tFormatMode } from '@/types';
+import { HYPERLINKS_ENABLED, iNote, iPalette, tFormatMode } from '@/types';
+import { enabledOf } from '@/util/palette';
 
 interface iFloatingToolbarProps {
     formatMode: tFormatMode;
     selectedColor: string;
+    palette: iPalette;
     selectedSize: string;
     anchorNotes: iNote[];
     selectedAnchorId?: string | null;
@@ -63,12 +65,45 @@ const tools: iToolButton[] = [
     { mode: 'link', icon: '🔗', label: 'Hyperlink', shortcut: 'Ctrl+K' },
 ];
 
+// The modifier keys that are held right now, in the order a shortcut is written: 'ctrl', 'ctrl+shift', ...
+const useHeldModifiers = (): string => {
+    const [held, setHeld] = useState('');
+
+    useEffect(() => {
+        const update = (event: KeyboardEvent) =>
+            setHeld(
+                [event.ctrlKey || event.metaKey ? 'ctrl' : '', event.shiftKey ? 'shift' : '', event.altKey ? 'alt' : '']
+                    .filter(Boolean)
+                    .join('+'),
+            );
+        const reset = () => setHeld('');
+        window.addEventListener('keydown', update);
+        window.addEventListener('keyup', update);
+        window.addEventListener('blur', reset);
+        return () => {
+            window.removeEventListener('keydown', update);
+            window.removeEventListener('keyup', update);
+            window.removeEventListener('blur', reset);
+        };
+    }, []);
+
+    return held;
+};
+
+// 'Ctrl+Shift+S' -> the modifiers 'ctrl+shift' and the letter 'S'
+const splitShortcut = (shortcut?: string): { modifiers: string; letter: string } | null => {
+    if (!shortcut) return null;
+    const parts = shortcut.split('+');
+    return { modifiers: parts.slice(0, -1).join('+').toLowerCase(), letter: parts[parts.length - 1] };
+};
+
 // Size modes that can be set as format mode
 const SIZE_MODES = ['huge', 'larger', 'large', 'normal', 'smaller', 'tiny'] as const;
 
 const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
     formatMode,
     selectedColor,
+    palette,
     selectedSize: _selectedSize,
     anchorNotes,
     selectedAnchorId,
@@ -78,6 +113,7 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
     onSizeChange,
 }) => {
     const [showSizeMenu, setShowSizeMenu] = useState(false);
+    const heldModifiers = useHeldModifiers();
     const [anchorQuery, setAnchorQuery] = useState('');
     const matchingAnchors = anchorNotes.filter((note) =>
         note.title.toLowerCase().includes(anchorQuery.trim().toLowerCase()),
@@ -103,12 +139,16 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
         <div className='floating-toolbar'>
             <div className='floating-toolbar__inner'>
                 <div className='floating-toolbar__tools'>
-                    {tools.filter((tool) => HYPERLINKS_ENABLED || tool.mode !== 'link').map((tool) => (
+                    {tools.filter((tool) => HYPERLINKS_ENABLED || tool.mode !== 'link').map((tool) => {
+                        // Holding Ctrl shows the shortcuts that are Ctrl plus a letter, adding Shift shows the next ones
+                        const shortcut = splitShortcut(tool.shortcut);
+                        const hinted = !!heldModifiers && shortcut?.modifiers === heldModifiers;
+                        return (
                         <button
                             key={tool.mode}
                             className={`floating-toolbar__btn ${
                                 formatMode === tool.mode ? 'floating-toolbar__btn--active' : ''
-                            }`}
+                            } ${hinted ? 'floating-toolbar__btn--hint' : ''}`}
                             onClick={() => onFormatModeChange(formatMode === tool.mode ? null : tool.mode)}
                             onMouseDown={(e) => e.preventDefault()}
                             title={`${tool.label}${tool.shortcut ? ` (${tool.shortcut})` : ''}`}
@@ -127,8 +167,10 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                             >
                                 {tool.icon}
                             </span>
+                            {hinted && <span className='floating-toolbar__key'>{shortcut?.letter}</span>}
                         </button>
-                    ))}
+                        );
+                    })}
 
                     {/* Anchor button with the list of anchor notes */}
                     <div className='floating-toolbar__size-wrapper'>
@@ -233,24 +275,32 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                         )}
                     </div>
                 </div>
-
-                <div className='floating-toolbar__divider' />
-
-                <div className='floating-toolbar__colors'>
-                    {FORMAT_COLORS.map((color) => (
-                        <button
-                            key={color}
-                            className={`floating-toolbar__color ${
-                                selectedColor === color ? 'floating-toolbar__color--active' : ''
-                            } ${color === 'inherit' ? 'floating-toolbar__color--inherit' : ''}`}
-                            style={color !== 'inherit' ? { backgroundColor: color } : undefined}
-                            onClick={() => onColorChange(color)}
-                            onMouseDown={(e) => e.preventDefault()}
-                            title={color === 'inherit' ? 'Default Color' : `Color: ${color}`}
-                        />
-                    ))}
-                </div>
             </div>
+
+            {/* The colors are only needed while a color is being applied */}
+            {(formatMode === 'color' || formatMode === 'highlight') && (
+                <div className='floating-toolbar__inner floating-toolbar__inner--colors'>
+                    <div className='floating-toolbar__colors'>
+                        {enabledOf('text', palette).length === 0 && (
+                            <span className='floating-toolbar__no-colors'>
+                                No colors are switched on, choose some in Settings.
+                            </span>
+                        )}
+                        {enabledOf('text', palette).map(({ value, label }) => (
+                            <button
+                                key={value}
+                                className={`floating-toolbar__color ${
+                                    selectedColor === value ? 'floating-toolbar__color--active' : ''
+                                } ${value === 'inherit' ? 'floating-toolbar__color--inherit' : ''}`}
+                                style={value !== 'inherit' ? { backgroundColor: value } : undefined}
+                                onClick={() => onColorChange(value)}
+                                onMouseDown={(e) => e.preventDefault()}
+                                title={label}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
