@@ -305,7 +305,8 @@
 
     // The block under the mouse, the gutter with the buttons counts as part of it
     &--block-borders &__block-wrapper:hover .text-block {
-        outline: 1px dashed var(--text-tertiary);
+        // outline: 1px dashed var(--text-tertiary);
+        outline: 1px dashed color-mix(in srgb, var(--text-tertiary) 40%, transparent);
         outline-offset: 3px;
     }
 
