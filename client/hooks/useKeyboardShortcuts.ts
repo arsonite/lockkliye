@@ -44,7 +44,8 @@ const useKeyboardShortcuts: React.FC<iUseKeyboardShortcutsProps> = (props) => {
             ;
             parts.push('alt');
         };
-        parts.push(e.key.toLowerCase());
+        // Alt changes the key on some layouts, the digit row is read by its position
+        parts.push(/^Digit\d$/.test(e.code) ? e.code.slice(5) : e.key.toLowerCase());
         const shortcut = parts.join('+');
 
         // Check for escape - blur active element and clear format mode

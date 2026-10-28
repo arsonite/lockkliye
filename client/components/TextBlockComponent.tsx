@@ -396,6 +396,11 @@ export const TextBlockComponent = ({
                             e.preventDefault();
                             setIsResizing(true);
                         }}
+                        onDoubleClick={() => {
+                            setIsResizing(false);
+                            onStyleChange(block.id, { widthPercent: undefined });
+                        }}
+                        title='Double-click to reset the width'
                     />
                 )}
 

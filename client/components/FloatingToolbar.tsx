@@ -44,15 +44,16 @@ interface iSizePreset {
     id: string;
     label: string;
     fontSize: string;
+    key: string; // Ctrl+Alt+key
 }
 
 const SIZE_PRESETS: iSizePreset[] = [
-    { id: 'title', label: 'Title', fontSize: 'huge' },
-    { id: 'heading', label: 'Heading', fontSize: 'larger' },
-    { id: 'subheading', label: 'Subheading', fontSize: 'large' },
-    { id: 'body', label: 'Body', fontSize: 'normal' },
-    { id: 'small', label: 'Small', fontSize: 'smaller' },
-    { id: 'caption', label: 'Caption', fontSize: 'tiny' },
+    { id: 'title', label: 'Title', fontSize: 'huge', key: '1' },
+    { id: 'heading', label: 'Heading', fontSize: 'larger', key: '2' },
+    { id: 'subheading', label: 'Subheading', fontSize: 'large', key: '3' },
+    { id: 'body', label: 'Body', fontSize: 'normal', key: '4' },
+    { id: 'small', label: 'Small', fontSize: 'smaller', key: '5' },
+    { id: 'caption', label: 'Caption', fontSize: 'tiny', key: '6' },
 ];
 
 const tools: iToolButton[] = [
@@ -114,6 +115,8 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
 }) => {
     const [showSizeMenu, setShowSizeMenu] = useState(false);
     const heldModifiers = useHeldModifiers();
+    const anchorHinted = heldModifiers === 'ctrl+shift';
+    const sizeHinted = heldModifiers === 'ctrl+alt';
     const [anchorQuery, setAnchorQuery] = useState('');
     const matchingAnchors = anchorNotes.filter((note) =>
         note.title.toLowerCase().includes(anchorQuery.trim().toLowerCase()),
@@ -177,14 +180,15 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                         <button
                             className={`floating-toolbar__btn ${
                                 formatMode === 'anchor' ? 'floating-toolbar__btn--active' : ''
-                            }`}
+                            } ${anchorHinted ? 'floating-toolbar__btn--hint' : ''}`}
                             onClick={toggleAnchorMode}
                             onMouseDown={(e) => e.preventDefault()}
-                            title='Anchor: click words to link them to an anchor note (Ctrl+click opens it)'
+                            title='Anchor (Ctrl+Shift+A): click words to link them to an anchor note, Ctrl+click opens it'
                         >
                             <span className='floating-toolbar__icon'>
                                 <AnchorIcon />
                             </span>
+                            {anchorHinted && <span className='floating-toolbar__key'>A</span>}
                         </button>
 
                         {formatMode === 'anchor' && (
@@ -238,15 +242,17 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                         <button
                             className={`floating-toolbar__btn floating-toolbar__btn--size ${
                                 showSizeMenu || isSizeMode ? 'floating-toolbar__btn--active' : ''
-                            }`}
+                            } ${sizeHinted ? 'floating-toolbar__btn--hint' : ''}`}
                             onClick={() => setShowSizeMenu(!showSizeMenu)}
                             onMouseDown={(e) => e.preventDefault()}
-                            title='Text Size'
+                            title='Text Size (Ctrl+Alt+1 to 6)'
                         >
                             <span className='floating-toolbar__icon'>Aa</span>
+                            {sizeHinted && <span className='floating-toolbar__key'>1-6</span>}
                         </button>
 
-                        {showSizeMenu && (
+                        {/* Holding Ctrl+Alt lists the sizes with their numbers */}
+                        {(showSizeMenu || sizeHinted) && (
                             <div className='floating-toolbar__size-menu'>
                                 {SIZE_PRESETS.map((preset) => (
                                     <button
@@ -269,6 +275,7 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                                         >
                                             {preset.label}
                                         </span>
+                                        <span className='floating-toolbar__size-shortcut'>{preset.key}</span>
                                     </button>
                                 ))}
                             </div>

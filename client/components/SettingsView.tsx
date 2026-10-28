@@ -32,10 +32,12 @@ interface iSettingsViewProps {
     lightMode: boolean;
     editorWidth: number;
     confirmDeletions: boolean;
+    showBlockBorders: boolean;
     palette: iPalette;
     onToggleLightMode: () => void;
     onEditorWidthChange: (width: number) => void;
     onConfirmDeletionsChange: (value: boolean) => void;
+    onShowBlockBordersChange: (value: boolean) => void;
     onTogglePaletteEntry: (kind: tPaletteKind, value: string) => void;
     onAddPaletteEntry: (kind: tPaletteKind, value: string) => void;
     onRemovePaletteEntry: (kind: tPaletteKind, value: string) => void;
@@ -72,10 +74,12 @@ export const SettingsView = ({
     lightMode,
     editorWidth,
     confirmDeletions,
+    showBlockBorders,
     palette,
     onToggleLightMode,
     onEditorWidthChange,
     onConfirmDeletionsChange,
+    onShowBlockBordersChange,
     onTogglePaletteEntry,
     onAddPaletteEntry,
     onRemovePaletteEntry,
@@ -169,6 +173,17 @@ export const SettingsView = ({
             icon: '✎',
             description: 'How notes behave while you work on them.',
             groups: [
+                {
+                    id: 'blocks',
+                    items: [
+                        {
+                            id: 'show-block-borders',
+                            label: 'Outline blocks on hover',
+                            description: 'Draws a border around the block under the mouse, to see which text belongs together.',
+                            control: { type: 'toggle', value: showBlockBorders, onChange: onShowBlockBordersChange },
+                        },
+                    ],
+                },
                 {
                     id: 'confirmations',
                     items: [

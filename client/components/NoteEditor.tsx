@@ -49,6 +49,7 @@ interface iNoteEditorProps {
     canUndo: boolean;
     canRedo: boolean;
     confirmDeletions: boolean;
+    showBlockBorders: boolean;
     blockPresets: iBlockStyle[];
     onTitleChange: (title: string) => void;
     onToggleAnchor: (isAnchor: boolean) => void;
@@ -93,6 +94,7 @@ export const NoteEditor = ({
     canUndo,
     canRedo,
     confirmDeletions,
+    showBlockBorders,
     blockPresets,
     onTitleChange,
     onToggleAnchor,
@@ -131,7 +133,13 @@ export const NoteEditor = ({
     const [draggedBlockIndex, setDraggedBlockIndex] = useState<number | null>(null);
     const [previewOrder, setPreviewOrder] = useState<number[] | null>(null);
     const [isDragging, setIsDragging] = useState(false);
-    const [draggedBlockRect, setDraggedBlockRect] = useState<DOMRect | null>(null);
+    // The box of the text block that is dragged, its width is a share of the note and its margins are part of the layout
+    const [draggedBlockRect, setDraggedBlockRect] = useState<{
+        width: number;
+        height: number;
+        marginTop: number;
+        marginBottom: number;
+    } | null>(null);
     const editorRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     const presetMenuRef = useRef<HTMLDivElement>(null);
@@ -221,8 +229,11 @@ export const NoteEditor = ({
             const blockId = note.blocks[index]?.id;
             const blockElement = blockId ? blockRefs.current.get(blockId) : null;
 
-            if (blockElement) {
-                setDraggedBlockRect(blockElement.getBoundingClientRect());
+            const textBlock = blockElement?.querySelector('.text-block');
+            if (textBlock) {
+                const { width, height } = textBlock.getBoundingClientRect();
+                const { marginTop, marginBottom } = getComputedStyle(textBlock);
+                setDraggedBlockRect({ width, height, marginTop: parseFloat(marginTop), marginBottom: parseFloat(marginBottom) });
             }
 
             setDraggedBlockIndex(index);
@@ -281,7 +292,7 @@ export const NoteEditor = ({
     };
 
     return (
-        <div className='note-editor'>
+        <div className={`note-editor ${showBlockBorders ? 'note-editor--block-borders' : ''}`}>
             {/* Floating toolbar - fixed at top, overlays content */}
             <div className='note-editor__toolbar-overlay'>
                 <FloatingToolbar
@@ -382,10 +393,16 @@ export const NoteEditor = ({
                                         {isBeingDragged && isDragging ? (
                                             <div
                                                 className='note-editor__block-placeholder'
-                                                style={{
-                                                    height: draggedBlockRect ? draggedBlockRect.height : 'auto',
-                                                    minHeight: '80px',
-                                                }}
+                                                style={
+                                                    draggedBlockRect
+                                                        ? {
+                                                              width: draggedBlockRect.width,
+                                                              height: draggedBlockRect.height,
+                                                              marginTop: draggedBlockRect.marginTop,
+                                                              marginBottom: draggedBlockRect.marginBottom,
+                                                          }
+                                                        : undefined
+                                                }
                                             />
                                         ) : (
                                             <div className='note-editor__block-content'>

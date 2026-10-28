@@ -40,6 +40,11 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
     const toast = useTeaToast();
     const [showSettings, setShowSettings] = useState(false);
 
+    // The toast is rendered in the body, so its light mode comes from the body
+    useEffect(() => {
+        document.body.classList.toggle('light-mode', store.lightMode);
+    }, [store.lightMode]);
+
     const handleSave = async () => {
         const report = await store.save();
         if (report.busy) {
@@ -171,10 +176,12 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         lightMode={store.lightMode}
                         editorWidth={store.editorWidth}
                         confirmDeletions={store.confirmDeletions}
+                        showBlockBorders={store.showBlockBorders}
                         palette={store.palette}
                         onToggleLightMode={store.toggleLightMode}
                         onEditorWidthChange={store.setEditorWidth}
                         onConfirmDeletionsChange={store.setConfirmDeletions}
+                        onShowBlockBordersChange={store.setShowBlockBorders}
                         onTogglePaletteEntry={store.togglePaletteEntry}
                         onAddPaletteEntry={store.addCustomPaletteEntry}
                         onRemovePaletteEntry={store.removeCustomPaletteEntry}
@@ -207,6 +214,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         canUndo={store.canUndo}
                         canRedo={store.canRedo}
                         confirmDeletions={store.confirmDeletions}
+                        showBlockBorders={store.showBlockBorders}
                         blockPresets={store.blockPresets}
                         onTitleChange={handleTitleChange}
                         onToggleAnchor={handleToggleAnchor}

@@ -81,6 +81,7 @@ interface iSettingsItem {
     sidebarExpanded: boolean;
     editorWidth: number;
     confirmDeletions: boolean;
+    showBlockBorders: boolean;
     palette: iPalette;
 }
 
@@ -206,6 +207,7 @@ const settingsCollection: iCollection<iSettingsItem> = {
             block: settings.palette.block,
             gradient: settings.palette.gradient,
         }),
+        show_block_borders: settings.showBlockBorders,
         sidebar_expanded: settings.sidebarExpanded,
     }),
     fromRow: (row) => ({
@@ -213,6 +215,7 @@ const settingsCollection: iCollection<iSettingsItem> = {
         sidebarExpanded: row.sidebar_expanded as boolean,
         editorWidth: row.editor_width as number,
         confirmDeletions: row.confirm_deletions as boolean,
+        showBlockBorders: row.show_block_borders === true,
         palette: sanitizePalette(row.palette ? JSON.parse(text(row.palette)) : undefined),
     }),
     slot: () => SETTINGS_KEY,

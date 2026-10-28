@@ -3,8 +3,8 @@
  * Copyright (C) 2024-2026 Burak Günaydin
  */
 
-// Light Mode Theme
-.notes-app.light-mode {
+// The toast is rendered in the body, outside .notes-app, so it gets the variables through a class on the body
+@mixin light-theme-vars {
     --bg-primary: #f5f5f7;
     --bg-gradient: linear-gradient(135deg, #f5f5f7 0%, #ffffff 25%, #fafafa 50%, #ffffff 75%, #f5f5f7 100%);
     --bg-secondary: rgba(255, 255, 255, 0.95);
@@ -32,6 +32,22 @@
     --error: var(--danger);
     --error-hover: var(--danger-hover);
     --accent-soft: var(--accent-glow);
+}
+
+body.light-mode .tea-toast-container {
+    @include light-theme-vars;
+    --surface-elevated: #fff;
+
+    .tea-toast {
+        box-shadow:
+            0 8px 24px rgba(0, 0, 0, 0.12),
+            0 0 0 1px rgba(0, 0, 0, 0.06);
+    }
+}
+
+// Light Mode Theme
+.notes-app.light-mode {
+    @include light-theme-vars;
 
     background: var(--bg-gradient);
 

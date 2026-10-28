@@ -42,6 +42,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
             selectedSize: stored.selectedSize ?? 'normal',
             selectedAnchorId: stored.selectedAnchorId ?? null,
             editorWidth: stored.editorWidth ?? 70,
+            showBlockBorders: stored.showBlockBorders ?? false,
             palette: sanitizePalette(stored.palette),
         };
     }
@@ -213,6 +214,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
         lightMode: false,
         editorWidth: 70,
         confirmDeletions: true,
+        showBlockBorders: false,
         palette: defaultPalette(),
         blockPresets: [
             // Default presets
@@ -532,10 +534,14 @@ const useNotesStore = (persisted: iPersisted) => {
     }, []);
 
     const toggleFormatMode = useCallback((mode: tFormatMode) => {
-        setState((prev: iNotesState) => ({
-            ...prev,
-            formatMode: prev.formatMode === mode ? null : mode,
-        }));
+        setState((prev: iNotesState) => {
+            if (prev.formatMode === mode) return { ...prev, formatMode: null };
+            if (mode !== 'anchor') return { ...prev, formatMode: mode };
+            // Anchor mode applies the chosen anchor note, so one is picked as soon as the mode starts
+            const anchors = prev.notes.filter((note) => note.isAnchor);
+            const chosen = anchors.some((note) => note.id === prev.selectedAnchorId) ? prev.selectedAnchorId : anchors[0]?.id;
+            return { ...prev, formatMode: mode, selectedAnchorId: chosen ?? null };
+        });
     }, []);
 
     const setSelectedColor = useCallback((color: string) => {
@@ -767,11 +773,12 @@ const useNotesStore = (persisted: iPersisted) => {
                 sidebarExpanded: state.sidebarExpanded,
                 editorWidth: state.editorWidth,
                 confirmDeletions: state.confirmDeletions,
+                showBlockBorders: state.showBlockBorders,
                 palette: state.palette,
             },
             state.blockPresets
         );
-    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.palette, state.blockPresets]);
+    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.palette, state.blockPresets]);
 
     const importFromJson = useCallback((jsonString: string) => {
         const result = parseImportJson(jsonString);
@@ -804,6 +811,7 @@ const useNotesStore = (persisted: iPersisted) => {
                     if (result.settings.sidebarExpanded !== undefined) newState.sidebarExpanded = result.settings.sidebarExpanded;
                     if (result.settings.editorWidth !== undefined) newState.editorWidth = result.settings.editorWidth;
                     if (result.settings.confirmDeletions !== undefined) newState.confirmDeletions = result.settings.confirmDeletions;
+                    if (result.settings.showBlockBorders !== undefined) newState.showBlockBorders = result.settings.showBlockBorders;
                     if (result.settings.palette) newState.palette = sanitizePalette(result.settings.palette);
                 }
                 if (result.blockPresets) {
@@ -864,6 +872,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 if (result.settings.sidebarExpanded !== undefined) newState.sidebarExpanded = result.settings.sidebarExpanded;
                 if (result.settings.editorWidth !== undefined) newState.editorWidth = result.settings.editorWidth;
                 if (result.settings.confirmDeletions !== undefined) newState.confirmDeletions = result.settings.confirmDeletions;
+                if (result.settings.showBlockBorders !== undefined) newState.showBlockBorders = result.settings.showBlockBorders;
                 if (result.settings.palette) newState.palette = sanitizePalette(result.settings.palette);
             }
             if (result.blockPresets) {
@@ -946,6 +955,10 @@ const useNotesStore = (persisted: iPersisted) => {
     // Toggle confirmation dialogs
     const setConfirmDeletions = useCallback((value: boolean) => {
         setState((prev: iNotesState) => ({ ...prev, confirmDeletions: value }));
+    }, []);
+
+    const setShowBlockBorders = useCallback((value: boolean) => {
+        setState((prev: iNotesState) => ({ ...prev, showBlockBorders: value }));
     }, []);
 
     // Colors and gradients offered by the toolbar and the block style menu
@@ -1111,6 +1124,7 @@ const useNotesStore = (persisted: iPersisted) => {
 
         // Settings
         setConfirmDeletions,
+        setShowBlockBorders,
         togglePaletteEntry,
         addCustomPaletteEntry,
         removeCustomPaletteEntry,

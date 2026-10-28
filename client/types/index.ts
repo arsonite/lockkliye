@@ -132,6 +132,7 @@ interface iNotesState {
     lightMode: boolean;
     editorWidth: number; // percentage 50-100
     confirmDeletions: boolean; // Show confirmation dialogs for deletions
+    showBlockBorders: boolean; // Outline the block under the mouse
     blockPresets: iBlockStyle[]; // Saved block presets
     palette: iPalette; // Which colors and gradients the toolbar and the block style menu offer
 }
@@ -161,6 +162,13 @@ const SHORTCUTS: Record<string, tFormatMode> = {
     'ctrl+shift+c': 'color',
     'ctrl+shift+h': 'highlight',
     ...(HYPERLINKS_ENABLED ? { 'ctrl+k': 'link' as const } : {}),
+    'ctrl+shift+a': 'anchor',
+    'ctrl+alt+1': 'huge',
+    'ctrl+alt+2': 'larger',
+    'ctrl+alt+3': 'large',
+    'ctrl+alt+4': 'normal',
+    'ctrl+alt+5': 'smaller',
+    'ctrl+alt+6': 'tiny',
     'ctrl+]': 'larger',
     'ctrl+[': 'smaller',
 };
@@ -232,6 +240,7 @@ interface iSettingsExportData {
         sidebarExpanded: boolean;
         editorWidth: number;
         confirmDeletions: boolean;
+        showBlockBorders?: boolean;
         palette?: iPalette;
     };
     blockPresets: iBlockStyle[];
@@ -256,6 +265,7 @@ const exportSettingsAsJson = (
         sidebarExpanded: boolean;
         editorWidth: number;
         confirmDeletions: boolean;
+        showBlockBorders?: boolean;
         palette?: iPalette;
     },
     blockPresets: iBlockStyle[]
@@ -281,6 +291,7 @@ const importFromJson = (jsonString: string): {
         sidebarExpanded?: boolean;
         editorWidth?: number;
         confirmDeletions?: boolean;
+        showBlockBorders?: boolean;
         palette?: iPalette;
     };
     blockPresets?: iBlockStyle[];

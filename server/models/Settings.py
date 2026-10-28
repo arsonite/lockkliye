@@ -20,4 +20,5 @@ class Settings(HSDBModel):
     light_mode        = HSDBAttribute(bool, required=True)
     palette           = HSDBAttribute(str,  description='JSON of the colors and gradients that are switched on and the ones the user made')
     rev               = HSDBAttribute(int,  required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
+    show_block_borders = HSDBAttribute(bool, description='Outline the block under the mouse')
     sidebar_expanded  = HSDBAttribute(bool, required=True)
