@@ -42,16 +42,17 @@ type tServerRow = HSDBEntity & { rev: number } & Record<string, unknown>;
 // sync, so it contains neither the id nor the rev. Relation fields hold the key of the related entity, the sync
 // swaps keys and server ids at the boundary.
 interface iCollection<L extends object> {
-    name: string;
     api: typeof HSDBBaseAPI;
-    key: (item: L) => string;
-    toRow: (item: L) => tRow;
-    fromRow: (row: tServerRow, key: string) => L;
+    name: string;
     relations?: Record<string, string>; // Relation field -> name of the collection it points to
+    listFields?: string[];
+
+    fromRow: (row: tServerRow, key: string) => L;
+    key: (item: L) => string;
     // For models where the content decides which row is which (the single settings row, presets by position):
     // a server row without a known key is matched to the local entity with this key. Needs the fields it reads.
     slot?: (row: tServerRow) => string;
-    listFields?: string[];
+    toRow: (item: L) => tRow;
 }
 
 // The text of a note is a tree of server entries: Note <- Block <- Word

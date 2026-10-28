@@ -20,12 +20,13 @@ $sync-offline: #ff6b6b;
 // Marks a note in the sidebar that has changes the server does not have yet
 .sync-dot {
     display: inline-block;
-    width: 8px;
     height: 8px;
     margin-right: 6px;
-    vertical-align: middle;
+    width: 8px;
+
     border-radius: 50%;
     background: $sync-unsaved;
+    vertical-align: middle;
     box-shadow: 0 0 6px rgba($sync-unsaved, 0.6);
 }
 

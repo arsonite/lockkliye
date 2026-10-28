@@ -13,6 +13,7 @@
  * all copies or substantial portions of the Software.
  */
 
+// React imports
 import { useCallback, useEffect, useState } from 'react';
 
 interface iMousePositionState {

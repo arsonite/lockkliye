@@ -13,48 +13,58 @@
  * all copies or substantial portions of the Software.
  */
 
-// Variables and base styles
+@import 'editor';
+@import 'folders';
+@import 'lightmode';
+@import 'modal';
+@import 'palette';
+@import 'sidebar';
+@import 'sync';
+@import 'textblock';
+@import 'toolbar';
 @import 'vars';
 
-// Main App Layout
 .notes-app {
     display: flex;
     height: 100vh;
     width: 100%;
 
     &--fullscreen {
-        .notes-app__main {
+        main {
             margin-left: 0;
         }
     }
 
-    &__main {
-        flex: 1;
+    main {
+        overflow: hidden;
+
         display: flex;
+        flex: 1;
         flex-direction: column;
+
         background: transparent;
         transition: margin-left var(--transition);
-        overflow: hidden;
     }
 
-    &__empty {
+    #notes-empty {
         display: flex;
-        flex-direction: column;
         align-items: center;
+        flex-direction: column;
+        gap: 16px;
         justify-content: center;
         height: 100%;
+
         color: var(--text-secondary);
         text-align: center;
-        gap: 16px;
 
-        &-icon {
+        #notes-empty-icon {
             font-size: 64px;
             opacity: 0.5;
         }
 
         h2 {
-            font-weight: 500;
             color: var(--text-primary);
+            font-weight: 500;
         }
 
         p {
@@ -62,15 +72,18 @@
         }
 
         button {
+            cursor: pointer;
+
             margin-top: 16px;
             padding: 12px 24px;
+
             background: var(--accent);
-            color: white;
             border: none;
             border-radius: var(--radius-md);
+            color: white;
             font-size: 14px;
             font-weight: 500;
-            cursor: pointer;
+
             transition: background var(--transition);
 
             &:hover {
@@ -79,14 +92,3 @@
         }
     }
 }
-
-// Component styles
-@import 'sidebar';
-@import 'toolbar';
-@import 'editor';
-@import 'textblock';
-@import 'modal';
-@import 'folders';
-@import 'sync';
-@import 'palette';
-@import 'lightmode';

@@ -13,21 +13,20 @@
  * all copies or substantial portions of the Software.
  */
 
+// React imports
 import { useState, useRef, useEffect } from 'react';
 
-// TeaType components
+// TeaType
+import { BookmarkIcon } from '@teatype/icons';
 import { TeaSidebar, TeaModal } from '@teatype/components';
 
-// Types
-import type { iFolder, iNote } from '@/types';
-import { FORMAT_COLORS } from '@/types';
-import type { tSyncStatus } from '@/sync/useSync';
-
-// Components
-import AnchorIcon from '@/components/AnchorIcon';
-
-// Utils
+// Utility
 import { descendantIds, folderPath } from '@/tools/folderTree';
+
+// Types
+import { FORMAT_COLORS } from '@/types';
+import type { iFolder, iNote } from '@/types';
+import type { tSyncStatus } from '@/sync/useSync';
 
 const COLLAPSED_KEY = 'lockkliye-folders-collapsed';
 const FOLDER_COLORS = FORMAT_COLORS.filter((color) => color !== 'inherit');
@@ -40,7 +39,9 @@ interface iSidebarProps {
     confirmDeletions: boolean;
     dirtyNoteIds: Set<string>;
     syncStatus: tSyncStatus;
+    settingsOpen: boolean;
     unsavedCount: number;
+
     onToggle: () => void;
     onSave: () => void;
     onNoteSelect: (noteId: string) => void;
@@ -50,7 +51,6 @@ interface iSidebarProps {
     onCreateFolder: (name: string, parentId: string | null, color?: string) => void;
     onUpdateFolder: (folderId: string, updates: Partial<iFolder>) => void;
     onDeleteFolder: (folderId: string) => void;
-    settingsOpen: boolean;
     onOpenSettings: () => void;
 }
 
@@ -72,6 +72,7 @@ interface iFolderForm {
 interface iMenuItem {
     label: string;
     danger?: boolean;
+
     onClick: () => void;
 }
 
@@ -93,7 +94,9 @@ export const Sidebar = ({
     confirmDeletions,
     dirtyNoteIds,
     syncStatus,
+    settingsOpen,
     unsavedCount,
+
     onToggle,
     onSave,
     onNoteSelect,
@@ -103,7 +106,6 @@ export const Sidebar = ({
     onCreateFolder,
     onUpdateFolder,
     onDeleteFolder,
-    settingsOpen,
     onOpenSettings,
 }: iSidebarProps) => {
     const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
@@ -336,16 +338,16 @@ export const Sidebar = ({
 
     const renderNote = (note: iNote, depth: number) => (
         <div
-            key={note.id}
-            className={`tea-sidebar-item sidebar-row ${activeNoteId === note.id ? 'tea-sidebar-item--active' : ''}`}
-            style={{ paddingLeft: 12 + depth * 16 }}
             draggable
-            onDragStart={(event) => startDrag(event, { type: 'note', id: note.id })}
-            onDragEnd={() => setDropTarget(null)}
+            className={`tea-sidebar-item sidebar-row ${activeNoteId === note.id ? 'tea-sidebar-item--active' : ''}`}
+            key={note.id}
+            role='button'
+            style={{ paddingLeft: 12 + depth * 16 }}
+            tabIndex={0}
             onClick={() => onNoteSelect(note.id)}
             onContextMenu={(event) => openMenu(event, noteMenu(note))}
-            role='button'
-            tabIndex={0}
+            onDragStart={(event) => startDrag(event, { type: 'note', id: note.id })}
+            onDragEnd={() => setDropTarget(null)}
             onKeyDown={(event) => event.key === 'Enter' && onNoteSelect(note.id)}
         >
             <div className='tea-sidebar-item__content'>
@@ -354,11 +356,12 @@ export const Sidebar = ({
                         {dirtyNoteIds.has(note.id) && <span className='sync-dot' title='Not saved yet (Ctrl+S)' />}
                         {note.isAnchor && (
                             <span className='sidebar-row__anchor' title='Anchor note'>
-                                <AnchorIcon size={12} />
+                                <BookmarkIcon size={12} />
                             </span>
                         )}
                         {note.title}
                     </span>
+
                     <span className='sidebar-row__actions'>
                         <button
                             className='sidebar-action sidebar-action--danger'
@@ -372,6 +375,7 @@ export const Sidebar = ({
                         </button>
                     </span>
                 </div>
+
                 <div className='tea-sidebar-item__meta'>
                     <span className='tea-sidebar-item__date'>{formatDate(note.updatedAt)}</span>
                     <span className='tea-sidebar-item__subtitle'>{getNotePreview(note)}</span>
@@ -382,31 +386,36 @@ export const Sidebar = ({
 
     const renderFolder = (folder: iFolder, depth: number): React.ReactNode => {
         const open = !collapsed.has(folder.id);
+
         return (
             <div key={folder.id} className='folder-node'>
                 <div
+                    draggable
                     className={`tea-sidebar-item sidebar-row folder-row ${
                         dropTarget === folder.id ? 'folder-row--drop' : ''
                     }`}
+                    role='button'
                     style={{ paddingLeft: 12 + depth * 16 }}
-                    draggable
+                    tabIndex={0}
+                    title={folder.name}
+                    onClick={() => toggleCollapsed(folder.id)}
+                    onContextMenu={(event) => openMenu(event, folderMenu(folder))}
                     onDragStart={(event) => startDrag(event, { type: 'folder', id: folder.id })}
                     onDragEnd={() => setDropTarget(null)}
                     onDragOver={(event) => dragOver(event, folder.id)}
                     onDragLeave={() => setDropTarget((current) => (current === folder.id ? null : current))}
                     onDrop={(event) => dropOn(event, folder.id)}
-                    onClick={() => toggleCollapsed(folder.id)}
-                    onContextMenu={(event) => openMenu(event, folderMenu(folder))}
-                    title={folder.name}
-                    role='button'
-                    tabIndex={0}
                     onKeyDown={(event) => event.key === 'Enter' && toggleCollapsed(folder.id)}
                 >
                     <span className={`folder-row__chevron ${open ? 'folder-row__chevron--open' : ''}`}>▶</span>
+
                     {folder.color && <span className='folder-row__dot' style={{ background: folder.color }} />}
+
                     <span className='tea-sidebar-item__title folder-row__name'>{folder.name}</span>
+
                     <span className='folder-row__count'>{countNotes(folder.id)}</span>
                 </div>
+
                 {open && (
                     <>
                         {foldersIn(folder.id).map((child) => renderFolder(child, depth + 1))}
@@ -425,7 +434,7 @@ export const Sidebar = ({
             onDrop={(event) => dropOn(event, null)}
         >
             {notes.length === 0 && folders.length === 0 ? (
-                <div className='tea-sidebar__empty'>No notes yet. Click + to create one.</div>
+                <div id='sidebar-empty'>No notes yet. Click + to create one.</div>
             ) : (
                 <>
                     {foldersIn(null).map((folder) => renderFolder(folder, 0))}
@@ -456,6 +465,7 @@ export const Sidebar = ({
                 <span className='sync-status__dot' />
                 <span>{syncLabel}</span>
             </button>
+
             <button
                 className={`tea-sidebar-footer-btn ${settingsOpen ? 'tea-sidebar-footer-btn--active' : ''}`}
                 onClick={onOpenSettings}
@@ -472,9 +482,8 @@ export const Sidebar = ({
     return (
         <>
             <TeaSidebar
-                title='Notes'
                 expanded={expanded}
-                onToggle={onToggle}
+                footer={footer}
                 headerActions={[
                     {
                         id: 'new-folder',
@@ -490,7 +499,8 @@ export const Sidebar = ({
                         variant: 'primary',
                     },
                 ]}
-                footer={footer}
+                title='Notes'
+                onToggle={onToggle}
             >
                 {tree}
             </TeaSidebar>
@@ -522,10 +532,6 @@ export const Sidebar = ({
 
             {/* Create / Edit Folder Modal */}
             <TeaModal
-                isOpen={folderForm !== null}
-                title={folderForm?.id ? 'Edit Folder' : 'New Folder'}
-                onClose={() => setFolderForm(null)}
-                size='sm'
                 footer={
                     <>
                         <button className='tea-modal-btn tea-modal-btn--secondary' onClick={() => setFolderForm(null)}>
@@ -540,6 +546,10 @@ export const Sidebar = ({
                         </button>
                     </>
                 }
+                isOpen={folderForm !== null}
+                size='sm'
+                title={folderForm?.id ? 'Edit Folder' : 'New Folder'}
+                onClose={() => setFolderForm(null)}
             >
                 {folderForm && (
                     <div className='folder-form'>
@@ -593,10 +603,6 @@ export const Sidebar = ({
 
             {/* Move Note Modal */}
             <TeaModal
-                isOpen={moveNoteId !== null}
-                title='Move Note'
-                onClose={() => setMoveNoteId(null)}
-                size='sm'
                 footer={
                     <>
                         <button className='tea-modal-btn tea-modal-btn--secondary' onClick={() => setMoveNoteId(null)}>
@@ -615,6 +621,10 @@ export const Sidebar = ({
                         </button>
                     </>
                 }
+                isOpen={moveNoteId !== null}
+                size='sm'
+                title='Move Note'
+                onClose={() => setMoveNoteId(null)}
             >
                 <div className='folder-form'>
                     <label className='folder-form__label'>
@@ -637,10 +647,6 @@ export const Sidebar = ({
 
             {/* Delete Folder Confirmation Modal */}
             <TeaModal
-                isOpen={deleteFolderId !== null}
-                title='Delete Folder'
-                onClose={() => setDeleteFolderId(null)}
-                size='sm'
                 footer={
                     <>
                         <button
@@ -662,6 +668,10 @@ export const Sidebar = ({
                         </button>
                     </>
                 }
+                isOpen={deleteFolderId !== null}
+                size='sm'
+                title='Delete Folder'
+                onClose={() => setDeleteFolderId(null)}
             >
                 <p>
                     Delete the folder "{deleteFolderName}"? Its notes and subfolders are not deleted, they move up one
@@ -671,10 +681,6 @@ export const Sidebar = ({
 
             {/* Delete Note Confirmation Modal */}
             <TeaModal
-                isOpen={deleteNoteId !== null}
-                title='Delete Note'
-                onClose={() => setDeleteNoteId(null)}
-                size='sm'
                 footer={
                     <>
                         <button
@@ -696,6 +702,10 @@ export const Sidebar = ({
                         </button>
                     </>
                 }
+                isOpen={deleteNoteId !== null}
+                size='sm'
+                title='Delete Note'
+                onClose={() => setDeleteNoteId(null)}
             >
                 <p>
                     Are you sure you want to delete "{notes.find((n) => n.id === deleteNoteId)?.title || 'this note'}"?

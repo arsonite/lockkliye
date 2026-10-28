@@ -20,10 +20,10 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react
 import { Flipper, Flipped } from 'react-flip-toolkit';
 
 // TeaType components
+import { BookmarkIcon } from '@teatype/icons';
 import { TeaModal } from '@teatype/components';
 
 // Components
-import AnchorIcon from './AnchorIcon';
 import FloatingToolbar from './FloatingToolbar';
 import { TextBlockComponent } from './TextBlockComponent';
 
@@ -51,6 +51,8 @@ interface iNoteEditorProps {
     confirmDeletions: boolean;
     showBlockBorders: boolean;
     blockPresets: iBlockStyle[];
+    focusBlockId?: string | null; // A block that was just added, its editor takes the focus
+
     onTitleChange: (title: string) => void;
     onToggleAnchor: (isAnchor: boolean) => void;
     onAnchorChange: (noteId: string) => void;
@@ -61,7 +63,6 @@ interface iNoteEditorProps {
     onBlockDelete: (blockId: string) => void;
     onBlockAdd: (afterBlockId?: string) => void;
     onBlockAddBefore: (beforeBlockId: string) => void;
-    focusBlockId?: string | null; // A block that was just added, its editor takes the focus
     onFocusHandled: () => void;
     onBlockAddWithPreset: (preset: iBlockStyle, afterBlockId?: string) => void;
     onBlockReorder: (fromIndex: number, toIndex: number) => void;
@@ -338,7 +339,7 @@ export const NoteEditor = ({
                                     : 'Make this note an anchor, so words in other notes can open it'
                             }
                         >
-                            <AnchorIcon />
+                            <BookmarkIcon />
                         </button>
                         {isEditingTitle ? (
                             <input

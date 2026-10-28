@@ -35,5 +35,5 @@
             "@teatype/*": ["../teatype/ts/*"]
         }
     },
-    "include": ["client", "*.tsx", "*.ts", "vite-env.d.ts"]
+    "include": ["client", "*.tsx", "*.ts", "vite-env.d.ts", "../teatype/ts/icons/BookmarkIcon.tsx"]
 }

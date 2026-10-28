@@ -200,5 +200,3 @@ logs
 */*llama-cpp-python
 tsconfig.tsbuildinfo
 examples/chkobba/public/cards
-# HSDB data of the local server
-.data/

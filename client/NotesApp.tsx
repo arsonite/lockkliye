@@ -26,8 +26,8 @@ import { SettingsView } from '@/components/SettingsView';
 import { Sidebar } from '@/components/Sidebar';
 
 // Hooks
-import useNotesStore from '@/hooks/useNotesStore';
 import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
+import useNotesStore from '@/hooks/useNotesStore';
 
 // Utility
 import { loadPersisted, type iPersisted } from '@/tools/indexedDB';
@@ -194,7 +194,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                 onOpenSettings={() => setShowSettings((open) => !open)}
             />
 
-            <main className='notes-app__main'>
+            <main>
                 {showSettings ? (
                     <SettingsView
                         lightMode={store.lightMode}
@@ -269,8 +269,8 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         onUpdateBlockPreset={store.updateBlockPreset}
                     />
                 ) : (
-                    <div className='notes-app__empty'>
-                        <div className='notes-app__empty-icon'>📝</div>
+                    <div id='notes-empty'>
+                        <div id='notes-empty-icon'>📝</div>
                         <h2>No note selected</h2>
                         <p>Select a note from the sidebar or create a new one</p>
                         <button onClick={() => store.createNewNote()}>Create New Note</button>
@@ -279,6 +279,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
             </main>
 
             <ModeCursor formatMode={store.formatMode} selectedColor={store.selectedColor} />
+
             <TeaToastContainer toasts={toast.toasts} onRemove={toast.removeToast} position={toast.position} />
         </div>
     );

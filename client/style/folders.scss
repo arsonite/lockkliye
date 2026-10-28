@@ -174,10 +174,18 @@
     opacity: 0.85;
 }
 
-// The not-saved dot sits at the right end of the note
-.sidebar-row .sync-dot {
-    flex-shrink: 0;
-    margin: 0 0 0 6px;
+// The not-saved dot sits left of the title. The title clips its overflow for the ellipsis, so it gets padding
+// (taken back by the negative margin) that leaves room for the glow of the dot.
+.sidebar-row {
+    .tea-sidebar-item__title {
+        padding: 8px 0 8px 8px;
+        margin: -8px 0 -8px -8px;
+    }
+
+    .sync-dot {
+        flex-shrink: 0;
+        margin-right: 0.35rem;
+    }
 }
 
 // The title of a note row has to leave room for the actions

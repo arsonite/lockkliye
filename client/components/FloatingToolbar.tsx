@@ -13,9 +13,11 @@
  * all copies or substantial portions of the Software.
  */
 
+// TeaType
+import { BookmarkIcon } from '@teatype/icons';
+
 // Types
 import { useEffect, useState } from 'react';
-import AnchorIcon from '@/components/AnchorIcon';
 import { HYPERLINKS_ENABLED, iNote, iPalette, tFormatMode } from '@/types';
 import { enabledOf } from '@/tools/palette';
 
@@ -188,7 +190,7 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                             title='Anchor (Ctrl+Shift+A): click words to link them to an anchor note, Ctrl+click opens it'
                         >
                             <span className='floating-toolbar__icon'>
-                                <AnchorIcon />
+                                <BookmarkIcon />
                             </span>
                             {anchorHinted && <span className='floating-toolbar__key'>A</span>}
                         </button>
