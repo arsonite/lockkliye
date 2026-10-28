@@ -23,14 +23,6 @@ const STORE = 'kv';
 
 type tKey = 'data' | 'history' | 'redo' | 'sync';
 
-// Where each value was kept in localStorage before
-const LEGACY_KEYS: Record<tKey, string> = {
-    data: 'lockkliye-data',
-    history: 'lockkliye-history',
-    redo: 'lockkliye-redo',
-    sync: 'lockkliye-sync',
-};
-
 interface iPersisted {
     data?: iNotesState;
     history?: iHistoryEntry[];
@@ -64,35 +56,20 @@ const run = async <T>(mode: IDBTransactionMode, work: (store: IDBObjectStore) =>
 const read = <T>(key: tKey): Promise<T | undefined> => run('readonly', (store) => store.get(key));
 const write = (key: tKey, value: unknown): Promise<IDBValidKey> => run('readwrite', (store) => store.put(value, key));
 
-// Everything that was saved, data of the older localStorage version moves over once
-const loadOnce = async (): Promise<iPersisted> => {
+const KEYS: tKey[] = ['data', 'history', 'redo', 'sync'];
+
+// Everything that was saved
+const loadPersisted = async (): Promise<iPersisted> => {
     const persisted: Record<string, unknown> = {};
     try {
-        for (const key of Object.keys(LEGACY_KEYS) as tKey[]) {
-            let value = await read<unknown>(key);
-            const legacy = localStorage.getItem(LEGACY_KEYS[key]);
-            if (value === undefined && legacy) {
-                try {
-                    value = JSON.parse(legacy);
-                    await write(key, value);
-                } catch {
-                    value = undefined;
-                }
-            }
-            if (legacy && value !== undefined) {
-                localStorage.removeItem(LEGACY_KEYS[key]);
-            }
-            persisted[key] = value;
+        for (const key of KEYS) {
+            persisted[key] = await read<unknown>(key);
         }
     } catch (error) {
         console.error('IndexedDB is not available, nothing is saved in this browser', error);
     }
     return persisted as iPersisted;
 };
-
-// Loading twice at the same time (StrictMode) must not race the move from localStorage
-let loading: Promise<iPersisted> | null = null;
-const loadPersisted = (): Promise<iPersisted> => (loading ??= loadOnce());
 
 export type { iPersisted, tKey };
 export { loadPersisted, write };
