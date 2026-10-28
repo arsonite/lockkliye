@@ -50,7 +50,7 @@
     // Left of the block in the gutter, right next to the drag handle. The padding closes the gap to the handle.
     &__controls {
         position: absolute;
-        top: 16px;
+        top: 50%;
         left: -64px;
         display: flex;
         flex-direction: column;
@@ -60,6 +60,7 @@
         // Hidden controls of a block stay out of the way of the ones of the block above, which reach down over it
         pointer-events: none;
         transition: opacity var(--transition);
+        transform: translateY(-50%);
         z-index: 10;
     }
 
