@@ -197,6 +197,6 @@ logs
 *.pytest_cache
 
 # Specific ignores
-*/*llama-cpp-python
-tsconfig.tsbuildinfo
-examples/chkobba/public/cards
+package.json
+package-lock.json
+yarn.lock
