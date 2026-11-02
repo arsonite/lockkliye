@@ -174,7 +174,7 @@ export const SettingsView = ({
             description: 'How notes behave while you work on them.',
             groups: [
                 {
-                    id: 'blocks',
+                    id: 'editing',
                     items: [
                         {
                             id: 'show-block-borders',
@@ -183,11 +183,6 @@ export const SettingsView = ({
                                 'Draws a border around the block under the mouse, to see which text belongs together.',
                             control: { type: 'toggle', value: showBlockBorders, onChange: onShowBlockBordersChange },
                         },
-                    ],
-                },
-                {
-                    id: 'confirmations',
-                    items: [
                         {
                             id: 'confirm-deletions',
                             label: 'Confirm deletions',
