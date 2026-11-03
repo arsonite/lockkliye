@@ -197,6 +197,5 @@ logs
 *.pytest_cache
 
 # Specific ignores
-package.json
 package-lock.json
 yarn.lock
