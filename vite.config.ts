@@ -13,36 +13,50 @@
  * all copies or substantial portions of the Software.
  */
 
-import { defineConfig, type UserConfig } from 'vite';
+import { defineConfig, loadEnv, type UserConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import eslint from 'vite-plugin-eslint';
 import { resolve } from 'path';
 
-export const getBaseViteConfig = (): UserConfig => ({
-    plugins: [react(), eslint()],
-    resolve: {
-        alias: {
-            '@': resolve(__dirname, 'client'),
-            '@teatype': resolve(__dirname, '../teatype/ts'),
-        },
-    },
-    css: {
-        preprocessorOptions: {
-            scss: {
-                // Shared components' SCSS relies on globvars being available everywhere
-                additionalData: (source: string, filename: string) =>
-                    filename.includes('globvars')
-                        ? source
-                        : `@use "${resolve(__dirname, '../teatype/ts/style/globvars').replace(/\\/g, '/')}" as *;\n${source}`,
+// Ports come from .env (see .env.template), the defaults match the app registry of homepie
+// (homepie/src/nginx/conf.d/00-homepie-apps.conf)
+export const getBaseViteConfig = (): UserConfig => {
+    const env = loadEnv(process.env.NODE_ENV ?? 'development', __dirname, '');
+    const clientPort = Number(env.LOCKKLIYE_CLIENT_PORT ?? 8101);
+    const serverPort = Number(env.LOCKKLIYE_PORT ?? 8765);
+
+    return {
+        plugins: [react(), eslint()],
+        resolve: {
+            alias: {
+                '@': resolve(__dirname, 'client'),
+                '@teatype': resolve(__dirname, '../teatype/ts'),
             },
         },
-    },
-    server: {
-        cors: true,
-        host: '0.0.0.0',
-        port: 3001,
-        open: false,
-    },
-});
+        css: {
+            preprocessorOptions: {
+                scss: {
+                    // Shared components' SCSS relies on globvars being available everywhere
+                    additionalData: (source: string, filename: string) =>
+                        filename.includes('globvars')
+                            ? source
+                            : `@use "${resolve(__dirname, '../teatype/ts/style/globvars').replace(/\\/g, '/')}" as *;\n${source}`,
+                },
+            },
+        },
+        server: {
+            // Only reachable through the homepie nginx (https://lockkliye.homepie.net), which handles the login
+            host: '127.0.0.1',
+            port: clientPort,
+            strictPort: true,
+            open: false,
+            allowedHosts: ['localhost', '.homepie.net'],
+            // The browser talks to this origin only, the HSDB server (127.0.0.1:<LOCKKLIYE_PORT>) is not exposed
+            proxy: {
+                '/hsdb': { target: `http://127.0.0.1:${serverPort}`, changeOrigin: true },
+            },
+        },
+    };
+};
 
 export default defineConfig(getBaseViteConfig());

@@ -22,8 +22,8 @@ from server.models import Block, BlockPreset, Folder, Note, NoteHistory, Setting
 
 DB_NAME = 'lockkliye'
 MODELS = [Folder, Note, Settings, Block, Word, BlockPreset, NoteHistory]
-PORT = int(os.environ.get('LOCKKLIYE_PORT', 8765)) # The client reads the same port from VITE_HSDB_PORT
-# Browser origins that may call the server, the default allows the Vite dev server on this machine only
+PORT = int(os.environ.get('LOCKKLIYE_PORT', 8765)) # The vite dev server proxies /hsdb to this port (vite.config.ts)
+# Browser origins that may call the server directly, the browser normally goes through the vite proxy (same origin)
 CORS_ORIGINS = os.environ.get('LOCKKLIYE_CORS_ORIGINS', r'https?://(localhost|127\.0\.0\.1)(:\d+)?')
 # Entries are written to <DATA_PATH>/hsdb/<DB_NAME>/ and restored from there on start, keep it out of dist/ which vite wipes
 DATA_PATH = Path(__file__).resolve().parent.parent / '_data'
