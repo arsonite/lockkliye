@@ -96,13 +96,6 @@
         }
     }
 
-    &__dot {
-        flex-shrink: 0;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-    }
-
     // The whole name is shown, it wraps instead of being cut off
     &__name {
         min-width: 0;
@@ -222,30 +215,6 @@
         &:focus {
             border-color: var(--accent);
             outline: none;
-        }
-    }
-
-    &__colors {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-
-    &__swatch {
-        width: 22px;
-        height: 22px;
-        padding: 0;
-        border: 2px solid transparent;
-        border-radius: 50%;
-        cursor: pointer;
-
-        &--none {
-            background: var(--surface-elevated);
-            border-color: var(--border);
-        }
-
-        &--active {
-            border-color: var(--text-primary);
         }
     }
 }

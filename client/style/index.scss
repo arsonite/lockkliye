@@ -30,12 +30,13 @@
     width: 100%;
 
     &--fullscreen {
-        main {
+        > main {
             margin-left: 0;
         }
     }
 
-    main {
+    // Only the main area of the app, the settings page has a main of its own
+    > main {
         overflow: hidden;
 
         display: flex;

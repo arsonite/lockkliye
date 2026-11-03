@@ -24,12 +24,10 @@ import { TeaSidebar, TeaModal } from '@teatype/components';
 import { descendantIds, folderPath } from '@/tools/folderTree';
 
 // Types
-import { FORMAT_COLORS } from '@/types';
 import type { iFolder, iNote } from '@/types';
 import type { tSyncStatus } from '@/sync/useSync';
 
 const COLLAPSED_KEY = 'lockkliye-folders-collapsed';
-const FOLDER_COLORS = FORMAT_COLORS.filter((color) => color !== 'inherit');
 
 interface iSidebarProps {
     notes: iNote[];
@@ -48,7 +46,7 @@ interface iSidebarProps {
     onCreateNote: (folderId?: string | null) => void;
     onDeleteNote: (noteId: string) => void;
     onMoveNote: (noteId: string, folderId: string | null) => void;
-    onCreateFolder: (name: string, parentId: string | null, color?: string) => void;
+    onCreateFolder: (name: string, parentId: string | null) => void;
     onUpdateFolder: (folderId: string, updates: Partial<iFolder>) => void;
     onDeleteFolder: (folderId: string) => void;
     onOpenSettings: () => void;
@@ -64,7 +62,6 @@ interface iDragged {
 interface iFolderForm {
     id: string | null;
     name: string;
-    color: string;
     parentId: string | null;
 }
 
@@ -217,13 +214,9 @@ export const Sidebar = ({
         }
         const name = folderForm.name.trim();
         if (folderForm.id) {
-            onUpdateFolder(folderForm.id, {
-                name,
-                color: folderForm.color || undefined,
-                parentId: folderForm.parentId,
-            });
+            onUpdateFolder(folderForm.id, { name, parentId: folderForm.parentId });
         } else {
-            onCreateFolder(name, folderForm.parentId, folderForm.color || undefined);
+            onCreateFolder(name, folderForm.parentId);
             // Show the new folder, its parent may be closed
             setCollapsed((previous) => {
                 const next = new Set(previous);
@@ -256,17 +249,12 @@ export const Sidebar = ({
         },
         {
             label: 'New subfolder',
-            onClick: () => setFolderForm({ id: null, name: '', color: '', parentId: folder.id }),
+            onClick: () => setFolderForm({ id: null, name: '', parentId: folder.id }),
         },
         {
             label: 'Edit folder',
             onClick: () =>
-                setFolderForm({
-                    id: folder.id,
-                    name: folder.name,
-                    color: folder.color ?? '',
-                    parentId: parentOf(folder),
-                }),
+                setFolderForm({ id: folder.id, name: folder.name, parentId: parentOf(folder) }),
         },
         { label: 'Delete folder', danger: true, onClick: () => handleFolderDelete(folder) },
     ];
@@ -409,8 +397,6 @@ export const Sidebar = ({
                 >
                     <span className={`folder-row__chevron ${open ? 'folder-row__chevron--open' : ''}`}>▶</span>
 
-                    {folder.color && <span className='folder-row__dot' style={{ background: folder.color }} />}
-
                     <span className='tea-sidebar-item__title folder-row__name'>{folder.name}</span>
 
                     <span className='folder-row__count'>{countNotes(folder.id)}</span>
@@ -489,7 +475,7 @@ export const Sidebar = ({
                         id: 'new-folder',
                         label: 'New Folder',
                         icon: <span className='sidebar-header-icon'>🗀</span>,
-                        onClick: () => setFolderForm({ id: null, name: '', color: '', parentId: null }),
+                        onClick: () => setFolderForm({ id: null, name: '', parentId: null }),
                         variant: 'secondary',
                     },
                     {
@@ -580,23 +566,6 @@ export const Sidebar = ({
                                 ))}
                             </select>
                         </label>
-                        <div className='folder-form__label'>
-                            Color
-                            <div className='folder-form__colors'>
-                                {['', ...FOLDER_COLORS].map((color) => (
-                                    <button
-                                        key={color || 'none'}
-                                        type='button'
-                                        title={color || 'No color'}
-                                        className={`folder-form__swatch ${
-                                            folderForm.color === color ? 'folder-form__swatch--active' : ''
-                                        } ${color ? '' : 'folder-form__swatch--none'}`}
-                                        style={color ? { background: color } : undefined}
-                                        onClick={() => setFolderForm({ ...folderForm, color })}
-                                    />
-                                ))}
-                            </div>
-                        </div>
                     </div>
                 )}
             </TeaModal>
