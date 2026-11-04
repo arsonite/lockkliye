@@ -29,7 +29,6 @@ interface iRichTextEditorProps {
     selectedColor: string;
     selectedSize: string;
     selectedAnchorId?: string | null;
-    keepWhitespace?: boolean; // Keep the spaces and new lines at the start and end of the text
     words: iWord[];
 
     onOpenAnchor?: (noteId: string) => void;
@@ -126,7 +125,6 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
     onAddBlockAfter,
     onClearFormatMode,
     placeholder = 'Click to edit...',
-    keepWhitespace = false,
 }) => {
     const editorRef = useRef<HTMLDivElement>(null);
     const [isFocused, setIsFocused] = useState(false);
@@ -383,42 +381,24 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
         }
 
         // The words on screen are only rewritten when the editor loses focus, so what is being typed is not cut short
-        if (!keepWhitespace) {
-            const isBlank = (word: iWord) =>
-                ['\n', '\t', '\u00A0\u00A0\u00A0\u00A0'].includes(word.text) || !word.text.trim();
-            while (cleaned.length > 0 && isBlank(cleaned[0])) cleaned.shift();
-            while (cleaned.length > 0 && isBlank(cleaned[cleaned.length - 1])) cleaned.pop();
-            if (cleaned.length > 0) {
-                cleaned[0] = { ...cleaned[0], text: cleaned[0].text.trim() };
-                cleaned[cleaned.length - 1] = {
-                    ...cleaned[cleaned.length - 1],
-                    text: cleaned[cleaned.length - 1].text.trim(),
-                };
-            }
+        const isBlank = (word: iWord) =>
+            ['\n', '\t', '\u00A0\u00A0\u00A0\u00A0'].includes(word.text) || !word.text.trim();
+        while (cleaned.length > 0 && isBlank(cleaned[0])) cleaned.shift();
+        while (cleaned.length > 0 && isBlank(cleaned[cleaned.length - 1])) cleaned.pop();
+        if (cleaned.length > 0) {
+            cleaned[0] = { ...cleaned[0], text: cleaned[0].text.trim() };
+            cleaned[cleaned.length - 1] = {
+                ...cleaned[cleaned.length - 1],
+                text: cleaned[cleaned.length - 1].text.trim(),
+            };
         }
 
         if (cleaned.length === 0) {
             return [createWord('')];
         }
 
-        // Words are joined by single spaces, so a block that keeps its spaces has the ones before the first and after
-        // the last word in the text of those words
-        if (keepWhitespace) {
-            const isPlain = (word: iWord) => !['\n', '\t', '\u00A0\u00A0\u00A0\u00A0'].includes(word.text);
-            const raw = element.textContent ?? '';
-            const leading = raw.match(/^ +/)?.[0] ?? '';
-            const trailing = raw.match(/ +$/)?.[0] ?? '';
-            const lastIndex = cleaned.map(isPlain).lastIndexOf(true);
-            if (isPlain(cleaned[0])) {
-                cleaned[0] = { ...cleaned[0], text: leading + cleaned[0].text.trim() };
-            }
-            if (lastIndex >= 0 && cleaned.slice(lastIndex + 1).every((word) => word.text === '\n')) {
-                cleaned[lastIndex] = { ...cleaned[lastIndex], text: cleaned[lastIndex].text.trimEnd() + trailing };
-            }
-        }
-
         return cleaned;
-    }, [keepWhitespace]);
+    }, []);
 
     // Save cursor position
     const saveCursorPosition = useCallback((): { start: number; end: number } | null => {

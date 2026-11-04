@@ -1,0 +1,38 @@
+/**
+ * @license
+ * Copyright (C) 2024-2026 Burak Günaydin
+ */
+
+// The shortcuts in the settings, drawn as keys
+.shortcut-keys {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+
+    &__combo {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    &__or {
+        margin: 0 4px;
+        color: var(--text-muted);
+        font-size: 12px;
+    }
+
+    kbd {
+        flex-shrink: 0;
+        white-space: nowrap;
+        padding: 3px 8px;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-strong);
+        border-bottom-width: 2px;
+        border-radius: 5px;
+        color: var(--text-primary);
+        font-family: monospace;
+        font-size: 12px;
+    }
+}

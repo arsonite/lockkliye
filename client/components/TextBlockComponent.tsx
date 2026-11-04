@@ -14,6 +14,7 @@
  */
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { DEFAULT_BORDER_GAP } from '@/types';
 import type { iTextBlock, tFormatMode, iWord, iBlockStyle, iPalette } from '@/types';
 import { enabledOf } from '@/tools/palette';
 import { RichTextEditor } from './RichTextEditor';
@@ -224,7 +225,7 @@ export const TextBlockComponent = ({
     // CSS draws these with gaps of its own size, an svg can space them wider
     const patternedBorder =
         blockStyle.borderStyle === 'dashed' || blockStyle.borderStyle === 'dotted' || blockStyle.borderStyle === 'double';
-    const borderGap = blockStyle.borderGap ?? (blockStyle.borderStyle === 'double' ? 4 : 8);
+    const borderGap = blockStyle.borderGap ?? DEFAULT_BORDER_GAP;
 
     const getBlockStyles = (): React.CSSProperties => {
         const styles: React.CSSProperties = {};
@@ -515,7 +516,7 @@ export const TextBlockComponent = ({
                             </div>
                         </div>
                         {patternedBorder && (
-                            <div className='style-menu__section'>
+                            <div className='style-menu__section style-menu__section--slide-in'>
                                 <span className='style-menu__label'>Gap in the border</span>
                                 <div className='style-menu__slider-row'>
                                     <input
@@ -678,24 +679,6 @@ export const TextBlockComponent = ({
                                 </div>
                             )}
                         </div>
-                        <div className='style-menu__section'>
-                            <span className='style-menu__label'>Spaces at the start and end</span>
-                            <div className='style-menu__options'>
-                                {(['remove', 'keep'] as const).map((choice) => (
-                                    <button
-                                        key={choice}
-                                        className={`style-menu__option ${
-                                            !!blockStyle.keepWhitespace === (choice === 'keep')
-                                                ? 'style-menu__option--active'
-                                                : ''
-                                        }`}
-                                        onClick={() => onStyleChange(block.id, { keepWhitespace: choice === 'keep' })}
-                                    >
-                                        {choice}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
                         {onSaveAsPreset && (
                             <div className='style-menu__section'>
                                 <button className='style-menu__save-preset' onClick={handleSaveAsPreset}>
@@ -712,7 +695,6 @@ export const TextBlockComponent = ({
                     selectedColor={selectedColor}
                     selectedSize={selectedSize}
                     selectedAnchorId={selectedAnchorId}
-                    keepWhitespace={blockStyle.keepWhitespace}
                     onOpenAnchor={onOpenAnchor}
                     onWordsChange={(newWords) => onWordsChange(block.id, newWords)}
                     onAddBlockAfter={() => onAddBlockAfter(block.id)}

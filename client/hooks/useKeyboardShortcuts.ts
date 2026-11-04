@@ -25,6 +25,7 @@ import {
 interface iUseKeyboardShortcutsProps {
     onEscape: () => void;
     onFormatToggle: (mode: tFormatMode) => void;
+    onToggleSidebar?: () => void;
     onColorIndex?: (index: number) => boolean; // Returns whether a color was picked
     onSave?: () => void;
     onUndo?: () => void;
@@ -68,6 +69,13 @@ const useKeyboardShortcuts: React.FC<iUseKeyboardShortcutsProps> = (props) => {
             return;
         }
 
+        // Collapse or expand the sidebar (Ctrl+Shift+L)
+        if (shortcut === 'ctrl+shift+l' && props.onToggleSidebar) {
+            e.preventDefault();
+            props.onToggleSidebar();
+            return;
+        }
+
         // Check for redo (Ctrl+Shift+Z or Ctrl+Y)
         if ((shortcut === 'ctrl+shift+z' || shortcut === 'ctrl+y') && props.onRedo) {
             e.preventDefault();
@@ -96,7 +104,7 @@ const useKeyboardShortcuts: React.FC<iUseKeyboardShortcutsProps> = (props) => {
 
             props.onFormatToggle(mode);
         }
-    }, [props.onFormatToggle, props.onColorIndex, props.onEscape, props.onSave, props.onUndo, props.onRedo]);
+    }, [props.onFormatToggle, props.onColorIndex, props.onEscape, props.onSave, props.onUndo, props.onRedo, props.onToggleSidebar]);
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);

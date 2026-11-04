@@ -23,7 +23,7 @@ import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyl
 import { createNote, createFolder, createBlock, createWord, FORMAT_COLORS, exportNotesAsText, exportNotesAsJson, exportSettingsAsJson, importFromJson as parseImportJson } from '@/types';
 import { descendantIds, repairFolders } from '@/tools/folderTree';
 import { MAX_ENABLED, catalogOf, defaultPalette, sanitizePalette } from '@/tools/palette';
-import { generateRandomNote } from '@/tools/randomGenerator';
+import { generateRandomFolderTree, generateRandomNote, randomizeDates } from '@/tools/randomGenerator';
 import { createTutorialNote } from '@/tools/tutorialNote';
 import useSync from '@/sync/useSync';
 import type { iPersisted } from '@/tools/indexedDB';
@@ -351,20 +351,37 @@ const useNotesStore = (persisted: iPersisted) => {
         });
     }, []);
 
-    // What is inside a deleted folder moves up to the folder above it
-    const deleteFolder = useCallback((folderId: string) => {
-        setState((prev: iNotesState) => {
-            const above = prev.folders.find((f: iFolder) => f.id === folderId)?.parentId ?? null;
-            return {
-                ...prev,
-                folders: prev.folders
-                    .filter((f: iFolder) => f.id !== folderId)
-                    .map((f: iFolder) => (f.parentId === folderId ? { ...f, parentId: above } : f)),
-                notes: prev.notes.map((n: iNote) => (n.folderId === folderId ? { ...n, folderId: above } : n)),
-                activeFolderId: prev.activeFolderId === folderId ? null : prev.activeFolderId,
-            };
-        });
-    }, []);
+    // Deleting a folder deletes what is in it: its subfolders and all their notes, with the history of those notes
+    const deleteFolder = useCallback(
+        (folderId: string) => {
+            const folderIds = descendantIds(state.folders, folderId).add(folderId);
+            const goneNotes = new Set(
+                state.notes.filter((n: iNote) => n.folderId && folderIds.has(n.folderId)).map((n: iNote) => n.id),
+            );
+            setState((prev: iNotesState) => {
+                const notes = stripAnchors(
+                    prev.notes.filter((n: iNote) => !goneNotes.has(n.id)),
+                    (anchorId) => goneNotes.has(anchorId),
+                );
+                return {
+                    ...prev,
+                    folders: prev.folders.filter((f: iFolder) => !folderIds.has(f.id)),
+                    notes,
+                    selectedAnchorId:
+                        prev.selectedAnchorId && goneNotes.has(prev.selectedAnchorId) ? null : prev.selectedAnchorId,
+                    activeNoteId:
+                        prev.activeNoteId && goneNotes.has(prev.activeNoteId)
+                            ? (notes[0]?.id ?? null)
+                            : prev.activeNoteId,
+                    activeFolderId:
+                        prev.activeFolderId && folderIds.has(prev.activeFolderId) ? null : prev.activeFolderId,
+                };
+            });
+            setHistory((prev: iHistoryEntry[]) => prev.filter((entry) => !goneNotes.has(entry.noteId)));
+            setRedoStack((prev: iHistoryEntry[]) => prev.filter((entry) => !goneNotes.has(entry.noteId)));
+        },
+        [state.folders, state.notes],
+    );
 
     // Moving a note is not an edit of its text, so it stays out of the undo history
     const moveNote = useCallback((noteId: string, folderId: string | null) => {
@@ -799,6 +816,82 @@ const useNotesStore = (persisted: iPersisted) => {
         }
     }, []);
 
+    // Everything in one file, as it is in the app: notes, folders, settings with the colors, presets and the history
+    const exportBackup = useCallback(() => {
+        return JSON.stringify(
+            {
+                type: 'lockkliye-backup',
+                version: 1,
+                exportedAt: Date.now(),
+                notes: state.notes,
+                folders: state.folders,
+                settings: {
+                    lightMode: state.lightMode,
+                    sidebarExpanded: state.sidebarExpanded,
+                    editorWidth: state.editorWidth,
+                    confirmDeletions: state.confirmDeletions,
+                    showBlockBorders: state.showBlockBorders,
+                    showStyleButton: state.showStyleButton,
+                    use24HourTime: state.use24HourTime,
+                    palette: state.palette,
+                },
+                blockPresets: state.blockPresets,
+                history,
+            },
+            null,
+            2,
+        );
+    }, [state, history]);
+
+    // A backup replaces everything that is here, the next save makes the server match it
+    const importBackup = useCallback((jsonString: string): boolean => {
+        try {
+            const data = JSON.parse(jsonString);
+            if (data?.type !== 'lockkliye-backup' || !Array.isArray(data.notes) || !Array.isArray(data.folders)) {
+                return false;
+            }
+            const settings = data.settings ?? {};
+            const references = withValidReferences(data.notes, data.folders);
+            setState((prev: iNotesState) => ({
+                ...prev,
+                ...references,
+                lightMode: settings.lightMode ?? prev.lightMode,
+                sidebarExpanded: settings.sidebarExpanded ?? prev.sidebarExpanded,
+                editorWidth: settings.editorWidth ?? prev.editorWidth,
+                confirmDeletions: settings.confirmDeletions ?? prev.confirmDeletions,
+                showBlockBorders: settings.showBlockBorders ?? prev.showBlockBorders,
+                showStyleButton: settings.showStyleButton ?? prev.showStyleButton,
+                use24HourTime: settings.use24HourTime ?? prev.use24HourTime,
+                palette: settings.palette ? sanitizePalette(settings.palette) : prev.palette,
+                blockPresets: Array.isArray(data.blockPresets) ? data.blockPresets : prev.blockPresets,
+                activeNoteId: references.notes[0]?.id ?? null,
+                activeFolderId: null,
+                selectedAnchorId: null,
+                formatMode: null,
+            }));
+            setHistory(Array.isArray(data.history) ? data.history : []);
+            setRedoStack([]);
+            return true;
+        } catch {
+            return false;
+        }
+    }, []);
+
+    // A random folder with subfolders, notes and subnotes for testing
+    const createRandomFolder = useCallback(() => {
+        const tree = generateRandomFolderTree();
+        setState((prev: iNotesState) => ({
+            ...prev,
+            folders: [...prev.folders, ...tree.folders],
+            notes: [...tree.notes, ...prev.notes],
+        }));
+    }, []);
+
+    // New random creation and edit dates for every note
+    const randomizeNoteDates = useCallback(() => {
+        setState((prev: iNotesState) => ({ ...prev, notes: prev.notes.map(randomizeDates) }));
+    }, []);
+
     // Create a random note for testing (without pushing to history)
     const createRandomNote = useCallback(() => {
         const note = generateRandomNote();
@@ -1032,6 +1125,10 @@ const useNotesStore = (persisted: iPersisted) => {
         // Dev
         clearAllData,
         createRandomNote,
+        createRandomFolder,
+        randomizeNoteDates,
+        exportBackup,
+        importBackup,
         restoreTutorialNote,
 
         // Server sync

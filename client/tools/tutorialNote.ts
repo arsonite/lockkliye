@@ -66,6 +66,7 @@ const createTutorialNote = (): iNote => {
                 ),
                 item(key('Ctrl+Alt+1…6'), words('→ Text size, from Title down to Caption')),
                 item(key('Ctrl+Shift+A'), words('→ Anchor mode')),
+                item(key('Ctrl+Shift+L'), words('→ Collapse or expand the sidebar')),
                 item(key('Ctrl+S'), words('→ Save,'), key('Ctrl+Z'), words('→ Undo,'), key('Ctrl+Shift+Z'), words('→ Redo')),
                 item(words('Hold Ctrl, then Shift or Alt, to see the keys under the toolbar buttons')),
             ]),

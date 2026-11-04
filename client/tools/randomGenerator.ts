@@ -15,9 +15,9 @@
 
 // Types
 import {
-    iBlockStyle, iNote, iTextBlock, iWord, iWordFormat,
+    iBlockStyle, iFolder, iNote, iTextBlock, iWord, iWordFormat,
     FORMAT_COLORS,
-    createWord, createBlock, createNote,
+    createWord, createBlock, createNote, createFolder,
 } from '@/types';
 
 // Word lists for generating random text
@@ -359,10 +359,44 @@ const copyToClipboard = async (text: string): Promise<boolean> => {
     }
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// A note that was created some time in the last 120 days and edited some time after that
+const randomizeDates = <T extends { createdAt: number; updatedAt: number }>(note: T): T => {
+    const now = Date.now();
+    const createdAt = now - Math.floor(Math.random() * 120 * DAY_MS);
+    return { ...note, createdAt, updatedAt: createdAt + Math.floor(Math.random() * (now - createdAt)) };
+};
+
+// A folder with random notes, subfolders with random notes and some of those with another level below
+const generateRandomFolderTree = (): { folders: iFolder[]; notes: iNote[] } => {
+    const folders: iFolder[] = [];
+    const notes: iNote[] = [];
+
+    const addFolder = (parentId: string | null): iFolder => {
+        const folder = createFolder(generateTitle(), parentId);
+        folders.push(folder);
+        for (let i = randInt(1, 4); i > 0; i--) {
+            notes.push(randomizeDates({ ...generateRandomNote(), folderId: folder.id }));
+        }
+        return folder;
+    };
+
+    const root = addFolder(null);
+    for (let i = randInt(2, 5); i > 0; i--) {
+        const sub = addFolder(root.id);
+        if (Math.random() < 0.5) addFolder(sub.id);
+    }
+
+    return { folders, notes };
+};
+
 export {
     copyToClipboard,
     generateLongText,
+    generateRandomFolderTree,
     generateRandomNote,
     generateShortText,
-    generateTitle
+    generateTitle,
+    randomizeDates
 }

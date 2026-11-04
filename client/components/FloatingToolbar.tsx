@@ -16,8 +16,13 @@
 // TeaType
 import { BookmarkIcon } from '@teatype/icons';
 
+// React imports
+import { useState } from 'react';
+
+// Hooks
+import useHeldModifiers from '@/hooks/useHeldModifiers';
+
 // Types
-import { useEffect, useState } from 'react';
 import { HYPERLINKS_ENABLED, iNote, iPalette, tFormatMode } from '@/types';
 import { enabledOf } from '@/tools/palette';
 
@@ -67,31 +72,6 @@ const tools: iToolButton[] = [
     { mode: 'highlight', icon: '◌', label: 'Highlight', shortcut: 'Ctrl+Shift+H' },
     { mode: 'link', icon: '🔗', label: 'Hyperlink', shortcut: 'Ctrl+K' },
 ];
-
-// The modifier keys that are held right now, in the order a shortcut is written: 'ctrl', 'ctrl+shift', ...
-const useHeldModifiers = (): string => {
-    const [held, setHeld] = useState('');
-
-    useEffect(() => {
-        const update = (event: KeyboardEvent) =>
-            setHeld(
-                [event.ctrlKey || event.metaKey ? 'ctrl' : '', event.shiftKey ? 'shift' : '', event.altKey ? 'alt' : '']
-                    .filter(Boolean)
-                    .join('+'),
-            );
-        const reset = () => setHeld('');
-        window.addEventListener('keydown', update);
-        window.addEventListener('keyup', update);
-        window.addEventListener('blur', reset);
-        return () => {
-            window.removeEventListener('keydown', update);
-            window.removeEventListener('keyup', update);
-            window.removeEventListener('blur', reset);
-        };
-    }, []);
-
-    return held;
-};
 
 // 'Ctrl+Shift+S' -> the modifiers 'ctrl+shift' and the letter 'S'
 const splitShortcut = (shortcut?: string): { modifiers: string; letter: string } | null => {

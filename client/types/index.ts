@@ -78,7 +78,6 @@ interface iBlockStyle {
     customGradient?: string; // Per-block custom gradient (last in row)
     transparent?: boolean;
     borderGap?: number; // Space between the dashes, dots or lines of a dashed, dotted or double border, in px
-    keepWhitespace?: boolean; // Keep the spaces and new lines at the start and end of the text, off when not set
     widthPercent?: number; // User-adjustable width as percentage (0-100)
 }
 
@@ -171,6 +170,9 @@ const FORMAT_COLORS = [
 
 // Hyperlinks are switched off for now: no toolbar button, no shortcut, no click handling. Stored links are kept.
 const HYPERLINKS_ENABLED = false;
+
+// Space between the dashes of a block border that has no gap of its own
+const DEFAULT_BORDER_GAP = 4;
 
 // Keyboard shortcuts mapping
 const SHORTCUTS: Record<string, tFormatMode> = {
@@ -404,6 +406,7 @@ export type {
 
 export {
     FORMAT_COLORS,
+    DEFAULT_BORDER_GAP,
     HYPERLINKS_ENABLED,
     SHORTCUTS,
 

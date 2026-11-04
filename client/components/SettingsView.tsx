@@ -26,6 +26,7 @@ import PaletteEditor from './PaletteEditor';
 import type { iPalette, tPaletteKind } from '@/types';
 
 // Utils
+import { SHORTCUT_GROUPS } from '@/tools/shortcuts';
 import { generateShortText, generateLongText, generateTitle, copyToClipboard } from '@/tools/randomGenerator';
 
 interface iSettingsViewProps {
@@ -54,6 +55,10 @@ interface iSettingsViewProps {
     onImportSettings: (json: string) => boolean;
     onImportHistory: (json: string) => boolean;
     onCreateRandomNote: () => void;
+    onCreateRandomFolder: () => void;
+    onRandomizeDates: () => void;
+    onExportBackup: () => string;
+    onImportBackup: (json: string) => boolean;
     onRestoreTutorial: () => void;
     onClearAllData: () => void;
     onClose: () => void;
@@ -74,6 +79,20 @@ const downloadFile = (content: string, filename: string, mimeType: string) => {
     link.click();
     URL.revokeObjectURL(url);
 };
+
+// The keys of a shortcut, a shortcut with two ways to press it shows both
+const ShortcutKeys = ({ alternatives }: { alternatives: string[] }) => (
+    <span className='shortcut-keys'>
+        {alternatives.map((combo, index) => (
+            <span key={combo} className='shortcut-keys__combo'>
+                {index > 0 && <span className='shortcut-keys__or'>or</span>}
+                {combo.split('+').map((key) => (
+                    <kbd key={key}>{key}</kbd>
+                ))}
+            </span>
+        ))}
+    </span>
+);
 
 // The settings of the app, described for the TeaSettingsPage
 export const SettingsView = ({
@@ -102,6 +121,10 @@ export const SettingsView = ({
     onImportSettings,
     onImportHistory,
     onCreateRandomNote,
+    onCreateRandomFolder,
+    onRandomizeDates,
+    onExportBackup,
+    onImportBackup,
     onRestoreTutorial,
     onClearAllData,
     onClose,
@@ -109,6 +132,7 @@ export const SettingsView = ({
 }: iSettingsViewProps) => {
     const [showClearDataModal, setShowClearDataModal] = useState(false);
     const [showClearHistoryModal, setShowClearHistoryModal] = useState(false);
+    const [showRestoreModal, setShowRestoreModal] = useState(false);
     const fileInput = useRef<HTMLInputElement>(null);
     const importJob = useRef<iImportJob | null>(null);
 
@@ -248,11 +272,60 @@ export const SettingsView = ({
             ],
         },
         {
+            id: 'shortcuts',
+            label: 'Shortcuts',
+            icon: '⇧',
+            description: 'All keyboard shortcuts. Hold Ctrl, then Shift or Alt, to see the keys on the toolbar and the sidebar.',
+            groups: SHORTCUT_GROUPS.map((group) => ({
+                id: `shortcuts-${group.title}`,
+                title: group.title,
+                items: group.items.map((entry) => ({
+                    id: `shortcut-${entry.label}`,
+                    label: entry.label,
+                    control: { type: 'custom' as const, render: () => <ShortcutKeys alternatives={entry.keys} /> },
+                })),
+            })),
+        },
+        {
             id: 'data',
             label: 'Data',
             icon: '⇅',
-            description: 'Take your notes out of the app or bring them in as files.',
+            description: 'Back up everything, or take parts of it out of the app and bring them in as files.',
             groups: [
+                {
+                    id: 'backup',
+                    title: 'Backup',
+                    description:
+                        'One file with all notes, folders, settings, colors, presets and the history, to keep as a backup or to restore somewhere else.',
+                    items: [
+                        {
+                            id: 'backup-export',
+                            label: 'Full backup',
+                            control: {
+                                type: 'button',
+                                label: 'Download',
+                                onClick: () =>
+                                    exportAs(
+                                        onExportBackup(),
+                                        `lockkliye-backup-${new Date().toISOString().slice(0, 10)}.json`,
+                                        'application/json',
+                                        'Backup downloaded',
+                                    ),
+                            },
+                        },
+                        {
+                            id: 'backup-restore',
+                            label: 'Restore backup',
+                            description: 'Replaces everything here with the contents of a backup file.',
+                            control: {
+                                type: 'button',
+                                label: 'Restore',
+                                theme: 'danger',
+                                onClick: () => setShowRestoreModal(true),
+                            },
+                        },
+                    ],
+                },
                 {
                     id: 'export',
                     title: 'Export',
@@ -437,6 +510,18 @@ export const SettingsView = ({
                             description: 'Adds the tutorial note again, or resets it to the current version if it is still there.',
                             control: { type: 'button', label: 'Restore', onClick: onRestoreTutorial },
                         },
+                        {
+                            id: 'random-folder',
+                            label: 'Random folder',
+                            description: 'Creates a folder with random subfolders, notes and subnotes.',
+                            control: { type: 'button', label: 'Create', onClick: onCreateRandomFolder },
+                        },
+                        {
+                            id: 'randomize-dates',
+                            label: 'Random dates',
+                            description: 'Gives every note a random creation and edit date.',
+                            control: { type: 'button', label: 'Randomize', onClick: onRandomizeDates },
+                        },
                     ],
                 },
                 {
@@ -510,6 +595,41 @@ export const SettingsView = ({
                 }
             >
                 <p>Are you sure you want to clear all data? This cannot be undone.</p>
+            </TeaModal>
+
+            <TeaModal
+                isOpen={showRestoreModal}
+                title='Restore Backup'
+                onClose={() => setShowRestoreModal(false)}
+                size='sm'
+                footer={
+                    <>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--secondary'
+                            onClick={() => setShowRestoreModal(false)}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--danger'
+                            onClick={() => {
+                                setShowRestoreModal(false);
+                                startImport({
+                                    run: onImportBackup,
+                                    success: 'Backup restored',
+                                    failure: 'Failed to restore. This is not a Lockkliye backup file.',
+                                });
+                            }}
+                        >
+                            Choose File
+                        </button>
+                    </>
+                }
+            >
+                <p>
+                    Restoring replaces all notes, folders, settings, presets and history here with the ones of the backup
+                    file. This cannot be undone.
+                </p>
             </TeaModal>
 
             <TeaModal

@@ -163,7 +163,7 @@
 // Date and first words of a note are secondary
 .sidebar-row .tea-sidebar-item__meta {
     color: var(--text-tertiary);
-    font-size: 0.625rem;
+    font-size: 0.5625rem;
     opacity: 0.85;
 }
 
@@ -228,5 +228,33 @@
 @keyframes sidebar-menu-in {
     from {
         opacity: 0;
+    }
+}
+
+// Search in the header of the sidebar, next to the toggle
+.sidebar-search {
+    flex: 1;
+    min-width: 0;
+
+    input {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 7px 10px;
+
+        background: var(--surface-elevated);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 0.8125rem;
+
+        &::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        &:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
     }
 }

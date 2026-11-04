@@ -23,6 +23,9 @@ import { TeaSidebar, TeaModal } from '@teatype/components';
 // Utility
 import { descendantIds, folderPath } from '@/tools/folderTree';
 
+// Hooks
+import useHeldModifiers from '@/hooks/useHeldModifiers';
+
 // Types
 import type { iFolder, iNote } from '@/types';
 import type { tSyncStatus } from '@/sync/useSync';
@@ -113,6 +116,8 @@ export const Sidebar = ({
     const [moveNoteId, setMoveNoteId] = useState<string | null>(null);
     const [moveTarget, setMoveTarget] = useState('');
     const [collapsed, setCollapsed] = useState<Set<string>>(loadCollapsed);
+    const [query, setQuery] = useState('');
+    const heldModifiers = useHeldModifiers();
     const [dropTarget, setDropTarget] = useState<string | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: iMenuItem[] } | null>(null);
     const dragged = useRef<iDragged | null>(null);
@@ -330,6 +335,20 @@ export const Sidebar = ({
         setDropTarget(target);
     };
 
+    // Search: every word has to be in the title or the text of a note, or in the name of a folder
+    const needle = query.trim().toLowerCase();
+    const noteMatches = (note: iNote): boolean => {
+        if (!needle) return true;
+        const text = `${note.title} ${note.blocks.flatMap((block) => block.words.map((word) => word.text)).join(' ')}`.toLowerCase();
+        return needle.split(/\s+/).every((term) => text.includes(term));
+    };
+    const folderNameMatches = (folder: iFolder): boolean => !!needle && folder.name.toLowerCase().includes(needle);
+    const folderShown = (folder: iFolder): boolean =>
+        !needle ||
+        folderNameMatches(folder) ||
+        notesIn(folder.id).some(noteMatches) ||
+        foldersIn(folder.id).some(folderShown);
+
     const renderNote = (note: iNote, depth: number) => (
         <div
             draggable
@@ -378,8 +397,10 @@ export const Sidebar = ({
         </div>
     );
 
-    const renderFolder = (folder: iFolder, depth: number): React.ReactNode => {
-        const open = !collapsed.has(folder.id);
+    const renderFolder = (folder: iFolder, depth: number, showAll = false): React.ReactNode => {
+        // A search opens every folder it found something in, and shows all of a folder whose name it found
+        const open = needle ? true : !collapsed.has(folder.id);
+        const everything = showAll || folderNameMatches(folder);
 
         return (
             <div key={folder.id} className='folder-node'>
@@ -410,8 +431,12 @@ export const Sidebar = ({
 
                 {open && (
                     <>
-                        {foldersIn(folder.id).map((child) => renderFolder(child, depth + 1))}
-                        {notesIn(folder.id).map((note) => renderNote(note, depth + 1))}
+                        {foldersIn(folder.id)
+                            .filter((child) => everything || folderShown(child))
+                            .map((child) => renderFolder(child, depth + 1, everything))}
+                        {notesIn(folder.id)
+                            .filter((note) => everything || noteMatches(note))
+                            .map((note) => renderNote(note, depth + 1))}
                     </>
                 )}
             </div>
@@ -429,8 +454,15 @@ export const Sidebar = ({
                 <div id='sidebar-empty'>No notes yet. Click + to create one.</div>
             ) : (
                 <>
-                    {foldersIn(null).map((folder) => renderFolder(folder, 0))}
-                    {notesIn(null).map((note) => renderNote(note, 0))}
+                    {foldersIn(null)
+                        .filter(folderShown)
+                        .map((folder) => renderFolder(folder, 0))}
+                    {notesIn(null)
+                        .filter(noteMatches)
+                        .map((note) => renderNote(note, 0))}
+                    {needle && !foldersIn(null).some(folderShown) && !notesIn(null).some(noteMatches) && (
+                        <div id='sidebar-empty'>Nothing found.</div>
+                    )}
                 </>
             )}
         </div>
@@ -469,12 +501,17 @@ export const Sidebar = ({
     );
 
     const deleteFolderName = folders.find((f) => f.id === deleteFolderId)?.name;
+    const deleteCounts = {
+        notes: deleteFolderId ? countNotes(deleteFolderId) : 0,
+        folders: deleteFolderId ? descendantIds(folders, deleteFolderId).size : 0,
+    };
     const moveNote = notes.find((n) => n.id === moveNoteId);
 
     return (
         <>
             <TeaSidebar
                 expanded={expanded}
+                toggleKey={heldModifiers === 'ctrl+shift' ? 'L' : undefined}
                 footer={footer}
                 headerActions={[
                     {
@@ -491,7 +528,16 @@ export const Sidebar = ({
                         variant: 'primary',
                     },
                 ]}
-                title='Notes'
+                title={
+                    <div className='sidebar-search'>
+                        <input
+                            type='search'
+                            placeholder='Search'
+                            value={query}
+                            onChange={(event) => setQuery(event.target.value)}
+                        />
+                    </div>
+                }
                 onToggle={onToggle}
             >
                 {tree}
@@ -649,8 +695,8 @@ export const Sidebar = ({
                 onClose={() => setDeleteFolderId(null)}
             >
                 <p>
-                    Delete the folder "{deleteFolderName}"? Its notes and subfolders are not deleted, they move up one
-                    level.
+                    Delete the folder "{deleteFolderName}" with everything in it, {deleteCounts.notes} note(s) and{' '}
+                    {deleteCounts.folders} subfolder(s)? This cannot be undone.
                 </p>
             </TeaModal>
 

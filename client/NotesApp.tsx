@@ -88,6 +88,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
             setShowSettings(false);
         },
         onFormatToggle: store.toggleFormatMode,
+        onToggleSidebar: store.toggleSidebar,
         onColorIndex: (index) => {
             const color = enabledOf('text', store.palette)[index];
             if ((store.formatMode !== 'color' && store.formatMode !== 'highlight') || !color) {
@@ -232,6 +233,10 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         onImportSettings={store.importSettings}
                         onImportHistory={store.importHistory}
                         onCreateRandomNote={store.createRandomNote}
+                        onCreateRandomFolder={store.createRandomFolder}
+                        onRandomizeDates={store.randomizeNoteDates}
+                        onExportBackup={store.exportBackup}
+                        onImportBackup={store.importBackup}
                         onRestoreTutorial={() => {
                             store.restoreTutorialNote();
                             setShowSettings(false);

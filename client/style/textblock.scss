@@ -16,8 +16,10 @@
 // Text Block
 .text-block {
     position: relative;
-    padding: 16px;
+    // The 1px border is always there, so a visible one does not move the text
+    padding: 15px;
     margin-bottom: 12px;
+    border: 1px solid transparent;
     border-radius: var(--radius-md);
     // The outline of the hovered block appears at once, its offset is not part of the outline shorthand
     transition:
@@ -329,6 +331,11 @@
 
         &:last-child {
             margin-bottom: 0;
+        }
+
+        &--slide-in {
+            overflow: hidden;
+            animation: styleMenuSectionIn 240ms ease-out;
         }
     }
 
@@ -663,6 +670,21 @@
     &__label {
         color: var(--text-secondary);
         font-family: monospace;
+    }
+}
+
+@keyframes styleMenuSectionIn {
+    from {
+        max-height: 0;
+        margin-bottom: 0;
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        max-height: 80px;
+        margin-bottom: 16px;
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
