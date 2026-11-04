@@ -113,6 +113,7 @@ Sorted by priority.
 
 ### High
 
+- Last edited note is always on top
 - Add components: checklist, table and code block
 - Auto-convert list-like text to a list with customizable decorators
 - Allow reordering notes (right click a folder to enable auto-sorting and choose the kind)
