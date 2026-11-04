@@ -108,6 +108,50 @@
         color: #ff6b6b;
     }
 
+    // The dashed, dotted and double borders, drawn inside the border box with wider gaps than CSS has
+    &__border {
+        position: absolute;
+        top: -1px;
+        left: -1px;
+        width: calc(100% + 2px);
+        height: calc(100% + 2px);
+        overflow: visible;
+        pointer-events: none;
+
+        rect {
+            x: 1px;
+            y: 1px;
+            width: calc(100% - 2px);
+            height: calc(100% - 2px);
+            rx: var(--radius);
+            fill: none;
+            stroke: var(--border-color);
+            stroke-width: 1.5px;
+        }
+
+        &--dashed rect {
+            stroke-dasharray: 10px var(--gap);
+        }
+
+        &--dotted rect {
+            stroke-width: 2.5px;
+            stroke-linecap: round;
+            stroke-dasharray: 0.1px var(--gap);
+        }
+
+        &--double rect {
+            stroke-width: 1px;
+        }
+
+        &--double .text-block__border-inner {
+            x: calc(1px + var(--gap));
+            y: calc(1px + var(--gap));
+            width: calc(100% - 2px - 2 * var(--gap));
+            height: calc(100% - 2px - 2 * var(--gap));
+            rx: max(0px, calc(var(--radius) - var(--gap)));
+        }
+    }
+
     &__style-menu {
         position: absolute;
         left: 8px;

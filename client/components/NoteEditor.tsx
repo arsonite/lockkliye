@@ -51,6 +51,7 @@ interface iNoteEditorProps {
     confirmDeletions: boolean;
     showBlockBorders: boolean;
     showStyleButton: boolean;
+    use24HourTime: boolean;
     blockPresets: iBlockStyle[];
     focusBlockId?: string | null; // A block that was just added, its editor takes the focus
 
@@ -98,6 +99,7 @@ export const NoteEditor = ({
     confirmDeletions,
     showBlockBorders,
     showStyleButton,
+    use24HourTime,
     blockPresets,
     onTitleChange,
     onToggleAnchor,
@@ -244,10 +246,11 @@ export const NoteEditor = ({
                 ? block.offsetHeight / 2
                 : Math.min(Math.max(y, size / 2), block.offsetHeight - size / 2);
         const controls = block.querySelector<HTMLElement>('.text-block__controls');
-        const handle = e.currentTarget.querySelector<HTMLElement>('.note-editor__drag-handle');
-        if (controls) block.style.setProperty('--follow-y', `${centerOf(controls.offsetHeight)}px`);
-        if (handle)
-            e.currentTarget.style.setProperty('--handle-y', `${block.offsetTop + centerOf(handle.offsetHeight)}px`);
+        if (!controls) return;
+        // The handle sits at the height of the buttons, so the two move as one
+        const center = centerOf(controls.offsetHeight);
+        block.style.setProperty('--follow-y', `${center}px`);
+        e.currentTarget.style.setProperty('--handle-y', `${block.offsetTop + center}px`);
     };
 
     // Handle drag start - now mouse-based
@@ -321,6 +324,7 @@ export const NoteEditor = ({
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit',
+            hourCycle: use24HourTime ? 'h23' : 'h12',
         });
     };
 
@@ -664,7 +668,7 @@ export const NoteEditor = ({
                 <p>Are you sure you want to delete "{blockPresets[deletePresetIndex ?? 0]?.title || 'this preset'}"?</p>
             </TeaModal>
 
-            {/* History indicator - fixed at bottom, overlays content */}
+            {/* History indicator - fixed at bottom, overlays content, visible while the mouse is over it */}
             <div className='note-editor__history-overlay'>
                 <div className='note-editor__history-indicator'>
                     <button
@@ -727,6 +731,7 @@ export const NoteEditor = ({
                                                     hour: '2-digit',
                                                     minute: '2-digit',
                                                     second: '2-digit',
+                                                    hourCycle: use24HourTime ? 'h23' : 'h12',
                                                 })}
                                             </span>
                                         </div>

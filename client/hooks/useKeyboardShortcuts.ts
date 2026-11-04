@@ -25,6 +25,7 @@ import {
 interface iUseKeyboardShortcutsProps {
     onEscape: () => void;
     onFormatToggle: (mode: tFormatMode) => void;
+    onColorIndex?: (index: number) => boolean; // Returns whether a color was picked
     onSave?: () => void;
     onUndo?: () => void;
     onRedo?: () => void;
@@ -81,6 +82,13 @@ const useKeyboardShortcuts: React.FC<iUseKeyboardShortcutsProps> = (props) => {
             return;
         }
 
+        // Ctrl+Shift+1..8 picks a color of the toolbar while the color bar is open
+        const colorKey = /^ctrl\+shift\+([1-8])$/.exec(shortcut);
+        if (colorKey && props.onColorIndex?.(Number(colorKey[1]) - 1)) {
+            e.preventDefault();
+            return;
+        }
+
         // Check for format shortcuts
         const mode = SHORTCUTS[shortcut];
         if (mode) {
@@ -88,7 +96,7 @@ const useKeyboardShortcuts: React.FC<iUseKeyboardShortcutsProps> = (props) => {
 
             props.onFormatToggle(mode);
         }
-    }, [props.onFormatToggle, props.onEscape, props.onSave, props.onUndo, props.onRedo]);
+    }, [props.onFormatToggle, props.onColorIndex, props.onEscape, props.onSave, props.onUndo, props.onRedo]);
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);

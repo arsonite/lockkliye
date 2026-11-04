@@ -24,6 +24,7 @@ import { createNote, createFolder, createBlock, createWord, FORMAT_COLORS, expor
 import { descendantIds, repairFolders } from '@/tools/folderTree';
 import { MAX_ENABLED, catalogOf, defaultPalette, sanitizePalette } from '@/tools/palette';
 import { generateRandomNote } from '@/tools/randomGenerator';
+import { createTutorialNote } from '@/tools/tutorialNote';
 import useSync from '@/sync/useSync';
 import type { iPersisted } from '@/tools/indexedDB';
 import usePersist from '@/hooks/usePersist';
@@ -44,163 +45,13 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
             editorWidth: stored.editorWidth ?? 70,
             showBlockBorders: stored.showBlockBorders ?? true,
             showStyleButton: stored.showStyleButton ?? false,
+            use24HourTime: stored.use24HourTime ?? true,
             palette: sanitizePalette(stored.palette),
         };
     }
 
     // Create default state with sample data
-    const sampleNote = createNote('Welcome to Lockkliye');
-    sampleNote.blocks = [
-        // Title block
-        createBlock([
-            createWord('Welcome', { bold: true, fontSize: 'huge', color: '#74c0fc' }),
-            createWord('to'),
-            createWord('Lockkliye', { bold: true, fontSize: 'huge', color: '#ff9500' }),
-        ]),
-        // Introduction
-        createBlock([
-            createWord('A', { fontSize: 'large' }),
-            createWord('modern', { fontSize: 'large' }),
-            createWord('note-taking', { fontSize: 'large', italic: true }),
-            createWord('app', { fontSize: 'large' }),
-            createWord('with', { fontSize: 'large' }),
-            createWord('rich', { fontSize: 'large', bold: true }),
-            createWord('formatting', { fontSize: 'large', bold: true }),
-            createWord('capabilities.', { fontSize: 'large' }),
-        ], {
-            backgroundColor: 'rgba(116,192,252,0.1)',
-            borderRadius: 12,
-        }),
-        // Shortcuts section header
-        createBlock([
-            createWord('⌨️', { fontSize: 'larger' }),
-            createWord('Keyboard', { bold: true, fontSize: 'larger' }),
-            createWord('Shortcuts', { bold: true, fontSize: 'larger' }),
-        ]),
-        // Shortcuts list
-        createBlock([
-            createWord('•'),
-            createWord('CTRL+B', { bold: true, highlight: 'rgba(255,212,59,0.3)' }),
-            createWord('→'),
-            createWord('Bold', { bold: true }),
-            createWord('text'),
-            createWord('\n'),
-            createWord('•'),
-            createWord('CTRL+I', { bold: true, highlight: 'rgba(116,192,252,0.3)' }),
-            createWord('→'),
-            createWord('Italic', { italic: true }),
-            createWord('text'),
-            createWord('\n'),
-            createWord('•'),
-            createWord('CTRL+U', { bold: true, highlight: 'rgba(177,151,252,0.3)' }),
-            createWord('→'),
-            createWord('Underline', { underline: true }),
-            createWord('text'),
-        ], {
-            borderStyle: 'solid',
-            borderRadius: 8,
-            backgroundColor: 'rgba(255,255,255,0.05)',
-        }),
-        // Features section
-        createBlock([
-            createWord('✨', { fontSize: 'larger' }),
-            createWord('Features', { bold: true, fontSize: 'larger' }),
-        ]),
-        // Feature: Text sizes
-        createBlock([
-            createWord('Text', { fontSize: 'tiny' }),
-            createWord('in', { fontSize: 'smaller' }),
-            createWord('different', {}),
-            createWord('sizes:', { fontSize: 'large' }),
-            createWord('tiny,', { fontSize: 'tiny' }),
-            createWord('smaller,', { fontSize: 'smaller' }),
-            createWord('normal,', {}),
-            createWord('large,', { fontSize: 'large' }),
-            createWord('larger,', { fontSize: 'larger' }),
-            createWord('huge', { fontSize: 'huge' }),
-        ], {
-            title: 'Text Sizes',
-            borderStyle: 'dashed',
-            borderRadius: 6,
-            backgroundColor: 'rgba(255,169,77,0.1)',
-        }),
-        // Feature: Colors
-        createBlock([
-            createWord('Colorful', { color: '#ff6b6b', bold: true }),
-            createWord('text', { color: '#ffa94d' }),
-            createWord('with', { color: '#ffd43b' }),
-            createWord('highlights', { highlight: 'rgba(105,219,124,0.4)' }),
-            createWord('and', { color: '#74c0fc' }),
-            createWord('backgrounds', { highlight: 'rgba(177,151,252,0.4)' }),
-        ], {
-            title: 'Colors',
-            borderStyle: 'solid',
-            borderRadius: 10,
-            backgroundGradient: 'linear-gradient(135deg, rgba(116,192,252,0.1) 0%, rgba(177,151,252,0.1) 100%)',
-        }),
-        // Feature: Blocks
-        createBlock([
-            createWord('Blocks'),
-            createWord('can'),
-            createWord('have'),
-            createWord('different'),
-            createWord('styles:'),
-            createWord('borders,'),
-            createWord('backgrounds,'),
-            createWord('gradients,'),
-            createWord('and'),
-            createWord('corner'),
-            createWord('radius!'),
-        ], {
-            title: 'Block Styling',
-            borderStyle: 'dotted',
-            borderRadius: 16,
-            backgroundGradient: 'linear-gradient(135deg, rgba(255,107,107,0.15) 0%, rgba(255,169,77,0.15) 100%)',
-        }),
-        // Tips section
-        createBlock([
-            createWord('💡', { fontSize: 'larger' }),
-            createWord('Tips', { bold: true, fontSize: 'larger' }),
-        ]),
-        createBlock([
-            createWord('•'),
-            createWord('Click'),
-            createWord('◐'),
-            createWord('on'),
-            createWord('a'),
-            createWord('block'),
-            createWord('to'),
-            createWord('customize'),
-            createWord('its'),
-            createWord('style'),
-            createWord('\n'),
-            createWord('•'),
-            createWord('Use'),
-            createWord('Shift+Enter'),
-            createWord('to'),
-            createWord('create'),
-            createWord('a'),
-            createWord('new'),
-            createWord('block'),
-            createWord('\n'),
-            createWord('•'),
-            createWord('Escape'),
-            createWord('to'),
-            createWord('exit'),
-            createWord('formatting'),
-            createWord('mode'),
-            createWord('\n'),
-            createWord('•'),
-            createWord('CTRL+Z'),
-            createWord('to'),
-            createWord('undo'),
-            createWord('changes'),
-        ], {
-            borderStyle: 'solid',
-            borderRadius: 4,
-            backgroundColor: 'rgba(105,219,124,0.1)',
-        }),
-    ];
+    const sampleNote = createTutorialNote();
 
     return {
         notes: [sampleNote],
@@ -217,6 +68,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
         confirmDeletions: true,
         showBlockBorders: true,
         showStyleButton: false,
+        use24HourTime: true,
         palette: defaultPalette(),
         blockPresets: [
             // Default presets
@@ -782,11 +634,12 @@ const useNotesStore = (persisted: iPersisted) => {
                 confirmDeletions: state.confirmDeletions,
                 showBlockBorders: state.showBlockBorders,
                 showStyleButton: state.showStyleButton,
+                use24HourTime: state.use24HourTime,
                 palette: state.palette,
             },
             state.blockPresets
         );
-    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.palette, state.blockPresets]);
+    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.use24HourTime, state.palette, state.blockPresets]);
 
     const importFromJson = useCallback((jsonString: string) => {
         const result = parseImportJson(jsonString);
@@ -821,6 +674,7 @@ const useNotesStore = (persisted: iPersisted) => {
                     if (result.settings.confirmDeletions !== undefined) newState.confirmDeletions = result.settings.confirmDeletions;
                     if (result.settings.showBlockBorders !== undefined) newState.showBlockBorders = result.settings.showBlockBorders;
                     if (result.settings.showStyleButton !== undefined) newState.showStyleButton = result.settings.showStyleButton;
+                    if (result.settings.use24HourTime !== undefined) newState.use24HourTime = result.settings.use24HourTime;
                     if (result.settings.palette) newState.palette = sanitizePalette(result.settings.palette);
                 }
                 if (result.blockPresets) {
@@ -883,6 +737,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 if (result.settings.confirmDeletions !== undefined) newState.confirmDeletions = result.settings.confirmDeletions;
                 if (result.settings.showBlockBorders !== undefined) newState.showBlockBorders = result.settings.showBlockBorders;
                 if (result.settings.showStyleButton !== undefined) newState.showStyleButton = result.settings.showStyleButton;
+                if (result.settings.use24HourTime !== undefined) newState.use24HourTime = result.settings.use24HourTime;
                 if (result.settings.palette) newState.palette = sanitizePalette(result.settings.palette);
             }
             if (result.blockPresets) {
@@ -955,6 +810,24 @@ const useNotesStore = (persisted: iPersisted) => {
         return note;
     }, []);
 
+    // The tutorial note is added again, or reset when it is still there
+    const restoreTutorialNote = useCallback(() => {
+        const tutorial = createTutorialNote();
+        setState((prev: iNotesState) => {
+            const existing = prev.notes.find((note: iNote) => note.title === tutorial.title);
+            if (!existing) {
+                return { ...prev, notes: [tutorial, ...prev.notes], activeNoteId: tutorial.id };
+            }
+            return {
+                ...prev,
+                notes: prev.notes.map((note: iNote) =>
+                    note.id === existing.id ? { ...note, blocks: tutorial.blocks, updatedAt: Date.now() } : note,
+                ),
+                activeNoteId: existing.id,
+            };
+        });
+    }, []);
+
     // Clear all data
     const clearAllData = useCallback(() => {
         setHistory([]);
@@ -973,6 +846,10 @@ const useNotesStore = (persisted: iPersisted) => {
 
     const setShowStyleButton = useCallback((value: boolean) => {
         setState((prev: iNotesState) => ({ ...prev, showStyleButton: value }));
+    }, []);
+
+    const setUse24HourTime = useCallback((value: boolean) => {
+        setState((prev: iNotesState) => ({ ...prev, use24HourTime: value }));
     }, []);
 
     // Colors and gradients offered by the toolbar and the block style menu
@@ -1141,6 +1018,7 @@ const useNotesStore = (persisted: iPersisted) => {
         setConfirmDeletions,
         setShowBlockBorders,
         setShowStyleButton,
+        setUse24HourTime,
         togglePaletteEntry,
         addCustomPaletteEntry,
         removeCustomPaletteEntry,
@@ -1154,6 +1032,7 @@ const useNotesStore = (persisted: iPersisted) => {
         // Dev
         clearAllData,
         createRandomNote,
+        restoreTutorialNote,
 
         // Server sync
         dirtyNoteIds: sync.dirtyNoteIds,

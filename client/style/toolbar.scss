@@ -80,7 +80,7 @@
         transition: all var(--transition);
 
         &:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--bg-hover);
         }
 
         &--active {
@@ -103,21 +103,36 @@
     // The letter of the shortcut, below its button
     &__key {
         position: absolute;
-        bottom: -12px;
+        top: calc(100% + 1px);
         left: 50%;
-        color: var(--accent);
+        min-width: 16px;
+        padding: 2px 5px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-strong);
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        color: var(--text-primary);
         font-family: monospace;
         font-size: 10px;
         font-weight: 700;
         line-height: 1;
+        text-align: center;
         white-space: nowrap;
         pointer-events: none;
         transform: translateX(-50%);
     }
 
     &__icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         font-size: 14px;
         font-family: Georgia, serif;
+        line-height: 1;
+
+        svg {
+            display: block;
+        }
 
         &--bold {
             font-weight: bold;
@@ -148,6 +163,7 @@
     }
 
     &__color {
+        position: relative;
         width: 20px;
         height: 20px;
         border: 2px solid transparent;

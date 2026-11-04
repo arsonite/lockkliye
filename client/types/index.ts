@@ -77,6 +77,8 @@ interface iBlockStyle {
     customColor?: string; // Per-block custom color (last in row)
     customGradient?: string; // Per-block custom gradient (last in row)
     transparent?: boolean;
+    borderGap?: number; // Space between the dashes, dots or lines of a dashed, dotted or double border, in px
+    keepWhitespace?: boolean; // Keep the spaces and new lines at the start and end of the text, off when not set
     widthPercent?: number; // User-adjustable width as percentage (0-100)
 }
 
@@ -149,6 +151,7 @@ interface iNotesState {
     confirmDeletions: boolean; // Show confirmation dialogs for deletions
     showBlockBorders: boolean; // Outline the block under the mouse
     showStyleButton: boolean; // Show the block style button next to a block, the style menu always opens with a right-click
+    use24HourTime: boolean; // Times are shown as 14:30 instead of 2:30 PM
     blockPresets: iBlockStyle[]; // Saved block presets
     palette: iPalette; // Which colors and gradients the toolbar and the block style menu offer
 }
@@ -280,6 +283,7 @@ interface iSettingsExportData {
         confirmDeletions: boolean;
         showBlockBorders?: boolean;
         showStyleButton?: boolean;
+        use24HourTime?: boolean;
         palette?: iPalette;
     };
     blockPresets: iBlockStyle[];
@@ -306,6 +310,7 @@ const exportSettingsAsJson = (
         confirmDeletions: boolean;
         showBlockBorders?: boolean;
         showStyleButton?: boolean;
+        use24HourTime?: boolean;
         palette?: iPalette;
     },
     blockPresets: iBlockStyle[]
@@ -338,6 +343,7 @@ const importFromJson = (jsonString: string): {
         confirmDeletions?: boolean;
         showBlockBorders?: boolean;
         showStyleButton?: boolean;
+        use24HourTime?: boolean;
         palette?: iPalette;
     };
     blockPresets?: iBlockStyle[];

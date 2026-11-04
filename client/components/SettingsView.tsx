@@ -34,12 +34,14 @@ interface iSettingsViewProps {
     confirmDeletions: boolean;
     showBlockBorders: boolean;
     showStyleButton: boolean;
+    use24HourTime: boolean;
     palette: iPalette;
     onToggleLightMode: () => void;
     onEditorWidthChange: (width: number) => void;
     onConfirmDeletionsChange: (value: boolean) => void;
     onShowBlockBordersChange: (value: boolean) => void;
     onShowStyleButtonChange: (value: boolean) => void;
+    onUse24HourTimeChange: (value: boolean) => void;
     onClearAllHistory: () => void;
     onTogglePaletteEntry: (kind: tPaletteKind, value: string) => void;
     onAddPaletteEntry: (kind: tPaletteKind, value: string) => void;
@@ -52,6 +54,7 @@ interface iSettingsViewProps {
     onImportSettings: (json: string) => boolean;
     onImportHistory: (json: string) => boolean;
     onCreateRandomNote: () => void;
+    onRestoreTutorial: () => void;
     onClearAllData: () => void;
     onClose: () => void;
     toast: iUseTeaToastReturn;
@@ -79,12 +82,14 @@ export const SettingsView = ({
     confirmDeletions,
     showBlockBorders,
     showStyleButton,
+    use24HourTime,
     palette,
     onToggleLightMode,
     onEditorWidthChange,
     onConfirmDeletionsChange,
     onShowBlockBordersChange,
     onShowStyleButtonChange,
+    onUse24HourTimeChange,
     onClearAllHistory,
     onTogglePaletteEntry,
     onAddPaletteEntry,
@@ -97,6 +102,7 @@ export const SettingsView = ({
     onImportSettings,
     onImportHistory,
     onCreateRandomNote,
+    onRestoreTutorial,
     onClearAllData,
     onClose,
     toast,
@@ -155,6 +161,12 @@ export const SettingsView = ({
                             label: 'Light mode',
                             description: 'Dark text on a light background.',
                             control: { type: 'toggle', value: lightMode, onChange: onToggleLightMode },
+                        },
+                        {
+                            id: 'use-24-hour-time',
+                            label: '24-hour time',
+                            description: 'Shows times as 14:30 instead of 2:30 PM.',
+                            control: { type: 'toggle', value: use24HourTime, onChange: onUse24HourTimeChange },
                         },
                         {
                             id: 'editor-width',
@@ -418,6 +430,12 @@ export const SettingsView = ({
                             label: 'Random note',
                             description: 'Adds a note with generated content.',
                             control: { type: 'button', label: 'Create', onClick: onCreateRandomNote },
+                        },
+                        {
+                            id: 'restore-tutorial',
+                            label: 'Tutorial note',
+                            description: 'Adds the tutorial note again, or resets it to the current version if it is still there.',
+                            control: { type: 'button', label: 'Restore', onClick: onRestoreTutorial },
                         },
                     ],
                 },

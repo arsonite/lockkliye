@@ -31,6 +31,7 @@ import useNotesStore from '@/hooks/useNotesStore';
 
 // Utility
 import { loadPersisted, type iPersisted } from '@/tools/indexedDB';
+import { enabledOf } from '@/tools/palette';
 
 // Types
 import type { iBlockStyle } from '@/types';
@@ -87,6 +88,14 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
             setShowSettings(false);
         },
         onFormatToggle: store.toggleFormatMode,
+        onColorIndex: (index) => {
+            const color = enabledOf('text', store.palette)[index];
+            if ((store.formatMode !== 'color' && store.formatMode !== 'highlight') || !color) {
+                return false;
+            }
+            store.setSelectedColor(color.value);
+            return true;
+        },
         onSave: handleSave,
         onUndo: store.undo,
         onRedo: store.redo,
@@ -175,6 +184,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                 dirtyNoteIds={store.dirtyNoteIds}
                 syncStatus={store.syncStatus}
                 unsavedCount={store.unsavedCount}
+                use24HourTime={store.use24HourTime}
                 onToggle={store.toggleSidebar}
                 onSave={handleSave}
                 onNoteSelect={(noteId) => {
@@ -202,12 +212,14 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         confirmDeletions={store.confirmDeletions}
                         showBlockBorders={store.showBlockBorders}
                         showStyleButton={store.showStyleButton}
+                        use24HourTime={store.use24HourTime}
                         palette={store.palette}
                         onToggleLightMode={store.toggleLightMode}
                         onEditorWidthChange={store.setEditorWidth}
                         onConfirmDeletionsChange={store.setConfirmDeletions}
                         onShowBlockBordersChange={store.setShowBlockBorders}
                         onShowStyleButtonChange={store.setShowStyleButton}
+                        onUse24HourTimeChange={store.setUse24HourTime}
                         onClearAllHistory={store.clearAllHistory}
                         onTogglePaletteEntry={store.togglePaletteEntry}
                         onAddPaletteEntry={store.addCustomPaletteEntry}
@@ -220,6 +232,11 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         onImportSettings={store.importSettings}
                         onImportHistory={store.importHistory}
                         onCreateRandomNote={store.createRandomNote}
+                        onRestoreTutorial={() => {
+                            store.restoreTutorialNote();
+                            setShowSettings(false);
+                            toast.success('Tutorial note restored');
+                        }}
                         onClearAllData={store.clearAllData}
                         onClose={() => setShowSettings(false)}
                         toast={toast}
@@ -243,6 +260,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         confirmDeletions={store.confirmDeletions}
                         showBlockBorders={store.showBlockBorders}
                         showStyleButton={store.showStyleButton}
+                        use24HourTime={store.use24HourTime}
                         blockPresets={store.blockPresets}
                         onTitleChange={handleTitleChange}
                         onToggleAnchor={handleToggleAnchor}

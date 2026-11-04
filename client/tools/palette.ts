@@ -158,12 +158,10 @@ const catalogOf = (kind: tPaletteKind, palette: iPalette): iPaletteEntry[] => [
     ...palette[kind].custom.map((value) => ({ value, label: 'Custom', custom: true })),
 ];
 
-// The ones that are on, in the order the user switched them on
+// The ones that are on, in the order of the catalog: "none" stays first, no matter when it was switched on
 const enabledOf = (kind: tPaletteKind, palette: iPalette): iPaletteEntry[] => {
-    const catalog = catalogOf(kind, palette);
-    return palette[kind].enabled
-        .map((value) => catalog.find((entry) => entry.value === value))
-        .filter((entry): entry is iPaletteEntry => !!entry);
+    const on = new Set(palette[kind].enabled);
+    return catalogOf(kind, palette).filter((entry) => on.has(entry.value));
 };
 
 // What a custom entry of a kind is made of

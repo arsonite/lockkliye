@@ -85,6 +85,7 @@ const settingsOf = (state: iNotesState): iSettingsItem => ({
     confirmDeletions: state.confirmDeletions,
     showBlockBorders: state.showBlockBorders,
     showStyleButton: state.showStyleButton,
+    use24HourTime: state.use24HourTime,
     palette: state.palette,
 });
 
@@ -163,7 +164,7 @@ const useSync = ({ state, history, historyLimit, freshInstall, storedMeta, setSt
     const settings = useMemo(
         () => settingsOf(state),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.palette],
+        [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.use24HourTime, state.palette],
     );
     const presets = useMemo(
         () => deriveItems([], [], state.blockPresets, settings, []).presets,

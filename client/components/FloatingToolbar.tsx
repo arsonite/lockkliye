@@ -119,6 +119,10 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
     const heldModifiers = useHeldModifiers();
     const anchorHinted = heldModifiers === 'ctrl+shift';
     const sizeHinted = heldModifiers === 'ctrl+alt';
+    const colorsVisible = formatMode === 'color' || formatMode === 'highlight';
+    // Ctrl+Shift+1..8 picks a color of the second bar
+    const colorsHinted = colorsVisible && heldModifiers === 'ctrl+shift';
+    const colors = enabledOf('text', palette);
     const [anchorQuery, setAnchorQuery] = useState('');
     const matchingAnchors = anchorNotes.filter((note) =>
         note.title.toLowerCase().includes(anchorQuery.trim().toLowerCase()),
@@ -289,15 +293,15 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
             </div>
 
             {/* The colors are only needed while a color is being applied */}
-            {(formatMode === 'color' || formatMode === 'highlight') && (
+            {colorsVisible && (
                 <div className='floating-toolbar__inner floating-toolbar__inner--colors'>
                     <div className='floating-toolbar__colors'>
-                        {enabledOf('text', palette).length === 0 && (
+                        {colors.length === 0 && (
                             <span className='floating-toolbar__no-colors'>
                                 No colors are switched on, choose some in Settings.
                             </span>
                         )}
-                        {enabledOf('text', palette).map(({ value, label }) => (
+                        {colors.map(({ value, label }, index) => (
                             <button
                                 key={value}
                                 className={`floating-toolbar__color ${
@@ -306,8 +310,10 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                                 style={value !== 'inherit' ? { backgroundColor: value } : undefined}
                                 onClick={() => onColorChange(value)}
                                 onMouseDown={(e) => e.preventDefault()}
-                                title={label}
-                            />
+                                title={`${label} (Ctrl+Shift+${index + 1})`}
+                            >
+                                {colorsHinted && <span className='floating-toolbar__key'>{index + 1}</span>}
+                            </button>
                         ))}
                     </div>
                 </div>

@@ -84,6 +84,7 @@ interface iSettingsItem {
     confirmDeletions: boolean;
     showBlockBorders: boolean;
     showStyleButton: boolean;
+    use24HourTime: boolean;
     palette: iPalette;
 }
 
@@ -103,6 +104,9 @@ const styleRow = (style: iBlockStyle): tRow => ({
     border_style: style.borderStyle ?? '',
     custom_color: style.customColor ?? '',
     custom_gradient: style.customGradient ?? '',
+    // Only sent once the user has chosen, so the blocks that never did keep their hash
+    ...(style.keepWhitespace === undefined ? {} : { keep_whitespace: style.keepWhitespace }),
+    ...(style.borderGap === undefined ? {} : { border_gap: style.borderGap }),
     title: style.title ?? '',
     transparent: style.transparent ?? false,
     width_percent: Math.round(style.widthPercent ?? -1),
@@ -117,6 +121,8 @@ const styleFromRow = (row: tServerRow): iBlockStyle => {
     if (row.border_style) style.borderStyle = text(row.border_style) as iBlockStyle['borderStyle'];
     if (row.custom_color) style.customColor = text(row.custom_color);
     if (row.custom_gradient) style.customGradient = text(row.custom_gradient);
+    if (typeof row.keep_whitespace === 'boolean') style.keepWhitespace = row.keep_whitespace;
+    if (typeof row.border_gap === 'number' && row.border_gap >= 0) style.borderGap = row.border_gap;
     if (row.title) style.title = text(row.title);
     if (row.transparent) style.transparent = true;
     if ((row.width_percent as number) >= 0) style.widthPercent = row.width_percent as number;
@@ -212,6 +218,7 @@ const settingsCollection: iCollection<iSettingsItem> = {
         show_block_borders: settings.showBlockBorders,
         show_style_button: settings.showStyleButton,
         sidebar_expanded: settings.sidebarExpanded,
+        use_24_hour_time: settings.use24HourTime,
     }),
     fromRow: (row) => ({
         lightMode: row.light_mode as boolean,
@@ -220,6 +227,7 @@ const settingsCollection: iCollection<iSettingsItem> = {
         confirmDeletions: row.confirm_deletions as boolean,
         showBlockBorders: row.show_block_borders !== false,
         showStyleButton: row.show_style_button === true,
+        use24HourTime: row.use_24_hour_time !== false,
         palette: sanitizePalette(row.palette ? JSON.parse(text(row.palette)) : undefined),
     }),
     slot: () => SETTINGS_KEY,

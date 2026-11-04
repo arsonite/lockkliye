@@ -39,6 +39,7 @@ interface iSidebarProps {
     syncStatus: tSyncStatus;
     settingsOpen: boolean;
     unsavedCount: number;
+    use24HourTime: boolean;
 
     onToggle: () => void;
     onSave: () => void;
@@ -93,6 +94,7 @@ export const Sidebar = ({
     syncStatus,
     settingsOpen,
     unsavedCount,
+    use24HourTime,
 
     onToggle,
     onSave,
@@ -153,7 +155,11 @@ export const Sidebar = ({
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
         if (days === 0) {
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                hourCycle: use24HourTime ? 'h23' : 'h12',
+            });
         } else if (days === 1) {
             return 'Yesterday';
         } else if (days < 7) {

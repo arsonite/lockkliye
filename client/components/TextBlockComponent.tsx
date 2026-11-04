@@ -221,6 +221,11 @@ export const TextBlockComponent = ({
         );
     };
 
+    // CSS draws these with gaps of its own size, an svg can space them wider
+    const patternedBorder =
+        blockStyle.borderStyle === 'dashed' || blockStyle.borderStyle === 'dotted' || blockStyle.borderStyle === 'double';
+    const borderGap = blockStyle.borderGap ?? (blockStyle.borderStyle === 'double' ? 4 : 8);
+
     const getBlockStyles = (): React.CSSProperties => {
         const styles: React.CSSProperties = {};
 
@@ -233,15 +238,16 @@ export const TextBlockComponent = ({
         // Use border radius from style or default to 8
         styles.borderRadius = `${blockStyle.borderRadius ?? 8}px`;
 
-        // Set border style
+        // Set border style, the dashed, dotted and double ones are drawn by an svg (see the render), the border only
+        // keeps the room
         if (blockStyle.borderStyle && blockStyle.borderStyle !== 'none') {
-            styles.borderStyle = blockStyle.borderStyle;
+            styles.borderStyle = patternedBorder ? 'solid' : blockStyle.borderStyle;
             styles.borderWidth = '1px';
         }
 
         // Always calculate border color based on background (for blocks with borders)
         if (blockStyle.borderStyle && blockStyle.borderStyle !== 'none') {
-            styles.borderColor = darkenColor(effectiveBg);
+            styles.borderColor = patternedBorder ? 'transparent' : darkenColor(effectiveBg);
         }
 
         if (blockStyle.backgroundGradient) {
@@ -431,6 +437,23 @@ export const TextBlockComponent = ({
                     />
                 )}
 
+                {patternedBorder && (
+                    <svg
+                        className={`text-block__border text-block__border--${blockStyle.borderStyle}`}
+                        style={
+                            {
+                                '--border-color': darkenColor(getEffectiveBackground()),
+                                '--radius': `${blockStyle.borderRadius ?? 8}px`,
+                                '--gap': `${borderGap}px`,
+                            } as React.CSSProperties
+                        }
+                        aria-hidden='true'
+                    >
+                        <rect />
+                        {blockStyle.borderStyle === 'double' && <rect className='text-block__border-inner' />}
+                    </svg>
+                )}
+
                 <div className='text-block__controls'>
                     {showStyleButton && (
                         <button
@@ -491,6 +514,23 @@ export const TextBlockComponent = ({
                                 ))}
                             </div>
                         </div>
+                        {patternedBorder && (
+                            <div className='style-menu__section'>
+                                <span className='style-menu__label'>Gap in the border</span>
+                                <div className='style-menu__slider-row'>
+                                    <input
+                                        type='range'
+                                        className='style-menu__slider'
+                                        min='2'
+                                        max='20'
+                                        step='1'
+                                        value={borderGap}
+                                        onChange={(e) => onStyleChange(block.id, { borderGap: parseInt(e.target.value) })}
+                                    />
+                                    <span className='style-menu__slider-value'>{borderGap}px</span>
+                                </div>
+                            </div>
+                        )}
                         <div className='style-menu__section'>
                             <span className='style-menu__label'>Corner Radius</span>
                             <div className='style-menu__slider-row'>
@@ -638,6 +678,24 @@ export const TextBlockComponent = ({
                                 </div>
                             )}
                         </div>
+                        <div className='style-menu__section'>
+                            <span className='style-menu__label'>Spaces at the start and end</span>
+                            <div className='style-menu__options'>
+                                {(['remove', 'keep'] as const).map((choice) => (
+                                    <button
+                                        key={choice}
+                                        className={`style-menu__option ${
+                                            !!blockStyle.keepWhitespace === (choice === 'keep')
+                                                ? 'style-menu__option--active'
+                                                : ''
+                                        }`}
+                                        onClick={() => onStyleChange(block.id, { keepWhitespace: choice === 'keep' })}
+                                    >
+                                        {choice}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                         {onSaveAsPreset && (
                             <div className='style-menu__section'>
                                 <button className='style-menu__save-preset' onClick={handleSaveAsPreset}>
@@ -654,6 +712,7 @@ export const TextBlockComponent = ({
                     selectedColor={selectedColor}
                     selectedSize={selectedSize}
                     selectedAnchorId={selectedAnchorId}
+                    keepWhitespace={blockStyle.keepWhitespace}
                     onOpenAnchor={onOpenAnchor}
                     onWordsChange={(newWords) => onWordsChange(block.id, newWords)}
                     onAddBlockAfter={() => onAddBlockAfter(block.id)}

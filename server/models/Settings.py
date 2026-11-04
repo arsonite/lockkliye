@@ -23,3 +23,4 @@ class Settings(HSDBModel):
     show_block_borders = HSDBAttribute(bool, description='Outline the block under the mouse')
     show_style_button = HSDBAttribute(bool, description='Show the block style button next to a block')
     sidebar_expanded  = HSDBAttribute(bool, required=True)
+    use_24_hour_time  = HSDBAttribute(bool, description='Show times as 14:30 instead of 2:30 PM')

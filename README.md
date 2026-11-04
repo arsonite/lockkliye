@@ -113,36 +113,19 @@ Sorted by priority.
 
 ### High
 
-- [ ] Deleting a folder also deletes all of its notes
-- [ ] Data export is missing a lot of data
-- [ ] Add components: checklist, table and code block
-- [ ] Auto-convert list-like text to a list with customizable decorators
-- [ ] Allow reordering notes (right click a folder to enable auto-sorting and choose the kind)
-- [ ] Allow pinning notes in folders and globally with right click
-- [ ] Show the date in a note's last edited time when it is older than 1 day and use UTC not AM/PM
+- Add components: checklist, table and code block
+- Auto-convert list-like text to a list with customizable decorators
+- Allow reordering notes (right click a folder to enable auto-sorting and choose the kind)
+- Allow pinning notes in folders and globally with right click
 
 ### Low
 
-- [ ] Right click on global to change the settings there too
-- [ ] Right click on empty space in the editor opens a modal to create new things
-- [ ] Shortcut for collapsing the sidebar
-- [ ] List all app shortcuts in the settings, and move them into a global shortcuts ts file
-- [ ] Allow switching between AM/PM and UTC
-- [ ] Do not autofocus when creating a new block (setting)
-- [ ] Add user authentication
-- [ ] Allow password lockdown of single notes (iCloud style)
-- [ ] Dev settings to generate a folder with a random amount of subfolders and subnotes
-- [ ] Dev setting to regenerate the intro document
-- [ ] Implement long press for all right click elements like block settings
-
-### Done
-
-- [x] Replace all buttons, sliders and checkmarks with teatype ones
-- [x] Get rid of block customizer by default (toggeable in settings)
-- [x] Set a minimum width when selecting a new text block, it is too small
-- [x] Block customizer has a set size and can never be opened right click out of view
-- [x] Data setting to empty all note histories at once
-- [x] Make the text block editor follow the mouse cursor (setting)
+- Right click on global to change the settings there too
+- Right click on empty space in the editor opens a modal to create new things
+- Do not autofocus when creating a new block (setting)
+- Add user authentication
+- Allow password lockdown of single notes (iCloud style)
+- Implement long press for all right click elements like block settings
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
