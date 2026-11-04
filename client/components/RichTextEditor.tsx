@@ -19,6 +19,7 @@ import { useRef, useCallback, useEffect, useState } from 'react';
 // Components
 import { applyFormatMode } from '@/components/WordComponent';
 import LinkModal from '@/components/LinkModal';
+import { shortcutOf } from '@/tools/shortcuts';
 
 // Types
 import { createWord, HYPERLINKS_ENABLED, iWord, iWordFormat, tFormatMode } from '@/types';
@@ -617,7 +618,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
     // Handle keyboard shortcuts
     const handleKeyDown = useCallback(
         (e: React.KeyboardEvent) => {
-            if (e.key === 'Enter' && e.shiftKey) {
+            if (shortcutOf(e) === 'newBlock') {
                 e.preventDefault();
                 onAddBlockAfter();
                 return;

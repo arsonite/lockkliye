@@ -1,6 +1,16 @@
 /**
  * @license
  * Copyright (C) 2024-2026 Burak Günaydin
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  */
 
 // React imports
@@ -8,6 +18,7 @@ import { useState } from 'react';
 
 // TeaType components
 import { TeaButton } from '@teatype/components';
+import { XIcon } from '@teatype/icons';
 
 // Types
 import type { iPalette, tPaletteKind } from '@/types';
@@ -72,7 +83,7 @@ export const PaletteEditor = ({ kind, palette, onToggle, onAdd, onRemove }: iPal
                                     title='Delete this custom color'
                                     onClick={() => onRemove(kind, entry.value)}
                                 >
-                                    ×
+                                    <XIcon width='1em' height='1em' />
                                 </button>
                             )}
                         </div>

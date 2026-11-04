@@ -17,10 +17,10 @@
 import { useEffect, useCallback } from 'react';
 
 // Types
-import {
-    tFormatMode,
-    SHORTCUTS
-} from '@/types';
+import type { tFormatMode } from '@/types';
+
+// Utility
+import { SHORTCUTS, colorIndexOf, shortcutOf } from '@/tools/shortcuts';
 
 interface iUseKeyboardShortcutsProps {
     onEscape: () => void;
@@ -34,71 +34,51 @@ interface iUseKeyboardShortcutsProps {
 
 const useKeyboardShortcuts: React.FC<iUseKeyboardShortcutsProps> = (props) => {
     const handleKeyDown = useCallback((e: KeyboardEvent) => {
-        // Build shortcut string
-        const parts: string[] = [];
-        if (e.ctrlKey || e.metaKey) {
-            parts.push('ctrl');
-        };
-        if (e.shiftKey) {
-            parts.push('shift');
-        };
-        if (e.altKey) {
-            ;
-            parts.push('alt');
-        };
-        // Alt changes the key on some layouts, the digit row is read by its position
-        parts.push(/^Digit\d$/.test(e.code) ? e.code.slice(5) : e.key.toLowerCase());
-        const shortcut = parts.join('+');
+        const id = shortcutOf(e);
 
-        // Check for escape - blur active element and clear format mode
-        if (e.key === 'Escape') {
-            // Blur any focused element (defocus text editor)
+        // Escape: blur the editor, clear the selection and leave format mode
+        if (id === 'escape') {
             if (document.activeElement instanceof HTMLElement) {
                 document.activeElement.blur();
             }
-            // Also clear any text selection
             window.getSelection()?.removeAllRanges();
             props.onEscape();
             return;
         }
 
-        // Check for save (Ctrl+S), always swallow it so the browser does not open its own save dialog
-        if (shortcut === 'ctrl+s') {
+        // Always swallowed so the browser does not open its own save dialog
+        if (id === 'save') {
             e.preventDefault();
             props.onSave?.();
             return;
         }
 
-        // Collapse or expand the sidebar (Ctrl+Shift+L)
-        if (shortcut === 'ctrl+shift+l' && props.onToggleSidebar) {
+        if (id === 'toggleSidebar' && props.onToggleSidebar) {
             e.preventDefault();
             props.onToggleSidebar();
             return;
         }
 
-        // Check for redo (Ctrl+Shift+Z or Ctrl+Y)
-        if ((shortcut === 'ctrl+shift+z' || shortcut === 'ctrl+y') && props.onRedo) {
+        if (id === 'redo' && props.onRedo) {
             e.preventDefault();
             props.onRedo();
             return;
         }
 
-        // Check for undo (Ctrl+Z)
-        if (shortcut === 'ctrl+z' && props.onUndo) {
+        if (id === 'undo' && props.onUndo) {
             e.preventDefault();
             props.onUndo();
             return;
         }
 
-        // Ctrl+Shift+1..8 picks a color of the toolbar while the color bar is open
-        const colorKey = /^ctrl\+shift\+([1-8])$/.exec(shortcut);
-        if (colorKey && props.onColorIndex?.(Number(colorKey[1]) - 1)) {
+        // Picks a color of the toolbar while the color bar is open
+        const colorIndex = colorIndexOf(e);
+        if (colorIndex !== null && props.onColorIndex?.(colorIndex)) {
             e.preventDefault();
             return;
         }
 
-        // Check for format shortcuts
-        const mode = SHORTCUTS[shortcut];
+        const mode = id && SHORTCUTS[id].mode;
         if (mode) {
             e.preventDefault();
 

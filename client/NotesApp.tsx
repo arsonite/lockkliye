@@ -18,6 +18,7 @@ import { useEffect, useState } from 'react';
 
 // TeaType
 import { TeaToastContainer, useTeaToast } from '@teatype/components';
+import { NoteIcon } from '@teatype/icons';
 
 // Components
 import ModeCursor from '@/components/ModeCursor';
@@ -297,7 +298,9 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                     />
                 ) : (
                     <div id='notes-empty'>
-                        <div id='notes-empty-icon'>📝</div>
+                        <div id='notes-empty-icon'>
+                            <NoteIcon />
+                        </div>
                         <h2>No note selected</h2>
                         <p>Select a note from the sidebar or create a new one</p>
                         <button onClick={() => store.createNewNote()}>Create New Note</button>

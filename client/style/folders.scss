@@ -91,6 +91,12 @@
         color: var(--text-muted);
         transition: transform 0.2s;
 
+        svg {
+            display: block;
+            width: 12px;
+            height: 12px;
+        }
+
         &--open {
             transform: rotate(90deg);
         }

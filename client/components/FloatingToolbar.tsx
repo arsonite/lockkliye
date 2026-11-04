@@ -14,7 +14,7 @@
  */
 
 // TeaType
-import { BookmarkIcon } from '@teatype/icons';
+import { BookmarkIcon, ColorIcon, HighlightIcon, LinkIcon } from '@teatype/icons';
 
 // React imports
 import { useState } from 'react';
@@ -25,6 +25,8 @@ import useHeldModifiers from '@/hooks/useHeldModifiers';
 // Types
 import { HYPERLINKS_ENABLED, iNote, iPalette, tFormatMode } from '@/types';
 import { enabledOf } from '@/tools/palette';
+import { shortcutBase, shortcutKey, shortcutText } from '@/tools/shortcuts';
+import type { tShortcutId } from '@/tools/shortcuts';
 
 interface iFloatingToolbarProps {
     formatMode: tFormatMode;
@@ -41,44 +43,36 @@ interface iFloatingToolbarProps {
 }
 
 interface iToolButton {
-    mode: tFormatMode;
-    icon: string;
+    mode: tShortcutId & tFormatMode;
+    icon: React.ReactNode;
     label: string;
-    shortcut?: string;
 }
 
 interface iSizePreset {
     id: string;
     label: string;
     fontSize: string;
-    key: string; // Ctrl+Alt+key
+    shortcut: tShortcutId;
 }
 
 const SIZE_PRESETS: iSizePreset[] = [
-    { id: 'title', label: 'Title', fontSize: 'huge', key: '1' },
-    { id: 'heading', label: 'Heading', fontSize: 'larger', key: '2' },
-    { id: 'subheading', label: 'Subheading', fontSize: 'large', key: '3' },
-    { id: 'body', label: 'Body', fontSize: 'normal', key: '4' },
-    { id: 'small', label: 'Small', fontSize: 'smaller', key: '5' },
-    { id: 'caption', label: 'Caption', fontSize: 'tiny', key: '6' },
+    { id: 'title', label: 'Title', fontSize: 'huge', shortcut: 'sizeTitle' },
+    { id: 'heading', label: 'Heading', fontSize: 'larger', shortcut: 'sizeHeading' },
+    { id: 'subheading', label: 'Subheading', fontSize: 'large', shortcut: 'sizeSubheading' },
+    { id: 'body', label: 'Body', fontSize: 'normal', shortcut: 'sizeBody' },
+    { id: 'small', label: 'Small', fontSize: 'smaller', shortcut: 'sizeSmall' },
+    { id: 'caption', label: 'Caption', fontSize: 'tiny', shortcut: 'sizeCaption' },
 ];
 
 const tools: iToolButton[] = [
-    { mode: 'bold', icon: 'B', label: 'Bold', shortcut: 'Ctrl+B' },
-    { mode: 'italic', icon: 'I', label: 'Italic', shortcut: 'Ctrl+I' },
-    { mode: 'underline', icon: 'U', label: 'Underline', shortcut: 'Ctrl+U' },
-    { mode: 'strikethrough', icon: 'S', label: 'Strikethrough', shortcut: 'Ctrl+Shift+S' },
-    { mode: 'color', icon: '◉', label: 'Text Color', shortcut: 'Ctrl+Shift+C' },
-    { mode: 'highlight', icon: '◌', label: 'Highlight', shortcut: 'Ctrl+Shift+H' },
-    { mode: 'link', icon: '🔗', label: 'Hyperlink', shortcut: 'Ctrl+K' },
+    { mode: 'bold', icon: 'B', label: 'Bold' },
+    { mode: 'italic', icon: 'I', label: 'Italic' },
+    { mode: 'underline', icon: 'U', label: 'Underline' },
+    { mode: 'strikethrough', icon: 'S', label: 'Strikethrough' },
+    { mode: 'color', icon: <ColorIcon />, label: 'Text Color' },
+    { mode: 'highlight', icon: <HighlightIcon />, label: 'Highlight' },
+    { mode: 'link', icon: <LinkIcon />, label: 'Hyperlink' },
 ];
-
-// 'Ctrl+Shift+S' -> the modifiers 'ctrl+shift' and the letter 'S'
-const splitShortcut = (shortcut?: string): { modifiers: string; letter: string } | null => {
-    if (!shortcut) return null;
-    const parts = shortcut.split('+');
-    return { modifiers: parts.slice(0, -1).join('+').toLowerCase(), letter: parts[parts.length - 1] };
-};
 
 // Size modes that can be set as format mode
 const SIZE_MODES = ['huge', 'larger', 'large', 'normal', 'smaller', 'tiny'] as const;
@@ -97,11 +91,11 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
 }) => {
     const [showSizeMenu, setShowSizeMenu] = useState(false);
     const heldModifiers = useHeldModifiers();
-    const anchorHinted = heldModifiers === 'ctrl+shift';
-    const sizeHinted = heldModifiers === 'ctrl+alt';
+    const anchorHinted = heldModifiers === shortcutBase('anchor').toLowerCase();
+    const sizeHinted = heldModifiers === shortcutBase('sizeTitle').toLowerCase();
     const colorsVisible = formatMode === 'color' || formatMode === 'highlight';
-    // Ctrl+Shift+1..8 picks a color of the second bar
-    const colorsHinted = colorsVisible && heldModifiers === 'ctrl+shift';
+    // The color shortcut picks a color of the second bar
+    const colorsHinted = colorsVisible && heldModifiers === shortcutBase('colorPick').toLowerCase();
     const colors = enabledOf('text', palette);
     const [anchorQuery, setAnchorQuery] = useState('');
     const matchingAnchors = anchorNotes.filter((note) =>
@@ -132,8 +126,7 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                         .filter((tool) => HYPERLINKS_ENABLED || tool.mode !== 'link')
                         .map((tool) => {
                             // Holding Ctrl shows the shortcuts that are Ctrl plus a letter, adding Shift shows the next ones
-                            const shortcut = splitShortcut(tool.shortcut);
-                            const hinted = !!heldModifiers && shortcut?.modifiers === heldModifiers;
+                            const hinted = !!heldModifiers && shortcutBase(tool.mode).toLowerCase() === heldModifiers;
                             return (
                                 <button
                                     key={tool.mode}
@@ -142,7 +135,7 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                                     } ${hinted ? 'floating-toolbar__btn--hint' : ''}`}
                                     onClick={() => onFormatModeChange(formatMode === tool.mode ? null : tool.mode)}
                                     onMouseDown={(e) => e.preventDefault()}
-                                    title={`${tool.label}${tool.shortcut ? ` (${tool.shortcut})` : ''}`}
+                                    title={`${tool.label} (${shortcutText(tool.mode)})`}
                                     style={
                                         tool.mode === 'color' && selectedColor !== 'inherit'
                                             ? { color: selectedColor }
@@ -158,7 +151,7 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                                     >
                                         {tool.icon}
                                     </span>
-                                    {hinted && <span className='floating-toolbar__key'>{shortcut?.letter}</span>}
+                                    {hinted && <span className='floating-toolbar__key'>{shortcutKey(tool.mode)}</span>}
                                 </button>
                             );
                         })}
@@ -171,12 +164,12 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                             } ${anchorHinted ? 'floating-toolbar__btn--hint' : ''}`}
                             onClick={toggleAnchorMode}
                             onMouseDown={(e) => e.preventDefault()}
-                            title='Anchor (Ctrl+Shift+A): click words to link them to an anchor note, Ctrl+click opens it'
+                            title={`Anchor (${shortcutText('anchor')}): click words to link them to an anchor note, Ctrl+click opens it`}
                         >
                             <span className='floating-toolbar__icon'>
                                 <BookmarkIcon />
                             </span>
-                            {anchorHinted && <span className='floating-toolbar__key'>A</span>}
+                            {anchorHinted && <span className='floating-toolbar__key'>{shortcutKey('anchor')}</span>}
                         </button>
 
                         {formatMode === 'anchor' && (
@@ -233,10 +226,10 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                             } ${sizeHinted ? 'floating-toolbar__btn--hint' : ''}`}
                             onClick={() => setShowSizeMenu(!showSizeMenu)}
                             onMouseDown={(e) => e.preventDefault()}
-                            title='Text Size (Ctrl+Alt+1 to 6)'
+                            title={`Text Size (${shortcutText('sizes')})`}
                         >
                             <span className='floating-toolbar__icon'>Aa</span>
-                            {sizeHinted && <span className='floating-toolbar__key'>1-6</span>}
+                            {sizeHinted && <span className='floating-toolbar__key'>{shortcutKey('sizes').replace('…', '-')}</span>}
                         </button>
 
                         {/* Holding Ctrl+Alt lists the sizes with their numbers */}
@@ -263,7 +256,7 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                                         >
                                             {preset.label}
                                         </span>
-                                        <span className='floating-toolbar__size-shortcut'>{preset.key}</span>
+                                        <span className='floating-toolbar__size-shortcut'>{shortcutKey(preset.shortcut)}</span>
                                     </button>
                                 ))}
                             </div>
@@ -290,7 +283,7 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                                 style={value !== 'inherit' ? { backgroundColor: value } : undefined}
                                 onClick={() => onColorChange(value)}
                                 onMouseDown={(e) => e.preventDefault()}
-                                title={`${label} (Ctrl+Shift+${index + 1})`}
+                                title={`${label} (${shortcutBase('colorPick')}+${index + 1})`}
                             >
                                 {colorsHinted && <span className='floating-toolbar__key'>{index + 1}</span>}
                             </button>

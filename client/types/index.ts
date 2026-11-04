@@ -174,26 +174,6 @@ const HYPERLINKS_ENABLED = false;
 // Space between the dashes of a block border that has no gap of its own
 const DEFAULT_BORDER_GAP = 4;
 
-// Keyboard shortcuts mapping
-const SHORTCUTS: Record<string, tFormatMode> = {
-    'ctrl+b': 'bold',
-    'ctrl+i': 'italic',
-    'ctrl+u': 'underline',
-    'ctrl+shift+s': 'strikethrough',
-    'ctrl+shift+c': 'color',
-    'ctrl+shift+h': 'highlight',
-    ...(HYPERLINKS_ENABLED ? { 'ctrl+k': 'link' as const } : {}),
-    'ctrl+shift+a': 'anchor',
-    'ctrl+alt+1': 'huge',
-    'ctrl+alt+2': 'larger',
-    'ctrl+alt+3': 'large',
-    'ctrl+alt+4': 'normal',
-    'ctrl+alt+5': 'smaller',
-    'ctrl+alt+6': 'tiny',
-    'ctrl+]': 'larger',
-    'ctrl+[': 'smaller',
-};
-
 /**
  * Creates a new word with a fresh unique id.
  * @param text - The text of the word
@@ -408,7 +388,6 @@ export {
     FORMAT_COLORS,
     DEFAULT_BORDER_GAP,
     HYPERLINKS_ENABLED,
-    SHORTCUTS,
 
     createBlock,
     createFolder,

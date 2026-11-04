@@ -16,6 +16,9 @@
 // React imports
 import React from 'react';
 
+// TeaType icons
+import { ColorIcon, HighlightIcon } from '@teatype/icons';
+
 // Hooks
 import useMousePosition from '@/hooks/useMousePosition';
 
@@ -27,7 +30,7 @@ interface iModeCursorProps {
     selectedColor: string;
 }
 
-const getModeIcon = (mode: tFormatMode): string => {
+const getModeIcon = (mode: tFormatMode): React.ReactNode => {
     switch (mode) {
         case 'bold':
             return 'B';
@@ -38,9 +41,9 @@ const getModeIcon = (mode: tFormatMode): string => {
         case 'strikethrough':
             return 'S';
         case 'color':
-            return '◉';
+            return <ColorIcon />;
         case 'highlight':
-            return '◌';
+            return <HighlightIcon />;
         case 'larger':
             return 'A+';
         case 'smaller':

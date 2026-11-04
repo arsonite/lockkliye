@@ -15,6 +15,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 
+// TeaType icons
+import { TrashIcon } from '@teatype/icons';
+
 interface iLinkModalProps {
     isOpen: boolean;
     currentLink?: string;
@@ -122,7 +125,7 @@ export const LinkModal: React.FC<iLinkModalProps> = ({
                         }}
                         title='Remove link'
                     >
-                        🗑️
+                        <TrashIcon />
                     </button>
                 )}
             </div>

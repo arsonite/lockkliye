@@ -1,7 +1,20 @@
 /**
  * @license
  * Copyright (C) 2024-2026 Burak Günaydin
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  */
+
+// Utility
+import { shortcutText } from '@/tools/shortcuts';
 
 // Types
 import { createBlock, createNote, createWord } from '@/types';
@@ -40,7 +53,7 @@ const createTutorialNote = (): iNote => {
                 ...words('note-taking', { fontSize: 'large', italic: true }),
                 ...words('app with', { fontSize: 'large' }),
                 ...words('rich formatting', { fontSize: 'large', bold: true }),
-                ...words('capabilities. Notes work offline and are saved to the server with Ctrl+S.', {
+                ...words(`capabilities. Notes work offline and are saved to the server with ${shortcutText('save')}.`, {
                     fontSize: 'large',
                 }),
             ],
@@ -54,20 +67,20 @@ const createTutorialNote = (): iNote => {
 
         createBlock(
             lines([
-                item(key('Ctrl+B'), words('→ Bold,'), key('Ctrl+I'), words('→ Italic,'), key('Ctrl+U'), words('→ Underline')),
-                item(key('Ctrl+Shift+S'), words('→ Strikethrough')),
+                item(key(shortcutText('bold')), words('→ Bold,'), key(shortcutText('italic')), words('→ Italic,'), key(shortcutText('underline')), words('→ Underline')),
+                item(key(shortcutText('strikethrough')), words('→ Strikethrough')),
                 item(
-                    key('Ctrl+Shift+C'),
+                    key(shortcutText('color')),
                     words('→ Text color,'),
-                    key('Ctrl+Shift+H'),
+                    key(shortcutText('highlight')),
                     words('→ Highlight, then'),
-                    key('Ctrl+Shift+1…8'),
+                    key(shortcutText('colorPick')),
                     words('picks a color'),
                 ),
-                item(key('Ctrl+Alt+1…6'), words('→ Text size, from Title down to Caption')),
-                item(key('Ctrl+Shift+A'), words('→ Anchor mode')),
-                item(key('Ctrl+Shift+L'), words('→ Collapse or expand the sidebar')),
-                item(key('Ctrl+S'), words('→ Save,'), key('Ctrl+Z'), words('→ Undo,'), key('Ctrl+Shift+Z'), words('→ Redo')),
+                item(key(shortcutText('sizes')), words('→ Text size, from Title down to Caption')),
+                item(key(shortcutText('anchor')), words('→ Anchor mode')),
+                item(key(shortcutText('toggleSidebar')), words('→ Collapse or expand the sidebar')),
+                item(key(shortcutText('save')), words('→ Save,'), key(shortcutText('undo')), words('→ Undo,'), key(shortcutText('redo')), words('→ Redo')),
                 item(words('Hold Ctrl, then Shift or Alt, to see the keys under the toolbar buttons')),
             ]),
             { borderStyle: 'solid', borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.05)' },
@@ -130,14 +143,14 @@ const createTutorialNote = (): iNote => {
 
         createBlock(
             words(
-                'Make a note an anchor with the bookmark button left of its title. Then switch on anchor mode in the toolbar (Ctrl+Shift+A), pick the anchor note and click words to link them to it. Ctrl+click on a linked word opens the anchor note.',
+                `Make a note an anchor with the bookmark button left of its title. Then switch on anchor mode in the toolbar (${shortcutText('anchor')}), pick the anchor note and click words to link them to it. Ctrl+click on a linked word opens the anchor note.`,
             ),
             { title: 'Anchors', borderStyle: 'solid', borderRadius: 8, backgroundColor: 'rgba(177,151,252,0.1)' },
         ),
 
         createBlock(
             words(
-                'Folders (the folder button in the sidebar) can be nested, drag notes into them or right-click a note to move it. Everything is kept in this browser first. The dot in front of a note means it is not saved to the server yet, Ctrl+S saves it.',
+                `Folders (the folder button in the sidebar) can be nested, drag notes into them or right-click a note to move it. Everything is kept in this browser first. The dot in front of a note means it is not saved to the server yet, ${shortcutText('save')} saves it.`,
             ),
             { title: 'Folders and Saving', borderStyle: 'solid', borderRadius: 8, backgroundColor: 'rgba(255,212,59,0.1)' },
         ),
@@ -146,8 +159,8 @@ const createTutorialNote = (): iNote => {
 
         createBlock(
             lines([
-                item(words('Use Shift+Enter to create a new block')),
-                item(words('Escape leaves formatting mode')),
+                item(words(`Use ${shortcutText('newBlock')} to create a new block`)),
+                item(words(`${shortcutText('escape')} leaves formatting mode`)),
                 item(words('Hover a block to see its buttons, they follow the mouse')),
                 item(words('Settings has light mode, the width of the editor, export and import and clearing of histories')),
             ]),

@@ -16,6 +16,9 @@
 // React imports
 import { useRef, useState } from 'react';
 
+// TeaType icons
+import { CodeIcon, ColorIcon, ContrastIcon, KeyboardIcon, PencilIcon, TransferIcon } from '@teatype/icons';
+
 // TeaType components
 import { TeaModal, TeaSettingsPage, type iTeaSettingsCategory, type iUseTeaToastReturn } from '@teatype/components';
 
@@ -37,6 +40,8 @@ interface iSettingsViewProps {
     showStyleButton: boolean;
     use24HourTime: boolean;
     palette: iPalette;
+    toast: iUseTeaToastReturn;
+
     onToggleLightMode: () => void;
     onEditorWidthChange: (width: number) => void;
     onConfirmDeletionsChange: (value: boolean) => void;
@@ -62,7 +67,6 @@ interface iSettingsViewProps {
     onRestoreTutorial: () => void;
     onClearAllData: () => void;
     onClose: () => void;
-    toast: iUseTeaToastReturn;
 }
 
 interface iImportJob {
@@ -103,6 +107,8 @@ export const SettingsView = ({
     showStyleButton,
     use24HourTime,
     palette,
+    toast,
+
     onToggleLightMode,
     onEditorWidthChange,
     onConfirmDeletionsChange,
@@ -128,7 +134,6 @@ export const SettingsView = ({
     onRestoreTutorial,
     onClearAllData,
     onClose,
-    toast,
 }: iSettingsViewProps) => {
     const [showClearDataModal, setShowClearDataModal] = useState(false);
     const [showClearHistoryModal, setShowClearHistoryModal] = useState(false);
@@ -174,7 +179,7 @@ export const SettingsView = ({
         {
             id: 'appearance',
             label: 'Appearance',
-            icon: '◐',
+            icon: <ContrastIcon />,
             description: 'How the app looks.',
             groups: [
                 {
@@ -213,7 +218,7 @@ export const SettingsView = ({
         {
             id: 'editor',
             label: 'Editor',
-            icon: '✎',
+            icon: <PencilIcon />,
             description: 'How notes behave while you work on them.',
             groups: [
                 {
@@ -246,7 +251,7 @@ export const SettingsView = ({
         {
             id: 'colors',
             label: 'Colors',
-            icon: '◉',
+            icon: <ColorIcon />,
             description:
                 'Choose which colors and gradients are offered, 8 of each at most, and make your own. Text that already uses a color keeps it when the color is switched off or deleted.',
             groups: [
@@ -274,8 +279,9 @@ export const SettingsView = ({
         {
             id: 'shortcuts',
             label: 'Shortcuts',
-            icon: '⇧',
-            description: 'All keyboard shortcuts. Hold Ctrl, then Shift or Alt, to see the keys on the toolbar and the sidebar.',
+            icon: <KeyboardIcon />,
+            description:
+                'All keyboard shortcuts. Hold Ctrl, then Shift or Alt, to see the keys on the toolbar and the sidebar.',
             groups: SHORTCUT_GROUPS.map((group) => ({
                 id: `shortcuts-${group.title}`,
                 title: group.title,
@@ -289,7 +295,7 @@ export const SettingsView = ({
         {
             id: 'data',
             label: 'Data',
-            icon: '⇅',
+            icon: <TransferIcon />,
             description: 'Back up everything, or take parts of it out of the app and bring them in as files.',
             groups: [
                 {
@@ -450,7 +456,8 @@ export const SettingsView = ({
                         {
                             id: 'clear-histories',
                             label: 'Clear all histories',
-                            description: 'Empties the undo history of every note at once. The notes themselves are not changed.',
+                            description:
+                                'Empties the undo history of every note at once. The notes themselves are not changed.',
                             control: {
                                 type: 'button',
                                 label: 'Clear all',
@@ -465,7 +472,7 @@ export const SettingsView = ({
         {
             id: 'developer',
             label: 'Developer',
-            icon: '⌘',
+            icon: <CodeIcon />,
             developer: true,
             description: 'Tools for testing the app. They can change or remove your data.',
             groups: [
@@ -507,7 +514,8 @@ export const SettingsView = ({
                         {
                             id: 'restore-tutorial',
                             label: 'Tutorial note',
-                            description: 'Adds the tutorial note again, or resets it to the current version if it is still there.',
+                            description:
+                                'Adds the tutorial note again, or resets it to the current version if it is still there.',
                             control: { type: 'button', label: 'Restore', onClick: onRestoreTutorial },
                         },
                         {
@@ -627,8 +635,8 @@ export const SettingsView = ({
                 }
             >
                 <p>
-                    Restoring replaces all notes, folders, settings, presets and history here with the ones of the backup
-                    file. This cannot be undone.
+                    Restoring replaces all notes, folders, settings, presets and history here with the ones of the
+                    backup file. This cannot be undone.
                 </p>
             </TeaModal>
 

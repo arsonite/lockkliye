@@ -17,7 +17,7 @@
 import { useState, useRef, useEffect } from 'react';
 
 // TeaType
-import { BookmarkIcon } from '@teatype/icons';
+import { BookmarkIcon, ChevronIcon, FolderIcon, SettingsIcon, XIcon } from '@teatype/icons';
 import { TeaSidebar, TeaModal } from '@teatype/components';
 
 // Utility
@@ -25,6 +25,7 @@ import { descendantIds, folderPath } from '@/tools/folderTree';
 
 // Hooks
 import useHeldModifiers from '@/hooks/useHeldModifiers';
+import { shortcutBase, shortcutKey, shortcutText } from '@/tools/shortcuts';
 
 // Types
 import type { iFolder, iNote } from '@/types';
@@ -366,7 +367,7 @@ export const Sidebar = ({
             <div className='tea-sidebar-item__content'>
                 <div className='tea-sidebar-item__header'>
                     <span className='tea-sidebar-item__title'>
-                        {dirtyNoteIds.has(note.id) && <span className='sync-dot' title='Not saved yet (Ctrl+S)' />}
+                        {dirtyNoteIds.has(note.id) && <span className='sync-dot' title={`Not saved yet (${shortcutText('save')})`} />}
                         {note.isAnchor && (
                             <span className='sidebar-row__anchor' title='Anchor note'>
                                 <BookmarkIcon size={12} />
@@ -384,7 +385,7 @@ export const Sidebar = ({
                                 handleNoteDelete(note);
                             }}
                         >
-                            ×
+                            <XIcon width='1em' height='1em' />
                         </button>
                     </span>
                 </div>
@@ -422,7 +423,9 @@ export const Sidebar = ({
                     onDrop={(event) => dropOn(event, folder.id)}
                     onKeyDown={(event) => event.key === 'Enter' && toggleCollapsed(folder.id)}
                 >
-                    <span className={`folder-row__chevron ${open ? 'folder-row__chevron--open' : ''}`}>▶</span>
+                    <span className={`folder-row__chevron ${open ? 'folder-row__chevron--open' : ''}`}>
+                        <ChevronIcon />
+                    </span>
 
                     <span className='tea-sidebar-item__title folder-row__name'>{folder.name}</span>
 
@@ -484,7 +487,7 @@ export const Sidebar = ({
                     syncStatus === 'idle' && unsavedCount > 0 ? 'unsaved' : syncStatus
                 }`}
                 onClick={onSave}
-                title='Save to the server (Ctrl+S)'
+                title={`Save to the server (${shortcutText('save')})`}
             >
                 <span className='sync-status__dot' />
                 <span>{syncLabel}</span>
@@ -494,7 +497,7 @@ export const Sidebar = ({
                 className={`tea-sidebar-footer-btn ${settingsOpen ? 'tea-sidebar-footer-btn--active' : ''}`}
                 onClick={onOpenSettings}
             >
-                <span>⚙</span>
+                <SettingsIcon />
                 <span>Settings</span>
             </button>
         </>
@@ -511,13 +514,15 @@ export const Sidebar = ({
         <>
             <TeaSidebar
                 expanded={expanded}
-                toggleKey={heldModifiers === 'ctrl+shift' ? 'L' : undefined}
+                toggleKey={heldModifiers === shortcutBase('toggleSidebar').toLowerCase() ? shortcutKey('toggleSidebar') : undefined}
                 footer={footer}
                 headerActions={[
                     {
                         id: 'new-folder',
                         label: 'New Folder',
-                        icon: <span className='sidebar-header-icon'>🗀</span>,
+                        icon: <span className='sidebar-header-icon'>
+                                <FolderIcon />
+                            </span>,
                         onClick: () => setFolderForm({ id: null, name: '', parentId: null }),
                         variant: 'secondary',
                     },

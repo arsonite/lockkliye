@@ -20,7 +20,7 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react
 import { Flipper, Flipped } from 'react-flip-toolkit';
 
 // TeaType components
-import { BookmarkIcon } from '@teatype/icons';
+import { BookmarkIcon, DragHandleIcon, PencilIcon, RedoIcon, UndoIcon, XIcon } from '@teatype/icons';
 import { TeaModal } from '@teatype/components';
 
 // Components
@@ -32,6 +32,7 @@ import type { iFolder, iNote, iTextBlock, iWord, tFormatMode, iHistoryEntry, iBl
 
 // Utils
 import { folderChain } from '@/tools/folderTree';
+import { shortcutText } from '@/tools/shortcuts';
 
 interface iNoteEditorProps {
     note: iNote;
@@ -426,7 +427,9 @@ export const NoteEditor = ({
                                                 onMouseDown={(e) => handleDragStart(e, originalIndex)}
                                                 title='Drag to reorder'
                                             >
-                                                <span className='note-editor__drag-icon'>⠿</span>
+                                                <span className='note-editor__drag-icon'>
+                                                    <DragHandleIcon />
+                                                </span>
                                             </div>
                                         )}
                                         {/* Placeholder for dragged block */}
@@ -578,7 +581,7 @@ export const NoteEditor = ({
                                                         }}
                                                         title='Edit preset name'
                                                     >
-                                                        ✏️
+                                                        <PencilIcon />
                                                     </button>
                                                     <button
                                                         className='note-editor__preset-delete'
@@ -592,7 +595,7 @@ export const NoteEditor = ({
                                                         }}
                                                         title='Delete preset'
                                                     >
-                                                        ×
+                                                        <XIcon width='1em' height='1em' />
                                                     </button>
                                                 </div>
                                             </div>
@@ -675,9 +678,9 @@ export const NoteEditor = ({
                         className={`note-editor__undo-btn ${!canUndo ? 'note-editor__undo-btn--disabled' : ''}`}
                         onClick={onUndo}
                         disabled={!canUndo}
-                        title='Undo (Ctrl+Z)'
+                        title={`Undo (${shortcutText('undo')})`}
                     >
-                        ↩
+                        <UndoIcon />
                     </button>
 
                     <button
@@ -696,9 +699,9 @@ export const NoteEditor = ({
                         className={`note-editor__redo-btn ${!canRedo ? 'note-editor__redo-btn--disabled' : ''}`}
                         onClick={onRedo}
                         disabled={!canRedo}
-                        title='Redo (Ctrl+Shift+Z)'
+                        title={`Redo (${shortcutText('redo')})`}
                     >
-                        ↪
+                        <RedoIcon />
                     </button>
 
                     {showHistory && historyCount > 0 && (
@@ -716,7 +719,9 @@ export const NoteEditor = ({
                                     >
                                         Clear
                                     </button>
-                                    <button onClick={() => setShowHistory(false)}>×</button>
+                                    <button onClick={() => setShowHistory(false)}>
+                                        <XIcon width='1em' height='1em' />
+                                    </button>
                                 </div>
                             </div>
                             <div className='note-editor__history-list'>

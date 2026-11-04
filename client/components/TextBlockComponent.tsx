@@ -14,6 +14,9 @@
  */
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+
+// TeaType icons
+import { AddAboveIcon, AddBelowIcon, ContrastIcon, SaveIcon, XIcon } from '@teatype/icons';
 import { DEFAULT_BORDER_GAP } from '@/types';
 import type { iTextBlock, tFormatMode, iWord, iBlockStyle, iPalette } from '@/types';
 import { enabledOf } from '@/tools/palette';
@@ -465,7 +468,7 @@ export const TextBlockComponent = ({
                             }}
                             title='Block style'
                         >
-                            ◐
+                            <ContrastIcon />
                         </button>
                     )}
                     <button
@@ -473,17 +476,17 @@ export const TextBlockComponent = ({
                         onClick={() => onAddBlockBefore(block.id)}
                         title='Add block above'
                     >
-                        +↑
+                        <AddAboveIcon />
                     </button>
                     <button
                         className='text-block__add-btn'
                         onClick={() => onAddBlockAfter(block.id)}
                         title='Add block below'
                     >
-                        +↓
+                        <AddBelowIcon />
                     </button>
                     <button className='text-block__delete-btn' onClick={handleDelete} title='Delete block'>
-                        ×
+                        <XIcon width='1em' height='1em' />
                     </button>
                 </div>
 
@@ -682,7 +685,7 @@ export const TextBlockComponent = ({
                         {onSaveAsPreset && (
                             <div className='style-menu__section'>
                                 <button className='style-menu__save-preset' onClick={handleSaveAsPreset}>
-                                    💾 Save as Preset
+                                    <SaveIcon /> Save as Preset
                                 </button>
                             </div>
                         )}
