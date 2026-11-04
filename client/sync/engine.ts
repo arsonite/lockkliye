@@ -190,6 +190,7 @@ const syncCollection = async <L extends object>(
 
     // A child needs the server id of its parent: entities pointing to their own collection are saved parents first, one by one
     const selfFields = relations.filter(([, parent]) => parent === collection.name).map(([field]) => field);
+    const relationFields = new Set(relations.map(([field]) => field));
     if (selfFields.length > 0) {
         const parentOf = new Map(plan.map(({ key, item }) => [key, item ? String(collection.toRow(item)[selfFields[0]] ?? '') : '']));
         const depthOf = (key: string): number => {
@@ -276,13 +277,20 @@ const syncCollection = async <L extends object>(
                     payload[field] = null; // A relation that is left out is unset on the server
                 }
             }
-            let id = row?.id;
-            if (id) {
-                await collection.api.update(id, payload, { partial: true });
-            } else {
-                id = (await collection.api.create<tServerRow>(payload)).data.id;
+            const stored = (
+                row
+                    ? await collection.api.update<tServerRow>(row.id, payload, { partial: true })
+                    : await collection.api.create<tServerRow>(payload)
+            ).data;
+            // A server that runs older models drops the columns it does not know and still answers with success
+            const dropped = Object.keys(payload).filter(
+                (field) => payload[field] !== null && !relationFields.has(field) && !(field in stored),
+            );
+            nextSynced[key] = { hash: dropped.length > 0 ? '' : hashOf(collection, localItem), id: stored.id, rev };
+            if (dropped.length > 0) {
+                failed++;
+                return localItem;
             }
-            nextSynced[key] = { hash: hashOf(collection, localItem), id, rev };
             pushedKeys.push(key);
             pushed++;
         } catch {
