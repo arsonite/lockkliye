@@ -42,7 +42,8 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
             selectedSize: stored.selectedSize ?? 'normal',
             selectedAnchorId: stored.selectedAnchorId ?? null,
             editorWidth: stored.editorWidth ?? 70,
-            showBlockBorders: stored.showBlockBorders ?? false,
+            showBlockBorders: stored.showBlockBorders ?? true,
+            showStyleButton: stored.showStyleButton ?? false,
             palette: sanitizePalette(stored.palette),
         };
     }
@@ -214,7 +215,8 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
         lightMode: false,
         editorWidth: 70,
         confirmDeletions: true,
-        showBlockBorders: false,
+        showBlockBorders: true,
+        showStyleButton: false,
         palette: defaultPalette(),
         blockPresets: [
             // Default presets
@@ -341,6 +343,11 @@ const useNotesStore = (persisted: iPersisted) => {
         setHistory((prev: iHistoryEntry[]) => prev.filter((h: iHistoryEntry) => h.noteId !== noteId));
         setRedoStack((prev: iHistoryEntry[]) => prev.filter((r: iHistoryEntry) => r.noteId !== noteId));
     }, [state.activeNoteId]);
+
+    const clearAllHistory = useCallback(() => {
+        setHistory([]);
+        setRedoStack([]);
+    }, []);
 
     // Undo - restore previous state for active note
     const undo = useCallback(() => {
@@ -774,11 +781,12 @@ const useNotesStore = (persisted: iPersisted) => {
                 editorWidth: state.editorWidth,
                 confirmDeletions: state.confirmDeletions,
                 showBlockBorders: state.showBlockBorders,
+                showStyleButton: state.showStyleButton,
                 palette: state.palette,
             },
             state.blockPresets
         );
-    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.palette, state.blockPresets]);
+    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.palette, state.blockPresets]);
 
     const importFromJson = useCallback((jsonString: string) => {
         const result = parseImportJson(jsonString);
@@ -812,6 +820,7 @@ const useNotesStore = (persisted: iPersisted) => {
                     if (result.settings.editorWidth !== undefined) newState.editorWidth = result.settings.editorWidth;
                     if (result.settings.confirmDeletions !== undefined) newState.confirmDeletions = result.settings.confirmDeletions;
                     if (result.settings.showBlockBorders !== undefined) newState.showBlockBorders = result.settings.showBlockBorders;
+                    if (result.settings.showStyleButton !== undefined) newState.showStyleButton = result.settings.showStyleButton;
                     if (result.settings.palette) newState.palette = sanitizePalette(result.settings.palette);
                 }
                 if (result.blockPresets) {
@@ -873,6 +882,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 if (result.settings.editorWidth !== undefined) newState.editorWidth = result.settings.editorWidth;
                 if (result.settings.confirmDeletions !== undefined) newState.confirmDeletions = result.settings.confirmDeletions;
                 if (result.settings.showBlockBorders !== undefined) newState.showBlockBorders = result.settings.showBlockBorders;
+                if (result.settings.showStyleButton !== undefined) newState.showStyleButton = result.settings.showStyleButton;
                 if (result.settings.palette) newState.palette = sanitizePalette(result.settings.palette);
             }
             if (result.blockPresets) {
@@ -959,6 +969,10 @@ const useNotesStore = (persisted: iPersisted) => {
 
     const setShowBlockBorders = useCallback((value: boolean) => {
         setState((prev: iNotesState) => ({ ...prev, showBlockBorders: value }));
+    }, []);
+
+    const setShowStyleButton = useCallback((value: boolean) => {
+        setState((prev: iNotesState) => ({ ...prev, showStyleButton: value }));
     }, []);
 
     // Colors and gradients offered by the toolbar and the block style menu
@@ -1111,6 +1125,7 @@ const useNotesStore = (persisted: iPersisted) => {
         redo,
         getActiveNoteHistory,
         clearActiveNoteHistory,
+        clearAllHistory,
 
         // Export/Import
         exportAsText,
@@ -1125,6 +1140,7 @@ const useNotesStore = (persisted: iPersisted) => {
         // Settings
         setConfirmDeletions,
         setShowBlockBorders,
+        setShowStyleButton,
         togglePaletteEntry,
         addCustomPaletteEntry,
         removeCustomPaletteEntry,

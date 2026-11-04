@@ -299,7 +299,7 @@
         }
 
         &:has(.text-block--has-title) .note-editor__drag-handle {
-            top: calc(50% + 4px);
+            top: var(--handle-y, calc(50% + 4px));
         }
     }
 
@@ -364,7 +364,7 @@
         position: absolute;
         left: -28px;
         // The wrapper also holds the 12px below the block, a title adds 20px above it
-        top: calc(50% - 6px);
+        top: var(--handle-y, calc(50% - 6px));
         translate: 0 -50%;
         display: flex;
         align-items: center;

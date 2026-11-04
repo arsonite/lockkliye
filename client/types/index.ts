@@ -148,6 +148,7 @@ interface iNotesState {
     editorWidth: number; // percentage 50-100
     confirmDeletions: boolean; // Show confirmation dialogs for deletions
     showBlockBorders: boolean; // Outline the block under the mouse
+    showStyleButton: boolean; // Show the block style button next to a block, the style menu always opens with a right-click
     blockPresets: iBlockStyle[]; // Saved block presets
     palette: iPalette; // Which colors and gradients the toolbar and the block style menu offer
 }
@@ -278,6 +279,7 @@ interface iSettingsExportData {
         editorWidth: number;
         confirmDeletions: boolean;
         showBlockBorders?: boolean;
+        showStyleButton?: boolean;
         palette?: iPalette;
     };
     blockPresets: iBlockStyle[];
@@ -303,6 +305,7 @@ const exportSettingsAsJson = (
         editorWidth: number;
         confirmDeletions: boolean;
         showBlockBorders?: boolean;
+        showStyleButton?: boolean;
         palette?: iPalette;
     },
     blockPresets: iBlockStyle[]
@@ -334,6 +337,7 @@ const importFromJson = (jsonString: string): {
         editorWidth?: number;
         confirmDeletions?: boolean;
         showBlockBorders?: boolean;
+        showStyleButton?: boolean;
         palette?: iPalette;
     };
     blockPresets?: iBlockStyle[];

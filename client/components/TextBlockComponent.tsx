@@ -58,11 +58,13 @@ export const TextBlockComponent = ({
     onClearFormatMode,
     onSaveAsPreset,
     confirmDeletions = true,
+    showStyleButton = false,
 }: iTextBlockComponentProps & {
     confirmDeletions?: boolean;
+    showStyleButton?: boolean;
 }) => {
     const [showStyleMenu, setShowStyleMenu] = useState(false);
-    // Where a right-click opened the menu, null when the button did
+    // Where a right-click or a long press opened the menu, null when the button did
     const [menuPoint, setMenuPoint] = useState<{ x: number; y: number } | null>(null);
     const [isResizing, setIsResizing] = useState(false);
     const [isNearEdge, setIsNearEdge] = useState(false);
@@ -79,8 +81,16 @@ export const TextBlockComponent = ({
     );
     const styleMenuRef = useRef<HTMLDivElement>(null);
     const blockRef = useRef<HTMLDivElement>(null);
+    const longPress = useRef<number | null>(null);
 
     const blockStyle = block.style;
+
+    const cancelLongPress = () => {
+        if (longPress.current !== null) {
+            clearTimeout(longPress.current);
+            longPress.current = null;
+        }
+    };
 
     // Watch for light mode changes via MutationObserver
     useEffect(() => {
@@ -116,14 +126,18 @@ export const TextBlockComponent = ({
 
     // Close style menu on outside click
     useEffect(() => {
-        const handleClickOutside = (e: MouseEvent) => {
+        const handleClickOutside = (e: Event) => {
             if (showStyleMenu && styleMenuRef.current && !styleMenuRef.current.contains(e.target as Node)) {
                 setShowStyleMenu(false);
             }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
     }, [showStyleMenu]);
 
     // Handle width resizing
@@ -374,6 +388,19 @@ export const TextBlockComponent = ({
                     setMenuPoint({ x: e.clientX, y: e.clientY });
                     setShowStyleMenu(true);
                 }}
+                // A long press on a touch screen, browsers that send no context menu event for it need this
+                onTouchStart={(e) => {
+                    if (styleMenuRef.current?.contains(e.target as Node) || e.touches.length !== 1) return;
+                    const { clientX: x, clientY: y } = e.touches[0];
+                    cancelLongPress();
+                    longPress.current = window.setTimeout(() => {
+                        setMenuPoint({ x, y });
+                        setShowStyleMenu(true);
+                    }, 500);
+                }}
+                onTouchMove={cancelLongPress}
+                onTouchEnd={cancelLongPress}
+                onTouchCancel={cancelLongPress}
             >
                 {/* Block title (legend-style) with color based on background */}
                 {blockStyle.title && (
@@ -405,16 +432,18 @@ export const TextBlockComponent = ({
                 )}
 
                 <div className='text-block__controls'>
-                    <button
-                        className='text-block__style-btn'
-                        onClick={() => {
-                            setMenuPoint(null);
-                            setShowStyleMenu(!showStyleMenu);
-                        }}
-                        title='Block style'
-                    >
-                        ◐
-                    </button>
+                    {showStyleButton && (
+                        <button
+                            className='text-block__style-btn'
+                            onClick={() => {
+                                setMenuPoint(null);
+                                setShowStyleMenu(!showStyleMenu);
+                            }}
+                            title='Block style'
+                        >
+                            ◐
+                        </button>
+                    )}
                     <button
                         className='text-block__add-above-btn'
                         onClick={() => onAddBlockBefore(block.id)}

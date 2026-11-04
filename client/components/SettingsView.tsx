@@ -33,11 +33,14 @@ interface iSettingsViewProps {
     editorWidth: number;
     confirmDeletions: boolean;
     showBlockBorders: boolean;
+    showStyleButton: boolean;
     palette: iPalette;
     onToggleLightMode: () => void;
     onEditorWidthChange: (width: number) => void;
     onConfirmDeletionsChange: (value: boolean) => void;
     onShowBlockBordersChange: (value: boolean) => void;
+    onShowStyleButtonChange: (value: boolean) => void;
+    onClearAllHistory: () => void;
     onTogglePaletteEntry: (kind: tPaletteKind, value: string) => void;
     onAddPaletteEntry: (kind: tPaletteKind, value: string) => void;
     onRemovePaletteEntry: (kind: tPaletteKind, value: string) => void;
@@ -75,11 +78,14 @@ export const SettingsView = ({
     editorWidth,
     confirmDeletions,
     showBlockBorders,
+    showStyleButton,
     palette,
     onToggleLightMode,
     onEditorWidthChange,
     onConfirmDeletionsChange,
     onShowBlockBordersChange,
+    onShowStyleButtonChange,
+    onClearAllHistory,
     onTogglePaletteEntry,
     onAddPaletteEntry,
     onRemovePaletteEntry,
@@ -96,6 +102,7 @@ export const SettingsView = ({
     toast,
 }: iSettingsViewProps) => {
     const [showClearDataModal, setShowClearDataModal] = useState(false);
+    const [showClearHistoryModal, setShowClearHistoryModal] = useState(false);
     const fileInput = useRef<HTMLInputElement>(null);
     const importJob = useRef<iImportJob | null>(null);
 
@@ -182,6 +189,13 @@ export const SettingsView = ({
                             description:
                                 'Draws a border around the block under the mouse, to see which text belongs together.',
                             control: { type: 'toggle', value: showBlockBorders, onChange: onShowBlockBordersChange },
+                        },
+                        {
+                            id: 'show-style-button',
+                            label: 'Block style button',
+                            description:
+                                'Shows a button next to a block that opens its style menu. The menu always opens with a right-click, or a long press on a touch screen.',
+                            control: { type: 'toggle', value: showStyleButton, onChange: onShowStyleButtonChange },
                         },
                         {
                             id: 'confirm-deletions',
@@ -344,6 +358,23 @@ export const SettingsView = ({
                         },
                     ],
                 },
+                {
+                    id: 'history',
+                    title: 'History',
+                    items: [
+                        {
+                            id: 'clear-histories',
+                            label: 'Clear all histories',
+                            description: 'Empties the undo history of every note at once. The notes themselves are not changed.',
+                            control: {
+                                type: 'button',
+                                label: 'Clear all',
+                                theme: 'danger',
+                                onClick: () => setShowClearHistoryModal(true),
+                            },
+                        },
+                    ],
+                },
             ],
         },
         {
@@ -461,6 +492,35 @@ export const SettingsView = ({
                 }
             >
                 <p>Are you sure you want to clear all data? This cannot be undone.</p>
+            </TeaModal>
+
+            <TeaModal
+                isOpen={showClearHistoryModal}
+                title='Clear All Histories'
+                onClose={() => setShowClearHistoryModal(false)}
+                size='sm'
+                footer={
+                    <>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--secondary'
+                            onClick={() => setShowClearHistoryModal(false)}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className='tea-modal-btn tea-modal-btn--danger'
+                            onClick={() => {
+                                onClearAllHistory();
+                                setShowClearHistoryModal(false);
+                                toast.success('All histories cleared');
+                            }}
+                        >
+                            Clear all
+                        </button>
+                    </>
+                }
+            >
+                <p>Empty the undo history of all notes? This cannot be undone.</p>
             </TeaModal>
         </>
     );

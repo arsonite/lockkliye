@@ -64,7 +64,7 @@
     // Left of the block in the gutter, right next to the drag handle. The padding closes the gap to the handle.
     &__controls {
         position: absolute;
-        top: 50%;
+        top: var(--follow-y, 50%);
         left: -64px;
         display: flex;
         flex-direction: column;
@@ -113,7 +113,7 @@
         left: 8px;
         top: 32px;
         margin-top: 8px;
-        min-width: 200px;
+        width: 350px;
         padding: 16px;
         background: var(--bg-glass);
         backdrop-filter: blur(20px) saturate(180%);
@@ -201,6 +201,12 @@
     white-space: pre-wrap;
     word-wrap: break-word;
     tab-size: 4;
+
+    // An empty editor keeps the width of its placeholder, or the block shrinks to nothing when it is clicked
+    &:empty,
+    &:has(> br:only-child) {
+        min-width: 6em;
+    }
 
     &__word {
         position: relative;

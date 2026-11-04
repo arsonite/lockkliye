@@ -201,11 +201,14 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         editorWidth={store.editorWidth}
                         confirmDeletions={store.confirmDeletions}
                         showBlockBorders={store.showBlockBorders}
+                        showStyleButton={store.showStyleButton}
                         palette={store.palette}
                         onToggleLightMode={store.toggleLightMode}
                         onEditorWidthChange={store.setEditorWidth}
                         onConfirmDeletionsChange={store.setConfirmDeletions}
                         onShowBlockBordersChange={store.setShowBlockBorders}
+                        onShowStyleButtonChange={store.setShowStyleButton}
+                        onClearAllHistory={store.clearAllHistory}
                         onTogglePaletteEntry={store.togglePaletteEntry}
                         onAddPaletteEntry={store.addCustomPaletteEntry}
                         onRemovePaletteEntry={store.removeCustomPaletteEntry}
@@ -239,6 +242,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         canRedo={store.canRedo}
                         confirmDeletions={store.confirmDeletions}
                         showBlockBorders={store.showBlockBorders}
+                        showStyleButton={store.showStyleButton}
                         blockPresets={store.blockPresets}
                         onTitleChange={handleTitleChange}
                         onToggleAnchor={handleToggleAnchor}

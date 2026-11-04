@@ -50,6 +50,7 @@ interface iNoteEditorProps {
     canRedo: boolean;
     confirmDeletions: boolean;
     showBlockBorders: boolean;
+    showStyleButton: boolean;
     blockPresets: iBlockStyle[];
     focusBlockId?: string | null; // A block that was just added, its editor takes the focus
 
@@ -96,6 +97,7 @@ export const NoteEditor = ({
     canRedo,
     confirmDeletions,
     showBlockBorders,
+    showStyleButton,
     blockPresets,
     onTitleChange,
     onToggleAnchor,
@@ -222,6 +224,31 @@ export const NoteEditor = ({
         if (!previewOrder) return note.blocks;
         return previewOrder.map((i) => note.blocks[i]);
     }, [note.blocks, previewOrder]);
+
+    // The buttons and the drag handle at the left of a block follow the mouse, as far as the block is high. A block that
+    // is lower than they are keeps them in its middle. They stay where they are while the mouse is on them or on the
+    // style menu, or the rest of their buttons would run away from the mouse.
+    const followMouse = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (
+            isDragging ||
+            (e.target as HTMLElement).closest(
+                '.text-block__controls, .note-editor__drag-handle, .text-block__style-menu',
+            )
+        )
+            return;
+        const block = e.currentTarget.querySelector<HTMLElement>('.text-block');
+        if (!block) return;
+        const y = e.clientY - block.getBoundingClientRect().top;
+        const centerOf = (size: number) =>
+            block.offsetHeight <= size
+                ? block.offsetHeight / 2
+                : Math.min(Math.max(y, size / 2), block.offsetHeight - size / 2);
+        const controls = block.querySelector<HTMLElement>('.text-block__controls');
+        const handle = e.currentTarget.querySelector<HTMLElement>('.note-editor__drag-handle');
+        if (controls) block.style.setProperty('--follow-y', `${centerOf(controls.offsetHeight)}px`);
+        if (handle)
+            e.currentTarget.style.setProperty('--handle-y', `${block.offsetTop + centerOf(handle.offsetHeight)}px`);
+    };
 
     // Handle drag start - now mouse-based
     const handleDragStart = useCallback(
@@ -386,6 +413,7 @@ export const NoteEditor = ({
                                         className={`note-editor__block-wrapper ${
                                             isBeingDragged ? 'note-editor__block-wrapper--dragging' : ''
                                         }`}
+                                        onMouseMove={followMouse}
                                     >
                                         {/* Drag handle - outside block-content so it stays visible */}
                                         {!isBeingDragged && (
@@ -419,6 +447,7 @@ export const NoteEditor = ({
                                                     formatMode={formatMode}
                                                     selectedColor={selectedColor}
                                                     palette={palette}
+                                                    showStyleButton={showStyleButton}
                                                     selectedSize={selectedSize}
                                                     selectedAnchorId={selectedAnchorId}
                                                     onOpenAnchor={onOpenNote}
