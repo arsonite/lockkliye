@@ -1,7 +1,4 @@
-# Lockkliye: handoff notes for continuing with Copilot on another machine
-
-This file summarises everything done and learned in the Copilot chat so far (the chat history itself does not transfer).
-Paste it (or tell Copilot to read it) at the start of the new session. Last updated 2026-11-04.
+# Lockkliye: handoff notes
 
 ## 1. The project
 
@@ -85,4 +82,3 @@ Paste it (or tell Copilot to read it) at the start of the new session. Last upda
 16. (2026-11-04) Removed the per-block "Spaces at the start and end" option (`keepWhitespace` is gone from types, sync and the customizer); trimming of both ends is always on. The server model still has the unused optional `keep_whitespace` field. `TeaSidebar` keeps header, list and footer mounted at the expanded width and clips them while the width animates, they fade out and become hidden when collapsed (no reflow jumble).
 17. (2026-11-04) All UI icons are teatype icons (`teatype/ts/icons`, one file each, `1em` svg that takes the text color; import from `@teatype/icons`): the glyph/emoji icons of lockkliye, the sidebar toggle (`ArrowIcon`, flipped when collapsed), settings back (`BackIcon`), close buttons (`XIcon`) and the toast icons are replaced. `SettingsIcon` is now the lockkliye gear; the old one is `ModernSettingsIcon` (TeaApp, ClientKit, ModuloDashboard use it). `client/tools/shortcuts.ts` is the only definition of shortcuts (`SHORTCUTS` by id with keys, label, group, format mode): the keyboard hook, the editor (Shift+Enter), toolbar hints and tooltips, sidebar keycap, undo/redo/save tooltips, the tutorial note and the settings list read from it (`shortcutOf`, `colorIndexOf`, `shortcutText/Base/Key`); the old `SHORTCUTS` map in `types/index.ts` is gone. Not covered: Ctrl+click on an anchored word, Tab and the Enter/Escape of dialogs.
 18. (2026-11-04) HSDB silently drops columns the running model does not define (`HSDBModel.update` skips unknown keys, create ignores them) and still answers success, so after adding a model field without restarting the backend the client believed the row was saved. `syncCollection` now checks the stored row of every create/update: if a sent column is missing in the answer the row stays unsaved (hash cleared, counted in `failed`, toast "N item(s) could not be saved") until the server runs the current models. Rows that were saved against an old server before this check stay marked as synced until they change again.
-
