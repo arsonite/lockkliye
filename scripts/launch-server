@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.13
+#!/usr/bin/env python3
 
 # Copyright (C) 2024-2026 Burak Günaydin
 #
