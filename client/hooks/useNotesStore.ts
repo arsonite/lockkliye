@@ -22,6 +22,7 @@ import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyl
 // Util
 import { createNote, createFolder, createBlock, createWord, FORMAT_COLORS, exportNotesAsText, exportNotesAsJson, exportSettingsAsJson, importFromJson as parseImportJson } from '@/types';
 import { descendantIds, repairFolders } from '@/tools/folderTree';
+import { DEFAULT_ACCENT, sanitizeAccent } from '@/tools/accent';
 import { MAX_ENABLED, catalogOf, defaultPalette, sanitizePalette } from '@/tools/palette';
 import { generateRandomFolderTree, generateRandomNote, randomizeDates } from '@/tools/randomGenerator';
 import { createTutorialNote } from '@/tools/tutorialNote';
@@ -46,6 +47,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
             showBlockBorders: stored.showBlockBorders ?? true,
             showStyleButton: stored.showStyleButton ?? false,
             use24HourTime: stored.use24HourTime ?? true,
+            accentColor: sanitizeAccent(stored.accentColor),
             palette: sanitizePalette(stored.palette),
         };
     }
@@ -69,6 +71,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
         showBlockBorders: true,
         showStyleButton: false,
         use24HourTime: true,
+        accentColor: DEFAULT_ACCENT,
         palette: defaultPalette(),
         blockPresets: [
             // Default presets
@@ -652,11 +655,12 @@ const useNotesStore = (persisted: iPersisted) => {
                 showBlockBorders: state.showBlockBorders,
                 showStyleButton: state.showStyleButton,
                 use24HourTime: state.use24HourTime,
+                accentColor: state.accentColor,
                 palette: state.palette,
             },
             state.blockPresets
         );
-    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.use24HourTime, state.palette, state.blockPresets]);
+    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.use24HourTime, state.accentColor, state.palette, state.blockPresets]);
 
     const importFromJson = useCallback((jsonString: string) => {
         const result = parseImportJson(jsonString);
@@ -692,6 +696,7 @@ const useNotesStore = (persisted: iPersisted) => {
                     if (result.settings.showBlockBorders !== undefined) newState.showBlockBorders = result.settings.showBlockBorders;
                     if (result.settings.showStyleButton !== undefined) newState.showStyleButton = result.settings.showStyleButton;
                     if (result.settings.use24HourTime !== undefined) newState.use24HourTime = result.settings.use24HourTime;
+                    if (result.settings.accentColor !== undefined) newState.accentColor = sanitizeAccent(result.settings.accentColor);
                     if (result.settings.palette) newState.palette = sanitizePalette(result.settings.palette);
                 }
                 if (result.blockPresets) {
@@ -755,6 +760,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 if (result.settings.showBlockBorders !== undefined) newState.showBlockBorders = result.settings.showBlockBorders;
                 if (result.settings.showStyleButton !== undefined) newState.showStyleButton = result.settings.showStyleButton;
                 if (result.settings.use24HourTime !== undefined) newState.use24HourTime = result.settings.use24HourTime;
+                if (result.settings.accentColor !== undefined) newState.accentColor = sanitizeAccent(result.settings.accentColor);
                 if (result.settings.palette) newState.palette = sanitizePalette(result.settings.palette);
             }
             if (result.blockPresets) {
@@ -833,6 +839,7 @@ const useNotesStore = (persisted: iPersisted) => {
                     showBlockBorders: state.showBlockBorders,
                     showStyleButton: state.showStyleButton,
                     use24HourTime: state.use24HourTime,
+                    accentColor: state.accentColor,
                     palette: state.palette,
                 },
                 blockPresets: state.blockPresets,
@@ -862,6 +869,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 showBlockBorders: settings.showBlockBorders ?? prev.showBlockBorders,
                 showStyleButton: settings.showStyleButton ?? prev.showStyleButton,
                 use24HourTime: settings.use24HourTime ?? prev.use24HourTime,
+                accentColor: settings.accentColor !== undefined ? sanitizeAccent(settings.accentColor) : prev.accentColor,
                 palette: settings.palette ? sanitizePalette(settings.palette) : prev.palette,
                 blockPresets: Array.isArray(data.blockPresets) ? data.blockPresets : prev.blockPresets,
                 activeNoteId: references.notes[0]?.id ?? null,
@@ -939,6 +947,10 @@ const useNotesStore = (persisted: iPersisted) => {
 
     const setShowStyleButton = useCallback((value: boolean) => {
         setState((prev: iNotesState) => ({ ...prev, showStyleButton: value }));
+    }, []);
+
+    const setAccentColor = useCallback((value: string) => {
+        setState((prev: iNotesState) => ({ ...prev, accentColor: sanitizeAccent(value) }));
     }, []);
 
     const setUse24HourTime = useCallback((value: boolean) => {
@@ -1111,6 +1123,7 @@ const useNotesStore = (persisted: iPersisted) => {
         setConfirmDeletions,
         setShowBlockBorders,
         setShowStyleButton,
+        setAccentColor,
         setUse24HourTime,
         togglePaletteEntry,
         addCustomPaletteEntry,

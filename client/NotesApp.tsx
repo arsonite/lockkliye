@@ -32,6 +32,7 @@ import useNotesStore from '@/hooks/useNotesStore';
 
 // Utility
 import { loadPersisted, type iPersisted } from '@/tools/indexedDB';
+import { accentVars } from '@/tools/accent';
 import { enabledOf } from '@/tools/palette';
 
 // Types
@@ -58,6 +59,13 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
     useEffect(() => {
         document.body.classList.toggle('light-mode', store.lightMode);
     }, [store.lightMode]);
+
+    // The accent color is on the page, so the toast and the modals in the body get it too
+    useEffect(() => {
+        Object.entries(accentVars(store.accentColor, store.lightMode)).forEach(([name, value]) =>
+            document.documentElement.style.setProperty(name, value),
+        );
+    }, [store.accentColor, store.lightMode]);
 
     /**
      * Saves unsaved changes to the server and reports the outcome via toast.
@@ -210,6 +218,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                 {showSettings ? (
                     <SettingsView
                         lightMode={store.lightMode}
+                        accentColor={store.accentColor}
                         editorWidth={store.editorWidth}
                         confirmDeletions={store.confirmDeletions}
                         showBlockBorders={store.showBlockBorders}
@@ -217,6 +226,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         use24HourTime={store.use24HourTime}
                         palette={store.palette}
                         onToggleLightMode={store.toggleLightMode}
+                        onAccentColorChange={store.setAccentColor}
                         onEditorWidthChange={store.setEditorWidth}
                         onConfirmDeletionsChange={store.setConfirmDeletions}
                         onShowBlockBordersChange={store.setShowBlockBorders}

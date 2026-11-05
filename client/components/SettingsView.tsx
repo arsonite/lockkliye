@@ -20,7 +20,7 @@ import { useRef, useState } from 'react';
 import { CodeIcon, ColorIcon, ContrastIcon, KeyboardIcon, PencilIcon, TransferIcon } from '@teatype/icons';
 
 // TeaType components
-import { TeaModal, TeaSettingsPage, type iTeaSettingsCategory, type iUseTeaToastReturn } from '@teatype/components';
+import { TeaButton, TeaModal, TeaSettingsPage, type iTeaSettingsCategory, type iUseTeaToastReturn } from '@teatype/components';
 
 // Components
 import PaletteEditor from './PaletteEditor';
@@ -29,11 +29,13 @@ import PaletteEditor from './PaletteEditor';
 import type { iPalette, tPaletteKind } from '@/types';
 
 // Utils
+import { DEFAULT_ACCENT } from '@/tools/accent';
 import { SHORTCUT_GROUPS } from '@/tools/shortcuts';
 import { generateShortText, generateLongText, generateTitle, copyToClipboard } from '@/tools/randomGenerator';
 
 interface iSettingsViewProps {
     lightMode: boolean;
+    accentColor: string;
     editorWidth: number;
     confirmDeletions: boolean;
     showBlockBorders: boolean;
@@ -43,6 +45,7 @@ interface iSettingsViewProps {
     toast: iUseTeaToastReturn;
 
     onToggleLightMode: () => void;
+    onAccentColorChange: (color: string) => void;
     onEditorWidthChange: (width: number) => void;
     onConfirmDeletionsChange: (value: boolean) => void;
     onShowBlockBordersChange: (value: boolean) => void;
@@ -101,6 +104,7 @@ const ShortcutKeys = ({ alternatives }: { alternatives: string[] }) => (
 // The settings of the app, described for the TeaSettingsPage
 export const SettingsView = ({
     lightMode,
+    accentColor,
     editorWidth,
     confirmDeletions,
     showBlockBorders,
@@ -110,6 +114,7 @@ export const SettingsView = ({
     toast,
 
     onToggleLightMode,
+    onAccentColorChange,
     onEditorWidthChange,
     onConfirmDeletionsChange,
     onShowBlockBordersChange,
@@ -190,6 +195,25 @@ export const SettingsView = ({
                             label: 'Light mode',
                             description: 'Dark text on a light background.',
                             control: { type: 'toggle', value: lightMode, onChange: onToggleLightMode },
+                        },
+                        {
+                            id: 'accent-color',
+                            label: 'Accent color',
+                            layout: 'stacked', // The color popup of the browser opens at the field, on the right it leaves the window
+                            description: 'Buttons and highlights, orange by default.',
+                            control: {
+                                type: 'custom',
+                                render: () => (
+                                    <span className='accent-picker'>
+                                        <input
+                                            type='color'
+                                            value={accentColor}
+                                            onChange={(event) => onAccentColorChange(event.target.value)}
+                                        />
+                                        <TeaButton onClick={() => onAccentColorChange(DEFAULT_ACCENT)}>Reset</TeaButton>
+                                    </span>
+                                ),
+                            },
                         },
                         {
                             id: 'use-24-hour-time',

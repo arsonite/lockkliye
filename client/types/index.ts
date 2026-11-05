@@ -151,6 +151,7 @@ interface iNotesState {
     showBlockBorders: boolean; // Outline the block under the mouse
     showStyleButton: boolean; // Show the block style button next to a block, the style menu always opens with a right-click
     use24HourTime: boolean; // Times are shown as 14:30 instead of 2:30 PM
+    accentColor: string; // Hex color of the accents, orange by default
     blockPresets: iBlockStyle[]; // Saved block presets
     palette: iPalette; // Which colors and gradients the toolbar and the block style menu offer
 }
@@ -266,6 +267,7 @@ interface iSettingsExportData {
         showBlockBorders?: boolean;
         showStyleButton?: boolean;
         use24HourTime?: boolean;
+        accentColor?: string;
         palette?: iPalette;
     };
     blockPresets: iBlockStyle[];
@@ -293,6 +295,7 @@ const exportSettingsAsJson = (
         showBlockBorders?: boolean;
         showStyleButton?: boolean;
         use24HourTime?: boolean;
+        accentColor?: string;
         palette?: iPalette;
     },
     blockPresets: iBlockStyle[]
@@ -326,6 +329,7 @@ const importFromJson = (jsonString: string): {
         showBlockBorders?: boolean;
         showStyleButton?: boolean;
         use24HourTime?: boolean;
+        accentColor?: string;
         palette?: iPalette;
     };
     blockPresets?: iBlockStyle[];

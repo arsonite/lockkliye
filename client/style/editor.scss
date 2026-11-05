@@ -151,7 +151,7 @@
         }
 
         &:hover {
-            background: rgba(255, 149, 0, 0.1);
+            background: color-mix(in srgb, var(--accent) 10%, transparent);
         }
     }
 

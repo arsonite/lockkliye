@@ -31,6 +31,7 @@ import {
 import type { iBlockStyle, iFolder, iHistoryEntry, iNote, iPalette, iTextBlock, iWord, iWordFormat } from '@/types';
 
 // Util
+import { sanitizeAccent } from '@/tools/accent';
 import { sanitizePalette } from '@/tools/palette';
 
 type tRow = Record<string, string | number | boolean>;
@@ -85,6 +86,7 @@ interface iSettingsItem {
     showBlockBorders: boolean;
     showStyleButton: boolean;
     use24HourTime: boolean;
+    accentColor: string;
     palette: iPalette;
 }
 
@@ -205,6 +207,7 @@ const settingsCollection: iCollection<iSettingsItem> = {
     api: SettingsAPI,
     key: () => SETTINGS_KEY,
     toRow: (settings) => ({
+        accent_color: settings.accentColor,
         confirm_deletions: settings.confirmDeletions,
         editor_width: settings.editorWidth,
         light_mode: settings.lightMode,
@@ -226,6 +229,7 @@ const settingsCollection: iCollection<iSettingsItem> = {
         showBlockBorders: row.show_block_borders !== false,
         showStyleButton: row.show_style_button === true,
         use24HourTime: row.use_24_hour_time !== false,
+        accentColor: sanitizeAccent(row.accent_color),
         palette: sanitizePalette(row.palette ? JSON.parse(text(row.palette)) : undefined),
     }),
     slot: () => SETTINGS_KEY,

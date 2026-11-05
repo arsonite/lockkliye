@@ -15,6 +15,7 @@ from teatype.db.hsdb.core import HSDBAttribute, HSDBModel
 
 # There is only one row. The saved block styles are BlockPreset entries pointing to it.
 class Settings(HSDBModel):
+    accent_color      = HSDBAttribute(str,  description='Hex color of the accents, orange when empty')
     confirm_deletions = HSDBAttribute(bool, required=True)
     editor_width      = HSDBAttribute(int,  required=True)
     light_mode        = HSDBAttribute(bool, required=True)
@@ -23,4 +24,5 @@ class Settings(HSDBModel):
     show_block_borders = HSDBAttribute(bool, description='Outline the block under the mouse')
     show_style_button = HSDBAttribute(bool, description='Show the block style button next to a block')
     sidebar_expanded  = HSDBAttribute(bool, required=True)
+    theme             = HSDBAttribute(str,  description='Name of the color theme, light_mode is kept for older clients')
     use_24_hour_time  = HSDBAttribute(bool, description='Show times as 14:30 instead of 2:30 PM')
