@@ -33,7 +33,7 @@ import type {
 } from '@/types';
 import { enabledOf } from '@/tools/palette';
 import { ChecklistBlock, TableBlock } from './BlockComponents';
-import { BULLETS, NUMBERINGS, numberingLabel } from '@/tools/lists';
+import { BULLETS, DEFAULT_LIST_OPTIONS, NUMBERINGS, convertListMarkers, numberingLabel } from '@/tools/lists';
 import { PopoverMenu } from './PopoverMenu';
 import { RichTextEditor } from './RichTextEditor';
 import { TeaModal } from '@teatype/components';
@@ -400,6 +400,15 @@ export const TextBlockComponent = ({
     };
 
     // Save current block style as a preset
+    // Choosing what the settings say follows the settings again. The lists of the block change at once.
+    const handleListChoice = (key: 'bullet' | 'numbering', value: string) => {
+        const { [key]: _previous, ...others } = blockStyle.listOptions ?? {};
+        const own: iBlockListOptions = value === listOptions?.[key] ? others : { ...others, [key]: value };
+        onStyleChange(block.id, { listOptions: own });
+        const words = convertListMarkers(block.words, { ...DEFAULT_LIST_OPTIONS, ...listOptions, ...own });
+        if (words.some((word, i) => word !== block.words[i])) onWordsChange(block.id, words);
+    };
+
     const handleSaveAsPreset = () => {
         if (onSaveAsPreset) {
             onSaveAsPreset({ ...blockStyle, listOptions: undefined });
@@ -720,29 +729,21 @@ export const TextBlockComponent = ({
                                 <span className='style-menu__label'>Lists</span>
                                 {(
                                     [
-                                        ['auto', 'Convert automatically', [['on', 'On'], ['off', 'Off']]],
                                         ['bullet', 'Bullet', BULLETS.map((bullet) => [bullet, bullet])],
                                         [
                                             'numbering',
                                             'Numbering',
                                             (Object.keys(NUMBERINGS) as tNumbering[]).map((id) => [id, numberingLabel(id)]),
                                         ],
-                                    ] as [keyof iBlockListOptions, string, string[][]][]
+                                    ] as ['bullet' | 'numbering', string, string[][]][]
                                 ).map(([key, label, choices]) => (
                                     <label key={key} className='style-menu__list-row'>
                                         {label}
                                         <select
                                             className='style-menu__select'
-                                            value={key === 'auto' && blockStyle.listOptions?.auto !== undefined ? (blockStyle.listOptions.auto ? 'on' : 'off') : (blockStyle.listOptions?.[key] as string | undefined) ?? ''}
-                                            onChange={(e) => {
-                                                const { [key]: _old, ...others } = blockStyle.listOptions ?? {};
-                                                const value = e.target.value;
-                                                onStyleChange(block.id, {
-                                                    listOptions: value ? { ...others, [key]: key === 'auto' ? value === 'on' : value } : others,
-                                                });
-                                            }}
+                                            value={blockStyle.listOptions?.[key] ?? listOptions?.[key]}
+                                            onChange={(e) => handleListChoice(key, e.target.value)}
                                         >
-                                            <option value=''>Default</option>
                                             {choices.map(([value, text]) => (
                                                 <option key={value} value={value}>
                                                     {text}

@@ -24,6 +24,10 @@
         }
     }
 
+    &:hover &__add {
+        opacity: 1;
+    }
+
     &__text {
         flex: 1;
         min-width: 0;
@@ -54,7 +58,15 @@
         }
     }
 
+    // Only while the mouse is over the checklist (always on touch screens)
     &__add {
+        opacity: 0;
+        transition: opacity 150ms ease;
+
+        @media (hover: none) {
+            opacity: 1;
+        }
+
         display: flex;
         align-items: center;
         align-self: flex-start;
@@ -149,13 +161,8 @@
     padding-left: 16px;
 
     border-left: 3px solid var(--border-strong);
+    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
     font-size: 0.9em;
-
-    // The global reset sets the font on every element, the words would not inherit it
-    &,
-    * {
-        font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
-    }
 }
 
 // The menus that open at the mouse: the components to insert and what to do with selected text

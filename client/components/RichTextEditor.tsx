@@ -608,16 +608,14 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
         const newWords = parseHTMLToWords(editorRef.current);
 
         // A "-" or "*" at the start of a line followed by text is a bullet, shown with the chosen decorator
-        const convertedWords = listOptions.auto
-            ? newWords.map((word, idx) => {
-                  const isAtStart = idx === 0 || newWords[idx - 1].text === '\n';
-                  const next = newWords[idx + 1];
-                  if (isAtStart && /^[-*]$/.test(word.text) && next && next.text !== '\n') {
-                      return { ...word, text: listOptions.bullet };
-                  }
-                  return word;
-              })
-            : newWords;
+        const convertedWords = newWords.map((word, idx) => {
+            const isAtStart = idx === 0 || newWords[idx - 1].text === '\n';
+            const next = newWords[idx + 1];
+            if (isAtStart && /^[-*]$/.test(word.text) && next && next.text !== '\n') {
+                return { ...word, text: listOptions.bullet };
+            }
+            return word;
+        });
 
         emit(convertedWords);
 
@@ -662,7 +660,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
             }
 
             // Lists: a typed marker becomes the decorator, Enter continues the list or ends it on an empty item
-            if (listOptions.auto && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            if (!e.ctrlKey && !e.metaKey && !e.altKey) {
                 if (e.key === ' ' && !e.shiftKey) {
                     const line = lineBeforeCaret();
                     const decorator = line?.length === 1 ? decoratorOf(line[0].text, listOptions) : null;
@@ -736,7 +734,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
         (e: React.ClipboardEvent) => {
             e.preventDefault();
             const text = e.clipboardData.getData('text/plain');
-            document.execCommand('insertText', false, listOptions.auto ? convertPastedLists(text, listOptions) : text);
+            document.execCommand('insertText', false, convertPastedLists(text, listOptions));
         },
         [listOptions],
     );

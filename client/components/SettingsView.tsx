@@ -281,15 +281,6 @@ export const SettingsView = ({
                     description: 'The default for all blocks. Text that starts a line with "-", "*" or "1." becomes a list, Enter continues it and an empty item ends it.',
                     items: [
                         {
-                            id: 'auto-lists',
-                            label: 'Convert lists automatically',
-                            control: {
-                                type: 'toggle',
-                                value: listOptions.auto,
-                                onChange: (auto: boolean) => onListOptionsChange({ ...listOptions, auto }),
-                            },
-                        },
-                        {
                             id: 'list-bullet',
                             label: 'Bullet',
                             description: 'A block can set its own in its style menu.',

@@ -254,6 +254,14 @@
         min-width: 6em;
     }
 
+    // The global reset gives every element its own font size, font and line height: the text of the editor changed
+    // size and spacing as soon as it was shown as words
+    span[data-word-id] {
+        font-family: inherit;
+        font-size: inherit;
+        line-height: inherit;
+    }
+
     &__word {
         position: relative;
     }

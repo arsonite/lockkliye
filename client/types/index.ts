@@ -117,12 +117,11 @@ type tPin = 'folder' | 'global';
 // How the notes of a folder are ordered, manual keeps the order the user dragged them into
 type tSortMode = 'edited' | 'title' | 'title-desc' | 'created' | 'manual';
 
-// How the numbers of a list look, "a." counts letters and "i." roman numerals
-type tNumbering = '1.' | '1)' | '(1)' | '1:' | 'a.' | 'a)' | 'A.' | 'i.' | 'I.';
+// How the numbers of a list look
+type tNumbering = '1.' | '1.)' | '1)' | '(1)';
 
 // Lists that are typed are converted to lists with these decorators
 interface iListOptions {
-    auto: boolean;
     bullet: string;
     numbering: tNumbering;
 }
