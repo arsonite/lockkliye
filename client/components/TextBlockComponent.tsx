@@ -18,8 +18,23 @@ import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 // TeaType icons
 import { AddAboveIcon, AddBelowIcon, ContrastIcon, SaveIcon, XIcon } from '@teatype/icons';
 import { DEFAULT_BORDER_GAP } from '@/types';
-import type { iTextBlock, tFormatMode, iWord, iBlockStyle, iPalette } from '@/types';
+import type {
+    iChecklistData,
+    iListOptions,
+    iTableData,
+    iTextBlock,
+    tBlockData,
+    tFormatMode,
+    iWord,
+    iBlockListOptions,
+    iBlockStyle,
+    tNumbering,
+    iPalette,
+} from '@/types';
 import { enabledOf } from '@/tools/palette';
+import { ChecklistBlock, TableBlock } from './BlockComponents';
+import { BULLETS, NUMBERINGS, numberingLabel } from '@/tools/lists';
+import { PopoverMenu } from './PopoverMenu';
 import { RichTextEditor } from './RichTextEditor';
 import { TeaModal } from '@teatype/components';
 
@@ -33,6 +48,15 @@ interface iTextBlockComponentProps {
     onOpenAnchor?: (noteId: string) => void;
     onWordFormatChange: (blockId: string, wordId: string, format: Partial<iWord['format']>) => void;
     onWordsChange: (blockId: string, words: iWord[]) => void;
+    onDataChange?: (blockId: string, data: tBlockData) => void; // Of a checklist, table or code block
+    listOptions?: iListOptions;
+    onMoveSelection?: (
+        blockId: string,
+        remaining: iWord[],
+        selected: iWord[],
+        position: 'above' | 'below',
+        focusNew: boolean,
+    ) => void;
     onStyleChange: (blockId: string, style: Partial<iTextBlock['style']>) => void;
     onDelete: (blockId: string) => void;
     onAddBlockAfter: (blockId: string) => void;
@@ -53,6 +77,9 @@ export const TextBlockComponent = ({
     selectedAnchorId,
     onOpenAnchor,
     onWordsChange,
+    onDataChange,
+    onMoveSelection,
+    listOptions,
     onStyleChange,
     onDelete,
     onAddBlockAfter,
@@ -80,6 +107,12 @@ export const TextBlockComponent = ({
     const [customGradientFrom, setCustomGradientFrom] = useState('#ff0000');
     const [customGradientTo, setCustomGradientTo] = useState('#0000ff');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    // Where the right-click on selected text happened, and how to take the text out
+    const [selectionMenu, setSelectionMenu] = useState<{
+        x: number;
+        y: number;
+        take: () => { selected: iWord[]; remaining: iWord[] };
+    } | null>(null);
     const [isLightMode, setIsLightMode] = useState(
         () => document.querySelector('.notes-app')?.classList.contains('light-mode') ?? false,
     );
@@ -369,7 +402,7 @@ export const TextBlockComponent = ({
     // Save current block style as a preset
     const handleSaveAsPreset = () => {
         if (onSaveAsPreset) {
-            onSaveAsPreset({ ...blockStyle });
+            onSaveAsPreset({ ...blockStyle, listOptions: undefined });
             setShowStyleMenu(false);
         }
     };
@@ -682,6 +715,44 @@ export const TextBlockComponent = ({
                                 </div>
                             )}
                         </div>
+                        {(!block.kind || block.kind === 'text') && (
+                            <div className='style-menu__section'>
+                                <span className='style-menu__label'>Lists</span>
+                                {(
+                                    [
+                                        ['auto', 'Convert automatically', [['on', 'On'], ['off', 'Off']]],
+                                        ['bullet', 'Bullet', BULLETS.map((bullet) => [bullet, bullet])],
+                                        [
+                                            'numbering',
+                                            'Numbering',
+                                            (Object.keys(NUMBERINGS) as tNumbering[]).map((id) => [id, numberingLabel(id)]),
+                                        ],
+                                    ] as [keyof iBlockListOptions, string, string[][]][]
+                                ).map(([key, label, choices]) => (
+                                    <label key={key} className='style-menu__list-row'>
+                                        {label}
+                                        <select
+                                            className='style-menu__select'
+                                            value={key === 'auto' && blockStyle.listOptions?.auto !== undefined ? (blockStyle.listOptions.auto ? 'on' : 'off') : (blockStyle.listOptions?.[key] as string | undefined) ?? ''}
+                                            onChange={(e) => {
+                                                const { [key]: _old, ...others } = blockStyle.listOptions ?? {};
+                                                const value = e.target.value;
+                                                onStyleChange(block.id, {
+                                                    listOptions: value ? { ...others, [key]: key === 'auto' ? value === 'on' : value } : others,
+                                                });
+                                            }}
+                                        >
+                                            <option value=''>Default</option>
+                                            {choices.map(([value, text]) => (
+                                                <option key={value} value={value}>
+                                                    {text}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                ))}
+                            </div>
+                        )}
                         {onSaveAsPreset && (
                             <div className='style-menu__section'>
                                 <button className='style-menu__save-preset' onClick={handleSaveAsPreset}>
@@ -692,21 +763,70 @@ export const TextBlockComponent = ({
                     </div>
                 )}
 
-                <RichTextEditor
-                    words={block.words}
-                    formatMode={formatMode}
-                    selectedColor={selectedColor}
-                    selectedSize={selectedSize}
-                    selectedAnchorId={selectedAnchorId}
-                    onOpenAnchor={onOpenAnchor}
-                    onWordsChange={(newWords) => onWordsChange(block.id, newWords)}
-                    onAddBlockAfter={() => onAddBlockAfter(block.id)}
-                    autoFocus={autoFocus}
-                    onAutoFocused={onAutoFocused}
-                    onClearFormatMode={onClearFormatMode}
-                    placeholder='Click to edit...'
-                />
+                {block.kind === 'checklist' && (
+                    <ChecklistBlock
+                        data={block.data as iChecklistData}
+                        autoFocus={autoFocus}
+                        onAutoFocused={onAutoFocused}
+                        onChange={(data) => onDataChange?.(block.id, data)}
+                    />
+                )}
+                {block.kind === 'table' && (
+                    <TableBlock
+                        data={block.data as iTableData}
+                        autoFocus={autoFocus}
+                        onAutoFocused={onAutoFocused}
+                        onChange={(data) => onDataChange?.(block.id, data)}
+                    />
+                )}
+                {(!block.kind || block.kind === 'text' || block.kind === 'code') && (
+                    <RichTextEditor
+                        words={block.words}
+                        formatMode={formatMode}
+                        selectedColor={selectedColor}
+                        selectedSize={selectedSize}
+                        selectedAnchorId={selectedAnchorId}
+                        onOpenAnchor={onOpenAnchor}
+                        onWordsChange={(newWords) => onWordsChange(block.id, newWords)}
+                        onAddBlockAfter={() => onAddBlockAfter(block.id)}
+                        autoFocus={autoFocus}
+                        onAutoFocused={onAutoFocused}
+                        onClearFormatMode={onClearFormatMode}
+                        listOptions={{ ...listOptions, ...blockStyle.listOptions } as iListOptions}
+                        variant={block.kind === 'code' ? 'code' : undefined}
+                        onSelectionMenu={onMoveSelection ? setSelectionMenu : undefined}
+                        placeholder='Click to edit...'
+                    />
+                )}
             </div>
+
+            {/* What to do with the selected text: move it into a new block, with or without following it */}
+            {selectionMenu && (
+                <PopoverMenu x={selectionMenu.x} y={selectionMenu.y} onClose={() => setSelectionMenu(null)}>
+                    {(
+                        [
+                            [['Move above', 'above', false], ['Move below', 'below', false]],
+                            [['Above and focus', 'above', true], ['Below and focus', 'below', true]],
+                        ] as [string, 'above' | 'below', boolean][][]
+                    ).map((row) => (
+                        <div key={row[0][0]} className='popover-menu__row'>
+                            {row.map(([label, position, focusNew]) => (
+                                <button
+                                    key={label}
+                                    className='popover-menu__button'
+                                    onClick={() => {
+                                        const { selected, remaining } = selectionMenu.take();
+                                        onMoveSelection?.(block.id, remaining, selected, position, focusNew);
+                                        setSelectionMenu(null);
+                                    }}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+                    ))}
+                </PopoverMenu>
+            )}
 
             {/* Delete Confirmation Modal */}
             <TeaModal

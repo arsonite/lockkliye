@@ -21,7 +21,9 @@ class Note(HSDBModel):
     created_ms = HSDBAttribute(int,  required=True)
     folder     = HSDBRelation.ManyToOne(Folder) # Optional, left out for a note without folder
     is_anchor  = HSDBAttribute(bool, description='Words of other notes can point to an anchor note')
+    pin_scope  = HSDBAttribute(str,  description='folder or global, where a pinned note is kept on top')
     pinned     = HSDBAttribute(bool, required=True)
     rev        = HSDBAttribute(int,  required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
+    sort_order = HSDBAttribute(int,  description='Position of the note in a manually sorted folder')
     title      = HSDBAttribute(str,  required=True)
     updated_ms = HSDBAttribute(int,  required=True)

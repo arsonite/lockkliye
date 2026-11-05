@@ -26,16 +26,18 @@ import { TeaButton, TeaModal, TeaSettingsPage, type iTeaSettingsCategory, type i
 import PaletteEditor from './PaletteEditor';
 
 // Types
-import type { iPalette, tPaletteKind } from '@/types';
+import type { iListOptions, iPalette, tNumbering, tPaletteKind } from '@/types';
 
 // Utils
 import { DEFAULT_ACCENT } from '@/tools/accent';
+import { BULLETS, NUMBERINGS, numberingLabel, sanitizeListOptions } from '@/tools/lists';
 import { SHORTCUT_GROUPS } from '@/tools/shortcuts';
 import { generateShortText, generateLongText, generateTitle, copyToClipboard } from '@/tools/randomGenerator';
 
 interface iSettingsViewProps {
     lightMode: boolean;
     accentColor: string;
+    listOptions: iListOptions;
     editorWidth: number;
     confirmDeletions: boolean;
     showBlockBorders: boolean;
@@ -46,6 +48,7 @@ interface iSettingsViewProps {
 
     onToggleLightMode: () => void;
     onAccentColorChange: (color: string) => void;
+    onListOptionsChange: (options: iListOptions) => void;
     onEditorWidthChange: (width: number) => void;
     onConfirmDeletionsChange: (value: boolean) => void;
     onShowBlockBordersChange: (value: boolean) => void;
@@ -105,6 +108,7 @@ const ShortcutKeys = ({ alternatives }: { alternatives: string[] }) => (
 export const SettingsView = ({
     lightMode,
     accentColor,
+    listOptions,
     editorWidth,
     confirmDeletions,
     showBlockBorders,
@@ -115,6 +119,7 @@ export const SettingsView = ({
 
     onToggleLightMode,
     onAccentColorChange,
+    onListOptionsChange,
     onEditorWidthChange,
     onConfirmDeletionsChange,
     onShowBlockBordersChange,
@@ -267,6 +272,47 @@ export const SettingsView = ({
                             label: 'Confirm deletions',
                             description: 'Ask before a note, folder, block or preset with content is deleted.',
                             control: { type: 'toggle', value: confirmDeletions, onChange: onConfirmDeletionsChange },
+                        },
+                    ],
+                },
+                {
+                    id: 'lists',
+                    title: 'Lists',
+                    description: 'The default for all blocks. Text that starts a line with "-", "*" or "1." becomes a list, Enter continues it and an empty item ends it.',
+                    items: [
+                        {
+                            id: 'auto-lists',
+                            label: 'Convert lists automatically',
+                            control: {
+                                type: 'toggle',
+                                value: listOptions.auto,
+                                onChange: (auto: boolean) => onListOptionsChange({ ...listOptions, auto }),
+                            },
+                        },
+                        {
+                            id: 'list-bullet',
+                            label: 'Bullet',
+                            description: 'A block can set its own in its style menu.',
+                            control: {
+                                type: 'select',
+                                value: listOptions.bullet,
+                                options: BULLETS.map((bullet) => ({ value: bullet, label: bullet })),
+                                onChange: (bullet: string) => onListOptionsChange({ ...listOptions, bullet }),
+                            },
+                        },
+                        {
+                            id: 'list-numbering',
+                            label: 'Numbering',
+                            control: {
+                                type: 'select',
+                                value: listOptions.numbering,
+                                options: (Object.keys(NUMBERINGS) as tNumbering[]).map((id) => ({
+                                    value: id,
+                                    label: numberingLabel(id),
+                                })),
+                                onChange: (numbering: string) =>
+                                    onListOptionsChange(sanitizeListOptions({ ...listOptions, numbering })),
+                            },
                         },
                     ],
                 },

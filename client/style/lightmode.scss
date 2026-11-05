@@ -44,7 +44,8 @@
 }
 
 body.light-mode .tea-toast-container,
-body.light-mode .tea-modal-overlay {
+body.light-mode .tea-modal-overlay,
+body.light-mode .popover-menu {
     @include light-theme-vars;
     --surface-elevated: #fff;
 }

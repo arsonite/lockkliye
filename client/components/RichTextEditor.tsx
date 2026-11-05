@@ -19,10 +19,14 @@ import { useRef, useCallback, useEffect, useState } from 'react';
 // Components
 import { applyFormatMode } from '@/components/WordComponent';
 import LinkModal from '@/components/LinkModal';
+import { DEFAULT_LIST_OPTIONS, convertPastedLists, decoratorOf, nextMarker } from '@/tools/lists';
 import { shortcutOf } from '@/tools/shortcuts';
 
 // Types
-import { createWord, HYPERLINKS_ENABLED, iWord, iWordFormat, tFormatMode } from '@/types';
+import { createWord, HYPERLINKS_ENABLED, iListOptions, iWord, iWordFormat, tFormatMode } from '@/types';
+
+// Marks the caret in a copy of the text, a character that is not typed
+const CARET_MARK = '\uE000';
 
 interface iRichTextEditorProps {
     formatMode: tFormatMode;
@@ -32,6 +36,11 @@ interface iRichTextEditorProps {
     selectedAnchorId?: string | null;
     words: iWord[];
 
+    variant?: 'code'; // Shifted to the right with a gray line and a monospaced font
+    listOptions?: iListOptions; // The decorators of lists that are typed or pasted
+
+    // A right-click on selected text: take() cuts the selection out of the text and returns it and what remains
+    onSelectionMenu?: (menu: { x: number; y: number; take: () => { selected: iWord[]; remaining: iWord[] } }) => void;
     onOpenAnchor?: (noteId: string) => void;
     autoFocus?: boolean; // Takes the focus and scrolls into view when it appears, for a block that was just added
     onAutoFocused?: () => void;
@@ -125,6 +134,9 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
     onWordsChange,
     onAddBlockAfter,
     onClearFormatMode,
+    onSelectionMenu,
+    variant,
+    listOptions = DEFAULT_LIST_OPTIONS,
     placeholder = 'Click to edit...',
 }) => {
     const editorRef = useRef<HTMLDivElement>(null);
@@ -595,25 +607,50 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
 
         const newWords = parseHTMLToWords(editorRef.current);
 
-        // Auto-convert "- " at the start of a line to bullet
-        const convertedWords = newWords.map((word, idx) => {
-            if (word.text === '-') {
-                // Check if it's at the start or after a newline
-                const prevWord = newWords[idx - 1];
-                const nextWord = newWords[idx + 1];
-                const isAtStart = idx === 0 || (prevWord && prevWord.text === '\n');
-                // If next word exists and isn't a newline, convert "-" to "•"
-                if (isAtStart && nextWord && nextWord.text !== '\n') {
-                    return { ...word, text: '•' };
-                }
-            }
-            return word;
-        });
+        // A "-" or "*" at the start of a line followed by text is a bullet, shown with the chosen decorator
+        const convertedWords = listOptions.auto
+            ? newWords.map((word, idx) => {
+                  const isAtStart = idx === 0 || newWords[idx - 1].text === '\n';
+                  const next = newWords[idx + 1];
+                  if (isAtStart && /^[-*]$/.test(word.text) && next && next.text !== '\n') {
+                      return { ...word, text: listOptions.bullet };
+                  }
+                  return word;
+              })
+            : newWords;
 
         emit(convertedWords);
 
         // Don't restore cursor here - let the content update naturally
-    }, [parseHTMLToWords, emit]);
+    }, [parseHTMLToWords, emit, listOptions]);
+
+    // The words of the line the caret is in, up to the caret. An empty list means the line is empty.
+    const lineBeforeCaret = useCallback((): iWord[] | null => {
+        const editor = editorRef.current;
+        const selection = window.getSelection();
+        if (!editor || !selection || selection.rangeCount === 0 || !selection.isCollapsed) return null;
+        if (!selection.anchorNode || !editor.contains(selection.anchorNode)) return null;
+
+        const range = document.createRange();
+        range.selectNodeContents(editor);
+        range.setEnd(selection.anchorNode, selection.anchorOffset);
+        const holder = document.createElement('div');
+        holder.appendChild(range.cloneContents());
+        // Without a mark at the caret the empty end of the text would be trimmed away
+        holder.appendChild(document.createTextNode(CARET_MARK));
+        const words = parseHTMLToWords(holder);
+        const start = words.map((word) => word.text).lastIndexOf('\n') + 1;
+        return words
+            .slice(start)
+            .map((word) => ({ ...word, text: word.text.replace(CARET_MARK, '') }))
+            .filter((word) => word.text !== '');
+    }, [parseHTMLToWords]);
+
+    // Selects the characters before the caret
+    const selectBackward = (count: number) => {
+        const selection = window.getSelection();
+        for (let i = 0; i < count; i++) selection?.modify('extend', 'backward', 'character');
+    };
 
     // Handle keyboard shortcuts
     const handleKeyDown = useCallback(
@@ -622,6 +659,36 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 e.preventDefault();
                 onAddBlockAfter();
                 return;
+            }
+
+            // Lists: a typed marker becomes the decorator, Enter continues the list or ends it on an empty item
+            if (listOptions.auto && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                if (e.key === ' ' && !e.shiftKey) {
+                    const line = lineBeforeCaret();
+                    const decorator = line?.length === 1 ? decoratorOf(line[0].text, listOptions) : null;
+                    if (line && decorator) {
+                        e.preventDefault();
+                        selectBackward(line[0].text.length);
+                        document.execCommand('insertText', false, `${decorator} `);
+                        return;
+                    }
+                }
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    const line = lineBeforeCaret();
+                    const marker = line?.length ? nextMarker(line[0].text, listOptions) : null;
+                    if (line && marker) {
+                        e.preventDefault();
+                        if (line.length === 1) {
+                            // An empty item ends the list
+                            window.getSelection()?.modify('extend', 'backward', 'lineboundary');
+                            document.execCommand('delete');
+                        } else {
+                            document.execCommand('insertLineBreak');
+                            document.execCommand('insertText', false, `${marker} `);
+                        }
+                        return;
+                    }
+                }
             }
 
             // Handle Tab key - insert 4 non-breaking spaces instead of tab character
@@ -634,15 +701,45 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
 
             // Regular Enter inserts newline (default contenteditable behavior)
         },
-        [onAddBlockAfter],
+        [onAddBlockAfter, listOptions, lineBeforeCaret],
+    );
+
+    const handleContextMenu = useCallback(
+        (event: React.MouseEvent) => {
+            const editor = editorRef.current;
+            const selection = window.getSelection();
+            if (!onSelectionMenu || !editor || !selection || selection.isCollapsed || selection.rangeCount === 0) return;
+            const range = selection.getRangeAt(0);
+            if (!editor.contains(range.commonAncestorContainer)) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            // The menu takes the focus, the range stays valid as long as the text does not change
+            const saved = range.cloneRange();
+            onSelectionMenu({
+                x: event.clientX,
+                y: event.clientY,
+                take: () => {
+                    const holder = document.createElement('div');
+                    holder.appendChild(saved.cloneContents());
+                    const selected = parseHTMLToWords(holder).map((word) => ({ ...word, id: crypto.randomUUID() }));
+                    saved.deleteContents();
+                    return { selected, remaining: parseHTMLToWords(editor) };
+                },
+            });
+        },
+        [onSelectionMenu, parseHTMLToWords],
     );
 
     // Handle paste - strip formatting and insert plain text
-    const handlePaste = useCallback((e: React.ClipboardEvent) => {
-        e.preventDefault();
-        const text = e.clipboardData.getData('text/plain');
-        document.execCommand('insertText', false, text);
-    }, []);
+    const handlePaste = useCallback(
+        (e: React.ClipboardEvent) => {
+            e.preventDefault();
+            const text = e.clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, listOptions.auto ? convertPastedLists(text, listOptions) : text);
+        },
+        [listOptions],
+    );
 
     // Handle saving a link to a word
     const handleLinkSave = useCallback(
@@ -884,7 +981,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
         <>
             <div
                 ref={editorRef}
-                className={`rich-text-editor ${isFocused ? 'rich-text-editor--focused' : ''} ${
+                className={`rich-text-editor ${variant ? `rich-text-editor--${variant}` : ''} ${isFocused ? 'rich-text-editor--focused' : ''} ${
                     formatMode ? 'rich-text-editor--format-mode' : ''
                 }`}
                 contentEditable={!formatMode || isFocused}
@@ -892,6 +989,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 onInput={handleInput}
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
+                onContextMenu={handleContextMenu}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
                 onClick={handleClick}

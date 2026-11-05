@@ -131,6 +131,30 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
         }
     };
 
+    const handleBlockDataChange = (blockId: string, data: Parameters<typeof store.setBlockData>[2]) => {
+        if (store.activeNoteId) {
+            store.setBlockData(store.activeNoteId, blockId, data);
+        }
+    };
+
+    const handleMoveSelection = (
+        blockId: string,
+        remaining: Parameters<typeof store.moveSelectionToBlock>[2],
+        selected: Parameters<typeof store.moveSelectionToBlock>[3],
+        position: 'above' | 'below',
+        focusNew: boolean,
+    ) => {
+        if (store.activeNoteId) {
+            store.moveSelectionToBlock(store.activeNoteId, blockId, remaining, selected, position, focusNew);
+        }
+    };
+
+    const handleBlockInsert = (kind: Parameters<typeof store.insertBlock>[1], index?: number) => {
+        if (store.activeNoteId) {
+            store.insertBlock(store.activeNoteId, kind, index);
+        }
+    };
+
     const handleBlockStyleChange = (blockId: string, style: Parameters<typeof store.updateBlockStyle>[2]) => {
         if (store.activeNoteId) {
             store.updateBlockStyle(store.activeNoteId, blockId, style);
@@ -212,6 +236,8 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                 onDeleteFolder={store.deleteFolder}
                 settingsOpen={showSettings}
                 onOpenSettings={() => setShowSettings((open) => !open)}
+                onSetPin={store.setNotePin}
+                onOrderNotes={store.orderNotes}
             />
 
             <main>
@@ -219,6 +245,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                     <SettingsView
                         lightMode={store.lightMode}
                         accentColor={store.accentColor}
+                        listOptions={store.listOptions}
                         editorWidth={store.editorWidth}
                         confirmDeletions={store.confirmDeletions}
                         showBlockBorders={store.showBlockBorders}
@@ -227,6 +254,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         palette={store.palette}
                         onToggleLightMode={store.toggleLightMode}
                         onAccentColorChange={store.setAccentColor}
+                        onListOptionsChange={store.setListOptions}
                         onEditorWidthChange={store.setEditorWidth}
                         onConfirmDeletionsChange={store.setConfirmDeletions}
                         onShowBlockBordersChange={store.setShowBlockBorders}
@@ -286,6 +314,10 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         }
                         onWordFormatChange={handleWordFormatChange}
                         onWordsChange={handleWordsChange}
+                        listOptions={store.listOptions}
+                        onBlockDataChange={handleBlockDataChange}
+                        onBlockInsert={handleBlockInsert}
+                        onMoveSelection={handleMoveSelection}
                         onBlockStyleChange={handleBlockStyleChange}
                         onBlockDelete={handleBlockDelete}
                         onBlockAdd={handleBlockAdd}

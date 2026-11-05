@@ -124,7 +124,7 @@ const createTutorialNote = (): iNote => {
 
         createBlock(
             words(
-                'Right-click a block (or press and hold on a touch screen) to open its customizer: title, border with an adjustable gap between dashes, corner radius, background, gradient and whether spaces at the start and end are kept. Save a style as a preset to reuse it.',
+                'Right-click a block (or press and hold on a touch screen) to open its customizer: title, border with an adjustable gap between dashes, corner radius, background and gradient. Save a style as a preset to reuse it.',
             ),
             {
                 title: 'Block Styling',
@@ -153,6 +153,29 @@ const createTutorialNote = (): iNote => {
                 `Folders (the folder button in the sidebar) can be nested, drag notes into them or right-click a note to move it. Everything is kept in this browser first. The dot in front of a note means it is not saved to the server yet, ${shortcutText('save')} saves it.`,
             ),
             { title: 'Folders and Saving', borderStyle: 'solid', borderRadius: 8, backgroundColor: 'rgba(255,212,59,0.1)' },
+        ),
+
+        createBlock(
+            words(
+                'Right-click selected text to get a small menu that moves it into a new block above or below, with or without following it. "Add component" at the bottom of a note adds a checklist, a table or a code block (indented text with a gray line and a monospaced font), and a right-click on the empty space of a note, also between blocks, opens the same list where you clicked.',
+            ),
+            { title: 'Blocks and Components', borderStyle: 'solid', borderRadius: 8, backgroundColor: 'rgba(116,192,252,0.1)' },
+        ),
+
+        createBlock(
+            lines([
+                item(words('A line that starts with "-", "*" or "1." becomes a list')),
+                item(words('Enter continues the list, Enter on an empty item ends it')),
+                item(words('Settings > Editor > Lists changes the bullet and the numbering (also a. b. c. or i. ii. iii.) for all blocks, the style menu of a block (right-click) sets its own')),
+            ]),
+            { title: 'Lists', borderStyle: 'solid', borderRadius: 8, backgroundColor: 'rgba(105,219,124,0.1)' },
+        ),
+
+        createBlock(
+            words(
+                'The note you edited last is on top. Right-click a note to pin it to the top of its folder or of the whole list. Right-click a folder, or the empty space of the list, to sort its notes (last edited, title, newest or by hand). Drag a note onto another note to put it before it, the folder is then sorted by hand.',
+            ),
+            { title: 'Sorting and Pinning', borderStyle: 'solid', borderRadius: 8, backgroundColor: 'rgba(255,212,59,0.1)' },
         ),
 
         createBlock([createWord('💡', { fontSize: 'larger' }), ...words('Tips', { bold: true, fontSize: 'larger' })]),

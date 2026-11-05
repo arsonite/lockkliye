@@ -28,10 +28,22 @@ import {
 } from '@/sync/api';
 
 // Types
-import type { iBlockStyle, iFolder, iHistoryEntry, iNote, iPalette, iTextBlock, iWord, iWordFormat } from '@/types';
+import type {
+    iBlockStyle,
+    iFolder,
+    iHistoryEntry,
+    iListOptions,
+    iNote,
+    iPalette,
+    iTextBlock,
+    iWord,
+    iWordFormat,
+    tBlockKind,
+} from '@/types';
 
 // Util
 import { sanitizeAccent } from '@/tools/accent';
+import { sanitizeBlockListOptions, sanitizeListOptions } from '@/tools/lists';
 import { sanitizePalette } from '@/tools/palette';
 
 type tRow = Record<string, string | number | boolean>;
@@ -87,6 +99,7 @@ interface iSettingsItem {
     showStyleButton: boolean;
     use24HourTime: boolean;
     accentColor: string;
+    listOptions: iListOptions;
     palette: iPalette;
 }
 
@@ -165,6 +178,7 @@ const folderCollection: iCollection<iFolder> = {
         icon: folder.icon ?? '',
         name: folder.name,
         ...(folder.parentId ? { parent: folder.parentId } : {}),
+        ...(folder.sort ? { sort_mode: folder.sort } : {}),
     }),
     fromRow: (row, key) => ({
         id: key,
@@ -172,6 +186,7 @@ const folderCollection: iCollection<iFolder> = {
         icon: text(row.icon) || undefined,
         color: text(row.color) || undefined,
         parentId: (row.parent as string | undefined) ?? null,
+        sort: (text(row.sort_mode) || undefined) as iFolder['sort'],
     }),
     relations: { parent: 'folders' },
 };
@@ -184,10 +199,13 @@ const noteCollection: iCollection<iNote> = {
     toRow: (note) => ({
         created_ms: note.createdAt,
         is_anchor: note.isAnchor ?? false,
-        pinned: note.pinned ?? false,
+        pinned: !!note.pinned,
         title: note.title,
         updated_ms: note.updatedAt,
         ...(note.folderId ? { folder: note.folderId } : {}),
+        // Only sent when there is something to say, so the notes that have neither keep their hash
+        ...(note.pinned ? { pin_scope: note.pinned } : {}),
+        ...(note.order === undefined ? {} : { sort_order: note.order }),
     }),
     fromRow: (row, key) => ({
         id: key,
@@ -195,7 +213,8 @@ const noteCollection: iCollection<iNote> = {
         blocks: [],
         folderId: (row.folder as string | undefined) ?? null,
         isAnchor: row.is_anchor === true,
-        pinned: row.pinned as boolean,
+        pinned: row.pinned ? (row.pin_scope === 'global' ? 'global' : 'folder') : undefined,
+        order: typeof row.sort_order === 'number' ? row.sort_order : undefined,
         createdAt: row.created_ms as number,
         updatedAt: row.updated_ms as number,
     }),
@@ -211,6 +230,7 @@ const settingsCollection: iCollection<iSettingsItem> = {
         confirm_deletions: settings.confirmDeletions,
         editor_width: settings.editorWidth,
         light_mode: settings.lightMode,
+        list_options: JSON.stringify(settings.listOptions),
         palette: JSON.stringify({
             text: settings.palette.text,
             block: settings.palette.block,
@@ -230,6 +250,7 @@ const settingsCollection: iCollection<iSettingsItem> = {
         showStyleButton: row.show_style_button === true,
         use24HourTime: row.use_24_hour_time !== false,
         accentColor: sanitizeAccent(row.accent_color),
+        listOptions: sanitizeListOptions(row.list_options ? JSON.parse(text(row.list_options)) : undefined),
         palette: sanitizePalette(row.palette ? JSON.parse(text(row.palette)) : undefined),
     }),
     slot: () => SETTINGS_KEY,
@@ -239,12 +260,34 @@ const blockCollection: iCollection<iBlockItem> = {
     name: 'blocks',
     api: BlockAPI,
     key: (item) => item.id,
-    toRow: (item) => ({ position: item.position, note: item.noteId, ...styleRow(item.block.style) }),
+    toRow: (item) => ({
+        position: item.position,
+        note: item.noteId,
+        ...styleRow(item.block.style),
+        ...(item.block.style.listOptions ? { list_options: JSON.stringify(item.block.style.listOptions) } : {}),
+        // Components only, text blocks have no kind or content
+        ...(item.block.kind && item.block.kind !== 'text'
+            ? { kind: item.block.kind, ...(item.block.data ? { content: JSON.stringify(item.block.data) } : {}) }
+            : {}),
+    }),
     fromRow: (row, key) => ({
         id: key,
         noteId: text(row.note),
         position: row.position as number,
-        block: { id: key, words: [], style: styleFromRow(row) },
+        block: {
+            id: key,
+            words: [],
+            style: {
+                ...styleFromRow(row),
+                ...(row.list_options ? { listOptions: sanitizeBlockListOptions(JSON.parse(text(row.list_options))) } : {}),
+            },
+            ...(row.kind && row.kind !== 'text'
+                ? {
+                      kind: text(row.kind) as tBlockKind,
+                      ...(row.content ? { data: JSON.parse(text(row.content)) } : {}),
+                  }
+                : {}),
+        },
     }),
     relations: { note: 'notes' },
 };

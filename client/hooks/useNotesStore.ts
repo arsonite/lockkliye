@@ -17,12 +17,13 @@
 import { useState, useCallback, useRef } from 'react';
 
 // Types
-import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyle, iHistoryEntry, tPaletteKind } from '@/types';
+import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyle, iHistoryEntry, iListOptions, tBlockData, tBlockKind, tPaletteKind, tPin } from '@/types';
 
 // Util
-import { createNote, createFolder, createBlock, createWord, FORMAT_COLORS, exportNotesAsText, exportNotesAsJson, exportSettingsAsJson, importFromJson as parseImportJson } from '@/types';
+import { createNote, createFolder, createBlock, createBlockOfKind, createWord, FORMAT_COLORS, exportNotesAsText, exportNotesAsJson, exportSettingsAsJson, importFromJson as parseImportJson } from '@/types';
 import { descendantIds, repairFolders } from '@/tools/folderTree';
 import { DEFAULT_ACCENT, sanitizeAccent } from '@/tools/accent';
+import { DEFAULT_LIST_OPTIONS, sanitizeListOptions } from '@/tools/lists';
 import { MAX_ENABLED, catalogOf, defaultPalette, sanitizePalette } from '@/tools/palette';
 import { generateRandomFolderTree, generateRandomNote, randomizeDates } from '@/tools/randomGenerator';
 import { createTutorialNote } from '@/tools/tutorialNote';
@@ -33,7 +34,7 @@ import usePersist from '@/hooks/usePersist';
 const MAX_HISTORY_SIZE = 100;
 // Edits of one kind within this time are one undo step: a typed sentence is not one step per keystroke
 const COALESCE_MS = 1500;
-const COALESCED = ['Edit text', 'Update block style', 'Update note'];
+const COALESCED = ['Edit text', 'Edit block', 'Update block style', 'Update note'];
 
 const getInitialState = (stored?: iNotesState): iNotesState => {
     if (stored) {
@@ -48,6 +49,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
             showStyleButton: stored.showStyleButton ?? false,
             use24HourTime: stored.use24HourTime ?? true,
             accentColor: sanitizeAccent(stored.accentColor),
+            listOptions: sanitizeListOptions(stored.listOptions),
             palette: sanitizePalette(stored.palette),
         };
     }
@@ -72,6 +74,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
         showStyleButton: false,
         use24HourTime: true,
         accentColor: DEFAULT_ACCENT,
+        listOptions: DEFAULT_LIST_OPTIONS,
         palette: defaultPalette(),
         blockPresets: [
             // Default presets
@@ -394,6 +397,25 @@ const useNotesStore = (persisted: iPersisted) => {
         }));
     }, []);
 
+    // Pinning is no edit of the note, so it neither counts as last edited nor as an undo step
+    const setNotePin = useCallback((noteId: string, pinned: tPin | undefined) => {
+        setState((prev: iNotesState) => ({
+            ...prev,
+            notes: prev.notes.map((n: iNote) => (n.id === noteId ? { ...n, pinned } : n)),
+        }));
+    }, []);
+
+    // The notes in the order they were dragged into, a folder that has such an order is sorted manually from then on
+    const orderNotes = useCallback((folderId: string | null, ids: string[]) => {
+        setState((prev: iNotesState) => ({
+            ...prev,
+            notes: prev.notes.map((n: iNote) => (ids.includes(n.id) ? { ...n, order: ids.indexOf(n.id) } : n)),
+            folders: folderId
+                ? prev.folders.map((f: iFolder) => (f.id === folderId ? { ...f, sort: 'manual' as const } : f))
+                : prev.folders,
+        }));
+    }, []);
+
     const setActiveFolder = useCallback((folderId: string | null) => {
         setState((prev: iNotesState) => ({ ...prev, activeFolderId: folderId }));
     }, []);
@@ -636,6 +658,63 @@ const useNotesStore = (persisted: iPersisted) => {
         }));
     }, [saveToHistory, state.notes]);
 
+    // A component (checklist, table, code) at a position between the blocks, the end if no index is given
+    const insertBlock = useCallback((noteId: string, kind: tBlockKind, index?: number) => {
+        saveToHistory(noteId, 'Add block');
+        const newBlock = createBlockOfKind(kind);
+        setState((prev: iNotesState) => ({
+            ...prev,
+            notes: prev.notes.map((note: iNote) => {
+                if (note.id !== noteId) return note;
+                const blocks = [...note.blocks];
+                blocks.splice(index === undefined ? blocks.length : Math.min(Math.max(index, 0), blocks.length), 0, newBlock);
+                return { ...note, blocks, updatedAt: Date.now() };
+            }),
+        }));
+        setFocusBlockId(newBlock.id);
+    }, [saveToHistory]);
+
+    // What a component holds changes while it is typed in, like the words of a text block
+    const setBlockData = useCallback((noteId: string, blockId: string, data: tBlockData) => {
+        saveToHistory(noteId, 'Edit block', `Edit block ${blockId}`);
+        setState((prev: iNotesState) => ({
+            ...prev,
+            notes: prev.notes.map((note: iNote) =>
+                note.id !== noteId
+                    ? note
+                    : {
+                          ...note,
+                          updatedAt: Date.now(),
+                          blocks: note.blocks.map((block: iTextBlock) => (block.id === blockId ? { ...block, data } : block)),
+                      },
+            ),
+        }));
+    }, [saveToHistory]);
+
+    // Text that was selected in a block goes into a new block above or below it, the block keeps the rest.
+    // The focus goes to the new block or stays with the old one.
+    const moveSelectionToBlock = useCallback(
+        (noteId: string, blockId: string, remaining: iWord[], selected: iWord[], position: 'above' | 'below', focusNew: boolean) => {
+            saveToHistory(noteId, 'Move text');
+            const newBlock = createBlock(selected.length > 0 ? selected : [createWord('')]);
+            setState((prev: iNotesState) => ({
+                ...prev,
+                notes: prev.notes.map((note: iNote) => {
+                    if (note.id !== noteId) return note;
+                    const index = note.blocks.findIndex((block: iTextBlock) => block.id === blockId);
+                    if (index === -1) return note;
+                    const blocks = note.blocks.map((block: iTextBlock) =>
+                        block.id === blockId ? { ...block, words: remaining.length > 0 ? remaining : [createWord('')] } : block,
+                    );
+                    blocks.splice(position === 'above' ? index : index + 1, 0, newBlock);
+                    return { ...note, blocks, updatedAt: Date.now() };
+                }),
+            }));
+            setFocusBlockId(focusNew ? newBlock.id : blockId);
+        },
+        [saveToHistory],
+    );
+
     // Export functions
     const exportAsText = useCallback(() => {
         return exportNotesAsText(state.notes);
@@ -656,11 +735,12 @@ const useNotesStore = (persisted: iPersisted) => {
                 showStyleButton: state.showStyleButton,
                 use24HourTime: state.use24HourTime,
                 accentColor: state.accentColor,
+                listOptions: state.listOptions,
                 palette: state.palette,
             },
             state.blockPresets
         );
-    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.use24HourTime, state.accentColor, state.palette, state.blockPresets]);
+    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.use24HourTime, state.accentColor, state.listOptions, state.palette, state.blockPresets]);
 
     const importFromJson = useCallback((jsonString: string) => {
         const result = parseImportJson(jsonString);
@@ -697,6 +777,7 @@ const useNotesStore = (persisted: iPersisted) => {
                     if (result.settings.showStyleButton !== undefined) newState.showStyleButton = result.settings.showStyleButton;
                     if (result.settings.use24HourTime !== undefined) newState.use24HourTime = result.settings.use24HourTime;
                     if (result.settings.accentColor !== undefined) newState.accentColor = sanitizeAccent(result.settings.accentColor);
+                    if (result.settings.listOptions !== undefined) newState.listOptions = sanitizeListOptions(result.settings.listOptions);
                     if (result.settings.palette) newState.palette = sanitizePalette(result.settings.palette);
                 }
                 if (result.blockPresets) {
@@ -761,6 +842,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 if (result.settings.showStyleButton !== undefined) newState.showStyleButton = result.settings.showStyleButton;
                 if (result.settings.use24HourTime !== undefined) newState.use24HourTime = result.settings.use24HourTime;
                 if (result.settings.accentColor !== undefined) newState.accentColor = sanitizeAccent(result.settings.accentColor);
+                if (result.settings.listOptions !== undefined) newState.listOptions = sanitizeListOptions(result.settings.listOptions);
                 if (result.settings.palette) newState.palette = sanitizePalette(result.settings.palette);
             }
             if (result.blockPresets) {
@@ -840,6 +922,7 @@ const useNotesStore = (persisted: iPersisted) => {
                     showStyleButton: state.showStyleButton,
                     use24HourTime: state.use24HourTime,
                     accentColor: state.accentColor,
+                    listOptions: state.listOptions,
                     palette: state.palette,
                 },
                 blockPresets: state.blockPresets,
@@ -870,6 +953,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 showStyleButton: settings.showStyleButton ?? prev.showStyleButton,
                 use24HourTime: settings.use24HourTime ?? prev.use24HourTime,
                 accentColor: settings.accentColor !== undefined ? sanitizeAccent(settings.accentColor) : prev.accentColor,
+                listOptions: settings.listOptions !== undefined ? sanitizeListOptions(settings.listOptions) : prev.listOptions,
                 palette: settings.palette ? sanitizePalette(settings.palette) : prev.palette,
                 blockPresets: Array.isArray(data.blockPresets) ? data.blockPresets : prev.blockPresets,
                 activeNoteId: references.notes[0]?.id ?? null,
@@ -951,6 +1035,10 @@ const useNotesStore = (persisted: iPersisted) => {
 
     const setAccentColor = useCallback((value: string) => {
         setState((prev: iNotesState) => ({ ...prev, accentColor: sanitizeAccent(value) }));
+    }, []);
+
+    const setListOptions = useCallback((value: iListOptions) => {
+        setState((prev: iNotesState) => ({ ...prev, listOptions: sanitizeListOptions(value) }));
     }, []);
 
     const setUse24HourTime = useCallback((value: boolean) => {
@@ -1068,6 +1156,8 @@ const useNotesStore = (persisted: iPersisted) => {
         updateFolder,
         deleteFolder,
         moveNote,
+        setNotePin,
+        orderNotes,
         setActiveFolder,
 
         // Sidebar
@@ -1101,6 +1191,9 @@ const useNotesStore = (persisted: iPersisted) => {
         deleteBlock,
         reorderBlocks,
         setBlockWords,
+        insertBlock,
+        setBlockData,
+        moveSelectionToBlock,
 
         // History
         undo,
@@ -1124,6 +1217,7 @@ const useNotesStore = (persisted: iPersisted) => {
         setShowBlockBorders,
         setShowStyleButton,
         setAccentColor,
+        setListOptions,
         setUse24HourTime,
         togglePaletteEntry,
         addCustomPaletteEntry,

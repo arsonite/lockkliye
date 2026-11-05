@@ -424,6 +424,7 @@
     }
 
     &__add-block,
+    &__add-component,
     &__add-preset {
         flex: 1;
         padding: 16px;
@@ -447,6 +448,7 @@
         flex: 1;
     }
 
+    &__add-component,
     &__add-preset {
         width: 100%;
     }
@@ -469,6 +471,13 @@
         flex-direction: column;
         gap: 8px;
         animation: styleMenuOpen 200ms ease-out;
+    }
+
+    // The components list is wider than its button
+    &__component-menu {
+        right: auto;
+        min-width: 190px;
+        gap: 2px;
     }
 
     &__preset-item {

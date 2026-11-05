@@ -20,19 +20,39 @@ import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react
 import { Flipper, Flipped } from 'react-flip-toolkit';
 
 // TeaType components
-import { BookmarkIcon, DragHandleIcon, PencilIcon, RedoIcon, UndoIcon, XIcon } from '@teatype/icons';
+import {
+    BookmarkIcon,
+    ChecklistIcon,
+    CodeIcon,
+    DragHandleIcon,
+    NoteIcon,
+    PencilIcon,
+    RedoIcon,
+    TableIcon,
+    UndoIcon,
+    XIcon,
+} from '@teatype/icons';
 import { TeaModal } from '@teatype/components';
 
 // Components
 import FloatingToolbar from './FloatingToolbar';
+import { PopoverMenu } from './PopoverMenu';
 import { TextBlockComponent } from './TextBlockComponent';
 
 // Types
-import type { iFolder, iNote, iTextBlock, iWord, tFormatMode, iHistoryEntry, iBlockStyle, iPalette } from '@/types';
+import type { iFolder, iNote, iTextBlock, iWord, tFormatMode, iHistoryEntry, iBlockStyle, iPalette, iListOptions, tBlockData, tBlockKind } from '@/types';
 
 // Utils
 import { folderChain } from '@/tools/folderTree';
 import { shortcutText } from '@/tools/shortcuts';
+
+// What can be added to a note besides the text of the blocks, in the order of the menus
+const COMPONENTS: [tBlockKind, string, React.ReactNode][] = [
+    ['text', 'Text block', <NoteIcon key='text' />],
+    ['checklist', 'Checklist', <ChecklistIcon key='checklist' />],
+    ['table', 'Table', <TableIcon key='table' />],
+    ['code', 'Code block', <CodeIcon key='code' />],
+];
 
 interface iNoteEditorProps {
     note: iNote;
@@ -54,6 +74,7 @@ interface iNoteEditorProps {
     showStyleButton: boolean;
     use24HourTime: boolean;
     blockPresets: iBlockStyle[];
+    listOptions: iListOptions;
     focusBlockId?: string | null; // A block that was just added, its editor takes the focus
 
     onTitleChange: (title: string) => void;
@@ -62,6 +83,15 @@ interface iNoteEditorProps {
     onOpenNote: (noteId: string) => void;
     onWordFormatChange: (blockId: string, wordId: string, format: Partial<iWord['format']>) => void;
     onWordsChange: (blockId: string, words: iWord[]) => void;
+    onBlockDataChange: (blockId: string, data: tBlockData) => void;
+    onBlockInsert: (kind: tBlockKind, index?: number) => void;
+    onMoveSelection: (
+        blockId: string,
+        remaining: iWord[],
+        selected: iWord[],
+        position: 'above' | 'below',
+        focusNew: boolean,
+    ) => void;
     onBlockStyleChange: (blockId: string, style: Partial<iTextBlock['style']>) => void;
     onBlockDelete: (blockId: string) => void;
     onBlockAdd: (afterBlockId?: string) => void;
@@ -102,12 +132,16 @@ export const NoteEditor = ({
     showStyleButton,
     use24HourTime,
     blockPresets,
+    listOptions,
     onTitleChange,
     onToggleAnchor,
     onAnchorChange,
     onOpenNote,
     onWordFormatChange,
     onWordsChange,
+    onBlockDataChange,
+    onBlockInsert,
+    onMoveSelection,
     onBlockStyleChange,
     onBlockDelete,
     onBlockAdd,
@@ -136,6 +170,10 @@ export const NoteEditor = ({
     const [editingPresetTitle, setEditingPresetTitle] = useState('');
     const [deletePresetIndex, setDeletePresetIndex] = useState<number | null>(null);
     const [showUnanchorModal, setShowUnanchorModal] = useState(false);
+    // A right-click on the empty space of the note opens the list of components, they go in after block `index`
+    const [insertMenu, setInsertMenu] = useState<{ x: number; y: number; index: number } | null>(null);
+    const [showComponentMenu, setShowComponentMenu] = useState(false);
+    const componentMenuRef = useRef<HTMLDivElement>(null);
     const [draggedBlockIndex, setDraggedBlockIndex] = useState<number | null>(null);
     const [previewOrder, setPreviewOrder] = useState<number[] | null>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -282,6 +320,19 @@ export const NoteEditor = ({
         [note.blocks],
     );
 
+    // Close the component menu on outside click
+    useEffect(() => {
+        if (!showComponentMenu) return;
+        const close = (e: MouseEvent) => {
+            const target = e.target as HTMLElement;
+            if (!componentMenuRef.current?.contains(target) && !target.closest('.note-editor__add-component')) {
+                setShowComponentMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', close);
+        return () => document.removeEventListener('mousedown', close);
+    }, [showComponentMenu]);
+
     // Close preset menu on outside click
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -329,8 +380,28 @@ export const NoteEditor = ({
         });
     };
 
+    // The blocks, the header and the buttons have their own right-click, the empty space (also between the blocks) opens
+    // the list of components
+    const handleEmptySpaceMenu = (event: React.MouseEvent) => {
+        const target = event.target as HTMLElement;
+        if (target.closest('.text-block, .note-editor__drag-handle, .note-editor__header, .note-editor__add-buttons, .note-editor__toolbar-overlay, .note-editor__history-overlay')) {
+            return;
+        }
+        event.preventDefault();
+        // After the last block that starts above the click
+        let index = 0;
+        note.blocks.forEach((block, position) => {
+            const rect = blockRefs.current.get(block.id)?.getBoundingClientRect();
+            if (rect && rect.top + rect.height / 2 < event.clientY) index = position + 1;
+        });
+        setInsertMenu({ x: event.clientX, y: event.clientY, index });
+    };
+
     return (
-        <div className={`note-editor ${showBlockBorders ? 'note-editor--block-borders' : ''}`}>
+        <div
+            className={`note-editor ${showBlockBorders ? 'note-editor--block-borders' : ''}`}
+            onContextMenu={handleEmptySpaceMenu}
+        >
             {/* Floating toolbar - fixed at top, overlays content */}
             <div className='note-editor__toolbar-overlay'>
                 <FloatingToolbar
@@ -461,6 +532,9 @@ export const NoteEditor = ({
                                                     confirmDeletions={confirmDeletions}
                                                     onWordFormatChange={onWordFormatChange}
                                                     onWordsChange={onWordsChange}
+                                                    onDataChange={onBlockDataChange}
+                                                    onMoveSelection={onMoveSelection}
+                                                    listOptions={listOptions}
                                                     onStyleChange={onBlockStyleChange}
                                                     onDelete={onBlockDelete}
                                                     onAddBlockAfter={onBlockAdd}
@@ -510,6 +584,31 @@ export const NoteEditor = ({
                         <button className='note-editor__add-block' onClick={() => onBlockAdd()}>
                             + Add block
                         </button>
+                        <div className='note-editor__preset-container'>
+                            <button
+                                className='note-editor__add-component'
+                                onClick={() => setShowComponentMenu(!showComponentMenu)}
+                            >
+                                + Add component
+                            </button>
+                            {showComponentMenu && (
+                                <div className='note-editor__preset-menu note-editor__component-menu' ref={componentMenuRef}>
+                                    {COMPONENTS.filter(([kind]) => kind !== 'text').map(([kind, label, icon]) => (
+                                        <button
+                                            key={kind}
+                                            className='popover-menu__item'
+                                            onClick={() => {
+                                                onBlockInsert(kind);
+                                                setShowComponentMenu(false);
+                                            }}
+                                        >
+                                            {icon}
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <div className='note-editor__preset-container'>
                             <button
                                 className='note-editor__add-preset'
@@ -607,6 +706,25 @@ export const NoteEditor = ({
                     </div>
                 </div>
             </div>
+
+            {/* The components, where the empty space was clicked */}
+            {insertMenu && (
+                <PopoverMenu x={insertMenu.x} y={insertMenu.y} onClose={() => setInsertMenu(null)}>
+                    {COMPONENTS.map(([kind, label, icon]) => (
+                        <button
+                            key={kind}
+                            className='popover-menu__item'
+                            onClick={() => {
+                                onBlockInsert(kind, insertMenu.index);
+                                setInsertMenu(null);
+                            }}
+                        >
+                            {icon}
+                            {label}
+                        </button>
+                    ))}
+                </PopoverMenu>
+            )}
 
             {/* Remove Anchor Confirmation Modal */}
             <TeaModal

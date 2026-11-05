@@ -79,14 +79,56 @@ interface iBlockStyle {
     transparent?: boolean;
     borderGap?: number; // Space between the dashes, dots or lines of a dashed, dotted or double border, in px
     widthPercent?: number; // User-adjustable width as percentage (0-100)
+    listOptions?: iBlockListOptions; // The list rules of this block, the settings apply to what it leaves out
 }
 
-// Text block containing words
+// What a block holds: text (words), or one of the components with data of their own
+type tBlockKind = 'text' | 'checklist' | 'table' | 'code';
+
+interface iChecklistItem {
+    id: string;
+    text: string;
+    done: boolean;
+}
+
+interface iChecklistData {
+    items: iChecklistItem[];
+}
+
+interface iTableData {
+    rows: string[][];
+}
+
+type tBlockData = iChecklistData | iTableData;
+
+// Text block containing words, or a component (the words of those stay one empty word). A code block is text too:
+// shifted to the right, with a gray line on its left and a monospaced font.
 interface iTextBlock {
     id: string;
     words: iWord[];
     style: iBlockStyle;
+    kind?: tBlockKind; // Text if not set
+    data?: tBlockData;
 }
+
+// A note is pinned to the top of its folder or to the top of the whole list
+type tPin = 'folder' | 'global';
+
+// How the notes of a folder are ordered, manual keeps the order the user dragged them into
+type tSortMode = 'edited' | 'title' | 'title-desc' | 'created' | 'manual';
+
+// How the numbers of a list look, "a." counts letters and "i." roman numerals
+type tNumbering = '1.' | '1)' | '(1)' | '1:' | 'a.' | 'a)' | 'A.' | 'i.' | 'I.';
+
+// Lists that are typed are converted to lists with these decorators
+interface iListOptions {
+    auto: boolean;
+    bullet: string;
+    numbering: tNumbering;
+}
+
+// What a block sets differently from the default of the settings
+type iBlockListOptions = Partial<iListOptions>;
 
 // Note document
 interface iNote {
@@ -96,7 +138,8 @@ interface iNote {
     folderId: string | null;
     createdAt: number;
     updatedAt: number;
-    pinned?: boolean;
+    pinned?: tPin;
+    order?: number; // Position among the notes of a manually sorted folder
     isAnchor?: boolean; // Words of other notes can be anchored to this note
 }
 
@@ -107,6 +150,7 @@ interface iFolder {
     icon?: string;
     color?: string;
     parentId?: string | null; // The folder this one sits in, none for a top-level folder
+    sort?: tSortMode; // Edited if not set
 }
 
 // History entry for undo/redo functionality
@@ -152,6 +196,7 @@ interface iNotesState {
     showStyleButton: boolean; // Show the block style button next to a block, the style menu always opens with a right-click
     use24HourTime: boolean; // Times are shown as 14:30 instead of 2:30 PM
     accentColor: string; // Hex color of the accents, orange by default
+    listOptions: iListOptions;
     blockPresets: iBlockStyle[]; // Saved block presets
     palette: iPalette; // Which colors and gradients the toolbar and the block style menu offer
 }
@@ -197,6 +242,32 @@ const createBlock = (words: iWord[] = [], style: iBlockStyle = {}): iTextBlock =
     style,
 });
 
+// The block of a component, with its first content
+const createBlockOfKind = (kind: tBlockKind, style: iBlockStyle = {}): iTextBlock => {
+    const block = createBlock([createWord('')], style);
+    if (kind === 'checklist') {
+        return { ...block, kind, data: { items: [{ id: crypto.randomUUID(), text: '', done: false }] } };
+    }
+    if (kind === 'table') {
+        return { ...block, kind, data: { rows: [['', ''], ['', '']] } };
+    }
+    if (kind === 'code') {
+        return { ...block, kind };
+    }
+    return block;
+};
+
+// The text of a block without formatting, for the search and the text export
+const blockText = (block: iTextBlock): string => {
+    if (block.kind === 'checklist') {
+        return (block.data as iChecklistData).items.map((item) => `[${item.done ? 'x' : ' '}] ${item.text}`).join('\n');
+    }
+    if (block.kind === 'table') {
+        return (block.data as iTableData).rows.map((row) => row.join(' | ')).join('\n');
+    }
+    return block.words.map((word) => word.text).join(' ');
+};
+
 /**
  * Creates a new note containing a single block with one empty word.
  * Both timestamps are set to the current time (ms).
@@ -240,7 +311,7 @@ const exportNotesAsText = (notes: iNote[]): string => {
         const title = `# ${note.title}\n`;
         const content = note.blocks.map(block => {
             const blockTitle = block.style.title ? `[${block.style.title}]\n` : '';
-            return blockTitle + block.words.map(w => w.text).join(' ');
+            return blockTitle + blockText(block);
         }).join('\n\n');
         return title + content;
     }).join('\n\n---\n\n');
@@ -268,6 +339,7 @@ interface iSettingsExportData {
         showStyleButton?: boolean;
         use24HourTime?: boolean;
         accentColor?: string;
+        listOptions?: iListOptions;
         palette?: iPalette;
     };
     blockPresets: iBlockStyle[];
@@ -296,6 +368,7 @@ const exportSettingsAsJson = (
         showStyleButton?: boolean;
         use24HourTime?: boolean;
         accentColor?: string;
+        listOptions?: iListOptions;
         palette?: iPalette;
     },
     blockPresets: iBlockStyle[]
@@ -330,6 +403,7 @@ const importFromJson = (jsonString: string): {
         showStyleButton?: boolean;
         use24HourTime?: boolean;
         accentColor?: string;
+        listOptions?: iListOptions;
         palette?: iPalette;
     };
     blockPresets?: iBlockStyle[];
@@ -375,6 +449,16 @@ const importFromJson = (jsonString: string): {
 export type {
     iAppSettings,
     iBlockStyle,
+    iChecklistData,
+    iChecklistItem,
+    iBlockListOptions,
+    iListOptions,
+    tNumbering,
+    iTableData,
+    tBlockData,
+    tBlockKind,
+    tPin,
+    tSortMode,
     iFolder,
     tFormatMode,
     iHistoryEntry,
@@ -393,7 +477,9 @@ export {
     DEFAULT_BORDER_GAP,
     HYPERLINKS_ENABLED,
 
+    blockText,
     createBlock,
+    createBlockOfKind,
     createFolder,
     createNote,
     createWord,

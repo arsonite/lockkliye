@@ -17,21 +17,23 @@
 import { useState, useRef, useEffect } from 'react';
 
 // TeaType
-import { BookmarkIcon, ChevronIcon, FolderIcon, SettingsIcon, XIcon } from '@teatype/icons';
+import { BookmarkIcon, ChevronIcon, FolderIcon, PinIcon, SettingsIcon, XIcon } from '@teatype/icons';
 import { TeaSidebar, TeaModal } from '@teatype/components';
 
 // Utility
 import { descendantIds, folderPath } from '@/tools/folderTree';
+import { DEFAULT_SORT, SORT_MODES, arrangeNotes } from '@/tools/sorting';
 
 // Hooks
 import useHeldModifiers from '@/hooks/useHeldModifiers';
 import { shortcutBase, shortcutKey, shortcutText } from '@/tools/shortcuts';
 
 // Types
-import type { iFolder, iNote } from '@/types';
+import type { iFolder, iNote, tPin, tSortMode } from '@/types';
 import type { tSyncStatus } from '@/sync/useSync';
 
 const COLLAPSED_KEY = 'lockkliye-folders-collapsed';
+const ROOT_SORT_KEY = 'lockkliye-root-sort';
 
 interface iSidebarProps {
     notes: iNote[];
@@ -55,6 +57,8 @@ interface iSidebarProps {
     onUpdateFolder: (folderId: string, updates: Partial<iFolder>) => void;
     onDeleteFolder: (folderId: string) => void;
     onOpenSettings: () => void;
+    onSetPin: (noteId: string, pin: tPin | undefined) => void;
+    onOrderNotes: (folderId: string | null, ids: string[]) => void; // The order the notes were dragged into
 }
 
 // What is being dragged from the list, notes and folders can both be dropped on a folder
@@ -110,6 +114,8 @@ export const Sidebar = ({
     onUpdateFolder,
     onDeleteFolder,
     onOpenSettings,
+    onSetPin,
+    onOrderNotes,
 }: iSidebarProps) => {
     const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
     const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
@@ -118,6 +124,13 @@ export const Sidebar = ({
     const [moveTarget, setMoveTarget] = useState('');
     const [collapsed, setCollapsed] = useState<Set<string>>(loadCollapsed);
     const [query, setQuery] = useState('');
+    // The order of the notes at the top level, the one of a folder belongs to the folder
+    const [rootSort, setRootSort] = useState<tSortMode>(() => {
+        const saved = localStorage.getItem(ROOT_SORT_KEY);
+        return SORT_MODES.some((mode) => mode.id === saved) ? (saved as tSortMode) : DEFAULT_SORT;
+    });
+    // The folder whose order is being chosen, 'root' for the top level
+    const [sortTarget, setSortTarget] = useState<string | null>(null);
     const heldModifiers = useHeldModifiers();
     const [dropTarget, setDropTarget] = useState<string | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: iMenuItem[] } | null>(null);
@@ -192,11 +205,13 @@ export const Sidebar = ({
     const folderIds = new Set(folders.map((folder) => folder.id));
     const parentOf = (folder: iFolder) => (folder.parentId && folderIds.has(folder.parentId) ? folder.parentId : null);
     const foldersIn = (parentId: string | null) => folders.filter((f) => parentOf(f) === parentId).sort(byName);
-    const sortedNotes = [...notes].sort((a, b) =>
-        a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }),
-    );
+    const folderOfNote = (note: iNote) => (note.folderId && folderIds.has(note.folderId) ? note.folderId : null);
+    const sortModeOf = (folderId: string | null): tSortMode =>
+        folderId ? (folders.find((f) => f.id === folderId)?.sort ?? DEFAULT_SORT) : rootSort;
+    // The pinned ones of a folder come first, the notes that are pinned globally are listed at the top of the sidebar
     const notesIn = (folderId: string | null) =>
-        sortedNotes.filter((n) => (n.folderId && folderIds.has(n.folderId) ? n.folderId : null) === folderId);
+        arrangeNotes(notes.filter((n) => n.pinned !== 'global' && folderOfNote(n) === folderId), sortModeOf(folderId));
+    const pinnedNotes = arrangeNotes(notes.filter((n) => n.pinned === 'global'), rootSort);
     const countNotes = (folderId: string) => {
         const inside = descendantIds(folders, folderId).add(folderId);
         return notes.filter((n) => n.folderId && inside.has(n.folderId)).length;
@@ -268,6 +283,7 @@ export const Sidebar = ({
             onClick: () =>
                 setFolderForm({ id: folder.id, name: folder.name, parentId: parentOf(folder) }),
         },
+        { label: 'Sort notes…', onClick: () => setSortTarget(folder.id) },
         { label: 'Delete folder', danger: true, onClick: () => handleFolderDelete(folder) },
     ];
 
@@ -283,8 +299,28 @@ export const Sidebar = ({
                   },
               ]
             : []),
+        ...(note.pinned === 'folder' ? [] : [{ label: 'Pin in folder', onClick: () => onSetPin(note.id, 'folder') }]),
+        ...(note.pinned === 'global' ? [] : [{ label: 'Pin globally', onClick: () => onSetPin(note.id, 'global') }]),
+        ...(note.pinned ? [{ label: 'Unpin', onClick: () => onSetPin(note.id, undefined) }] : []),
         { label: 'Delete note', danger: true, onClick: () => handleNoteDelete(note) },
     ];
+
+    // The free space of the list
+    const listMenu = (): iMenuItem[] => [
+        { label: 'New note', onClick: () => onCreateNote(null) },
+        { label: 'New folder', onClick: () => setFolderForm({ id: null, name: '', parentId: null }) },
+        { label: 'Sort notes…', onClick: () => setSortTarget('root') },
+    ];
+
+    const chooseSort = (mode: tSortMode) => {
+        if (sortTarget === 'root') {
+            setRootSort(mode);
+            localStorage.setItem(ROOT_SORT_KEY, mode);
+        } else if (sortTarget) {
+            onUpdateFolder(sortTarget, { sort: mode });
+        }
+        setSortTarget(null);
+    };
 
     const handleFolderDelete = (folder: iFolder) => {
         const hasContent = notesIn(folder.id).length > 0 || foldersIn(folder.id).length > 0;
@@ -327,6 +363,32 @@ export const Sidebar = ({
         }
     };
 
+    // A note dropped on another note takes the place before it, the folder then keeps the order that was dragged
+    const dropBefore = (event: React.DragEvent, target: iNote) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setDropTarget(null);
+        const item = dragged.current;
+        dragged.current = null;
+        if (!item || item.type !== 'note' || item.id === target.id || target.pinned === 'global') {
+            return;
+        }
+        const containerId = folderOfNote(target);
+        const sequence = notesIn(containerId)
+            .filter((note) => note.id !== item.id)
+            .map((note) => note.id);
+        sequence.splice(sequence.indexOf(target.id), 0, item.id);
+        const moving = notes.find((note) => note.id === item.id);
+        if (moving && folderOfNote(moving) !== containerId) {
+            onMoveNote(item.id, containerId);
+        }
+        onOrderNotes(containerId, sequence);
+        if (containerId === null) {
+            setRootSort('manual');
+            localStorage.setItem(ROOT_SORT_KEY, 'manual');
+        }
+    };
+
     const dragOver = (event: React.DragEvent, target: string) => {
         if (!dragged.current) {
             return;
@@ -353,7 +415,9 @@ export const Sidebar = ({
     const renderNote = (note: iNote, depth: number) => (
         <div
             draggable
-            className={`tea-sidebar-item sidebar-row ${activeNoteId === note.id ? 'tea-sidebar-item--active' : ''}`}
+            className={`tea-sidebar-item sidebar-row ${activeNoteId === note.id ? 'tea-sidebar-item--active' : ''} ${
+                dropTarget === `before:${note.id}` ? 'sidebar-row--drop-before' : ''
+            }`}
             key={note.id}
             role='button'
             style={{ paddingLeft: 12 + depth * 16 }}
@@ -362,12 +426,23 @@ export const Sidebar = ({
             onContextMenu={(event) => openMenu(event, noteMenu(note))}
             onDragStart={(event) => startDrag(event, { type: 'note', id: note.id })}
             onDragEnd={() => setDropTarget(null)}
+            onDragOver={(event) => dragged.current?.type === 'note' && dragged.current.id !== note.id && dragOver(event, `before:${note.id}`)}
+            onDragLeave={() => setDropTarget((current) => (current === `before:${note.id}` ? null : current))}
+            onDrop={(event) => dropBefore(event, note)}
             onKeyDown={(event) => event.key === 'Enter' && onNoteSelect(note.id)}
         >
             <div className='tea-sidebar-item__content'>
                 <div className='tea-sidebar-item__header'>
                     <span className='tea-sidebar-item__title'>
                         {dirtyNoteIds.has(note.id) && <span className='sync-dot' title={`Not saved yet (${shortcutText('save')})`} />}
+                        {note.pinned && (
+                            <span
+                                className='sidebar-row__anchor'
+                                title={note.pinned === 'global' ? 'Pinned globally' : 'Pinned in its folder'}
+                            >
+                                <PinIcon />
+                            </span>
+                        )}
                         {note.isAnchor && (
                             <span className='sidebar-row__anchor' title='Anchor note'>
                                 <BookmarkIcon size={12} />
@@ -452,18 +527,26 @@ export const Sidebar = ({
             onDragOver={(event) => dragOver(event, 'root')}
             onDragLeave={(event) => event.currentTarget === event.target && setDropTarget(null)}
             onDrop={(event) => dropOn(event, null)}
+            onContextMenu={(event) => !(event.target as HTMLElement).closest('.sidebar-row') && openMenu(event, listMenu())}
         >
             {notes.length === 0 && folders.length === 0 ? (
                 <div id='sidebar-empty'>No notes yet. Click + to create one.</div>
             ) : (
                 <>
+                    {pinnedNotes.some(noteMatches) && (
+                        <>
+                            <div className='sidebar-section-label'>Pinned</div>
+                            {pinnedNotes.filter(noteMatches).map((note) => renderNote(note, 0))}
+                            <div className='sidebar-section-label'>Notes</div>
+                        </>
+                    )}
                     {foldersIn(null)
                         .filter(folderShown)
                         .map((folder) => renderFolder(folder, 0))}
                     {notesIn(null)
                         .filter(noteMatches)
                         .map((note) => renderNote(note, 0))}
-                    {needle && !foldersIn(null).some(folderShown) && !notesIn(null).some(noteMatches) && (
+                    {needle && !foldersIn(null).some(folderShown) && !notesIn(null).some(noteMatches) && !pinnedNotes.some(noteMatches) && (
                         <div id='sidebar-empty'>Nothing found.</div>
                     )}
                 </>
@@ -668,6 +751,33 @@ export const Sidebar = ({
                             ))}
                         </select>
                     </label>
+                </div>
+            </TeaModal>
+
+            {/* How the notes of a folder are ordered */}
+            <TeaModal
+                isOpen={sortTarget !== null}
+                size='sm'
+                title='Sort notes'
+                onClose={() => setSortTarget(null)}
+            >
+                <div className='sort-options'>
+                    <p>
+                        {sortTarget === 'root'
+                            ? 'The notes that are in no folder.'
+                            : `The notes in "${folders.find((f) => f.id === sortTarget)?.name ?? ''}".`}
+                    </p>
+                    {SORT_MODES.map((mode) => (
+                        <button
+                            key={mode.id}
+                            className={`sort-options__option ${
+                                sortModeOf(sortTarget === 'root' ? null : sortTarget) === mode.id ? 'sort-options__option--active' : ''
+                            }`}
+                            onClick={() => chooseSort(mode.id)}
+                        >
+                            {mode.label}
+                        </button>
+                    ))}
                 </div>
             </TeaModal>
 

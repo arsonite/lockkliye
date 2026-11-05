@@ -118,7 +118,6 @@ Sorted by priority.
 ### Low
 
 - Right click on global to change the settings there too
-- Right click on empty space in the editor opens a modal to create new things
 - Do not autofocus when creating a new block (setting)
 - Add user authentication
 - Allow password lockdown of single notes (iCloud style)

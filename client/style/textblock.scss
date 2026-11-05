@@ -355,6 +355,28 @@
         gap: 4px;
     }
 
+    &__list-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 6px;
+
+        color: var(--text-secondary);
+        font-size: 12px;
+    }
+
+    &__select {
+        padding: 4px 6px;
+
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font: inherit;
+        font-size: 12px;
+    }
+
     &__option {
         padding: 6px 10px;
         background: var(--bg-tertiary);
