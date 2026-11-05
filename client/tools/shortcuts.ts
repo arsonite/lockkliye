@@ -1,6 +1,16 @@
 /**
  * @license
  * Copyright (C) 2024-2026 Burak Günaydin
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  */
 
 // Types
@@ -22,38 +32,65 @@ interface iShortcut {
 // The ids stay literal while the entries are all typed as shortcuts
 const define = <T extends Record<string, iShortcut>>(shortcuts: T): Record<keyof T, iShortcut> => shortcuts;
 
+const SHORTCUT_KEYS = {
+    bold: 'Ctrl+B',
+    italic: 'Ctrl+I',
+    underline: 'Ctrl+U',
+    strikethrough: 'Ctrl+Shift+S',
+    color: 'Ctrl+Shift+C',
+    highlight: 'Ctrl+Shift+H',
+    link: 'Ctrl+K',
+    colorPick: 'Ctrl+Shift+1…8',
+    sizes: 'Ctrl+Alt+1…6',
+    sizeTitle: 'Ctrl+Alt+1',
+    sizeHeading: 'Ctrl+Alt+2',
+    sizeSubheading: 'Ctrl+Alt+3',
+    sizeBody: 'Ctrl+Alt+4',
+    sizeSmall: 'Ctrl+Alt+5',
+    sizeCaption: 'Ctrl+Alt+6',
+    larger: 'Ctrl+]',
+    smaller: 'Ctrl+[',
+    anchor: 'Ctrl+Shift+A',
+    save: 'Ctrl+S',
+    undo: 'Ctrl+Z',
+    redo: 'Ctrl+Shift+Z',
+    escape: 'Escape',
+    toggleSidebar: 'Ctrl+L',
+    newBlock: 'Shift+Enter',
+};
+
 const SHORTCUTS = define({
-    bold: { group: 'Text', keys: ['Ctrl+B'], label: 'Bold', mode: 'bold' },
-    italic: { group: 'Text', keys: ['Ctrl+I'], label: 'Italic', mode: 'italic' },
-    underline: { group: 'Text', keys: ['Ctrl+U'], label: 'Underline', mode: 'underline' },
-    strikethrough: { group: 'Text', keys: ['Ctrl+Shift+S'], label: 'Strikethrough', mode: 'strikethrough' },
-    color: { group: 'Text', keys: ['Ctrl+Shift+C'], label: 'Text color', mode: 'color' },
-    highlight: { group: 'Text', keys: ['Ctrl+Shift+H'], label: 'Highlight', mode: 'highlight' },
-    link: { group: 'Text', keys: ['Ctrl+K'], label: 'Hyperlink', mode: 'link', off: !HYPERLINKS_ENABLED },
+    bold: { group: 'Text', keys: [SHORTCUT_KEYS.bold], label: 'Bold', mode: 'bold' },
+    italic: { group: 'Text', keys: [SHORTCUT_KEYS.italic], label: 'Italic', mode: 'italic' },
+    underline: { group: 'Text', keys: [SHORTCUT_KEYS.underline], label: 'Underline', mode: 'underline' },
+    strikethrough: { group: 'Text', keys: [SHORTCUT_KEYS.strikethrough], label: 'Strikethrough', mode: 'strikethrough' },
+    color: { group: 'Text', keys: [SHORTCUT_KEYS.color], label: 'Text color', mode: 'color' },
+    highlight: { group: 'Text', keys: [SHORTCUT_KEYS.highlight], label: 'Highlight', mode: 'highlight' },
+    link: { group: 'Text', keys: [SHORTCUT_KEYS.link], label: 'Hyperlink', mode: 'link', off: !HYPERLINKS_ENABLED },
     colorPick: {
         group: 'Text',
-        keys: ['Ctrl+Shift+1…8'],
+        keys: [SHORTCUT_KEYS.colorPick],
         label: 'Pick a color while the color bar is open',
         display: true,
     },
-    sizes: { group: 'Text', keys: ['Ctrl+Alt+1…6'], label: 'Text size, from Title down to Caption', display: true },
-    sizeTitle: { group: 'Text', keys: ['Ctrl+Alt+1'], label: 'Title', mode: 'huge', hidden: true },
-    sizeHeading: { group: 'Text', keys: ['Ctrl+Alt+2'], label: 'Heading', mode: 'larger', hidden: true },
-    sizeSubheading: { group: 'Text', keys: ['Ctrl+Alt+3'], label: 'Subheading', mode: 'large', hidden: true },
-    sizeBody: { group: 'Text', keys: ['Ctrl+Alt+4'], label: 'Body', mode: 'normal', hidden: true },
-    sizeSmall: { group: 'Text', keys: ['Ctrl+Alt+5'], label: 'Small', mode: 'smaller', hidden: true },
-    sizeCaption: { group: 'Text', keys: ['Ctrl+Alt+6'], label: 'Caption', mode: 'tiny', hidden: true },
-    larger: { group: 'Text', keys: ['Ctrl+]'], label: 'Larger text', mode: 'larger' },
-    smaller: { group: 'Text', keys: ['Ctrl+['], label: 'Smaller text', mode: 'smaller' },
-    anchor: { group: 'Text', keys: ['Ctrl+Shift+A'], label: 'Anchor mode', mode: 'anchor' },
+    sizes: { group: 'Text', keys: [SHORTCUT_KEYS.sizes], label: 'Text size, from Title down to Caption', display: true },
+    sizeTitle: { group: 'Text', keys: [SHORTCUT_KEYS.sizeTitle], label: 'Title', mode: 'huge', hidden: true },
+    sizeHeading: { group: 'Text', keys: [SHORTCUT_KEYS.sizeHeading], label: 'Heading', mode: 'larger', hidden: true },
+    sizeSubheading: { group: 'Text', keys: [SHORTCUT_KEYS.sizeSubheading], label: 'Subheading', mode: 'large', hidden: true },
+    sizeBody: { group: 'Text', keys: [SHORTCUT_KEYS.sizeBody], label: 'Body', mode: 'normal', hidden: true },
+    sizeSmall: { group: 'Text', keys: [SHORTCUT_KEYS.sizeSmall], label: 'Small', mode: 'smaller', hidden: true },
+    sizeCaption: { group: 'Text', keys: [SHORTCUT_KEYS.sizeCaption], label: 'Caption', mode: 'tiny', hidden: true },
+    larger: { group: 'Text', keys: [SHORTCUT_KEYS.larger], label: 'Larger text', mode: 'larger' },
+    smaller: { group: 'Text', keys: [SHORTCUT_KEYS.smaller], label: 'Smaller text', mode: 'smaller' },
+    anchor: { group: 'Text', keys: [SHORTCUT_KEYS.anchor], label: 'Anchor mode', mode: 'anchor' },
 
-    save: { group: 'General', keys: ['Ctrl+S'], label: 'Save to the server' },
-    undo: { group: 'General', keys: ['Ctrl+Z'], label: 'Undo' },
-    redo: { group: 'General', keys: ['Ctrl+Shift+Z', 'Ctrl+Y'], label: 'Redo' },
-    escape: { group: 'General', keys: ['Escape'], label: 'Leave formatting mode and close the settings' },
-    toggleSidebar: { group: 'General', keys: ['Ctrl+L'], label: 'Collapse or expand the sidebar' },
+    save: { group: 'General', keys: [SHORTCUT_KEYS.save], label: 'Save to the server' },
+    undo: { group: 'General', keys: [SHORTCUT_KEYS.undo], label: 'Undo' },
+    redo: { group: 'General', keys: [SHORTCUT_KEYS.redo, 'Ctrl+Y'], label: 'Redo' },
+    escape: { group: 'General', keys: [SHORTCUT_KEYS.escape], label: 'Leave formatting mode and close the settings' },
+    toggleSidebar: { group: 'General', keys: [SHORTCUT_KEYS.toggleSidebar], label: 'Collapse or expand the sidebar' },
 
-    newBlock: { group: 'Blocks', keys: ['Shift+Enter'], label: 'New block below' },
+    newBlock: { group: 'Blocks', keys: [SHORTCUT_KEYS.newBlock], label: 'New block below' },
 });
 
 type tShortcutId = keyof typeof SHORTCUTS;

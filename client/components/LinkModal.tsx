@@ -13,6 +13,7 @@
  * all copies or substantial portions of the Software.
  */
 
+// React imports
 import { useState, useEffect, useRef } from 'react';
 
 // TeaType icons
@@ -87,6 +88,7 @@ export const LinkModal: React.FC<iLinkModalProps> = ({
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, url, onClose]);
 
     const handleSave = () => {
