@@ -21,6 +21,7 @@ WORKSPACE_ROOT="$TEATYPE_ROOT/ts"
 # The backend (lockkliye_server.py, scripts/launch-server) runs in the teatype venv
 VENV="$TEATYPE_ROOT/teatype-venv"
 PYTHON="${PYTHON:-python3.13}"
+ENV_FILE="$SCRIPT_DIR/../.env"
 
 if ! command -v pnpm &> /dev/null; then
     echo "Error: pnpm not found. Install it first (e.g. 'corepack enable')"
@@ -35,6 +36,23 @@ if [ ! -x "$VENV/bin/python" ]; then
     "$PYTHON" -m venv "$VENV"
 fi
 
+if [ ! -f "$ENV_FILE" ]; then
+    echo "Creating .env from .env.template ..."
+    cp "$SCRIPT_DIR/../.env.template" "$ENV_FILE"
+fi
+
+# A variable that is already set wins over .env, like in the server
+DATA_PATH="${LOCKKLIYE_DATA_PATH:-$(grep -E '^LOCKKLIYE_DATA_PATH=' "$ENV_FILE" | tail -1 | cut -d= -f2- | tr -d "\"'\r")}"
+DATA_PATH="${DATA_PATH:-/var/lib/lockkliye}"
+OWNER="${SUDO_USER:-$(id -un)}"
+
+# Only asks for sudo when the user cannot create it himself, e.g. directly below /var/lib. 750, the notes are private.
+echo "Creating the data directory $DATA_PATH ..."
+if ! { mkdir -p "$DATA_PATH" 2>/dev/null && [ "$(stat -c %U "$DATA_PATH")" = "$OWNER" ]; }; then
+    sudo install -d -o "$OWNER" -g "$(id -gn "$OWNER")" -m 750 "$DATA_PATH"
+fi
+chmod 750 "$DATA_PATH"
+
 echo "Installing frontend dependencies ..."
 (cd "$WORKSPACE_ROOT" && pnpm install)
 
@@ -42,3 +60,4 @@ echo "Installing backend dependencies ..."
 # Editable teatype brings its own requirements, FastAPI and uvicorn serve the HSDB unit and are pinned in the fastapi extras
 "$VENV/bin/pip" install -e "$TEATYPE_ROOT/py"
 grep -E '^(fastapi|uvicorn)==' "$TEATYPE_ROOT/py/requirements/fastapi-support.txt" | xargs "$VENV/bin/pip" install
+

@@ -2,7 +2,7 @@
 
 ## 1. The project
 
-- Workspace root: `/home/burak/arsonite` with the folders `lockkliye` (the notes app), `teatype` (shared libraries and the HSDB database), `clover`, `quickle`, `snooPy`. Data of the backend: `/home/burak/arsonite/_data`.
+- Workspace root: `/home/burak/arsonite` with the folders `lockkliye` (the notes app), `teatype` (shared libraries and the HSDB database), `clover`, `quickle`, `snooPy`. Data of the backend: `LOCKKLIYE_DATA_PATH` of `.env` (`/var/lib/lockkliye`, created by `scripts/install`).
 - Lockkliye: React 19, Vite 5, TypeScript 5.6, SCSS. Word-level formatted notes, offline first, saved to a FastAPI/HSDB backend with Ctrl+S.
 - Shared UI lives in `teatype/ts/components` and is imported as `@teatype/components` (alias to `../teatype/ts`). Icons from `@teatype/icons`.
 - Source dir is `lockkliye/client` (alias `@/`). Layout now: `components/`, `hooks/`, `style/` (unprefixed partials such as `editor.scss`, imported alphabetically in `index.scss`), `sync/`, `tools/` (folderTree, indexedDB, palette, randomGenerator), `types/index.ts`. Server models in `lockkliye/server/models`, entry point `lockkliye_server.py`. Ports are configured from `.env` (latest commit).
@@ -31,7 +31,7 @@
 ## 3. How to run and test safely
 
 - Dev server: `cd lockkliye && VITE_HSDB_PORT=8766 ./node_modules/.bin/vite --port 3010` (run from the lockkliye dir; the eslint plugin needs the cwd).
-- IMPORTANT: the default `LOCKKLIYE_PORT` is 8765, the user's real, running backend (a test page then shows the user's own notes). Always start test servers with `LOCKKLIYE_PORT=8766` (nothing listens there, the app works offline) or start a test backend with a temporary data path (copy `lockkliye_server.py`, change `DATA_PATH` to `/tmp/...`, port 8766). A test Ctrl+S against 8765 writes real data. After a test: `find /home/burak/arsonite/_data -type f -mmin -5` should only show the user's own activity. Each test dev-server port is a new browser origin with its own IndexedDB.
+- IMPORTANT: the default `LOCKKLIYE_PORT` is 8765, the user's real, running backend (a test page then shows the user's own notes). Always start test servers with `LOCKKLIYE_PORT=8766` (nothing listens there, the app works offline) or start a test backend with a temporary data path (`mkdir /tmp/lk && LOCKKLIYE_DATA_PATH=/tmp/lk LOCKKLIYE_PORT=8766 <teatype venv>/bin/python lockkliye_server.py`). A test Ctrl+S against 8765 writes real data. After a test: `find /var/lib/lockkliye -type f -mmin -5` should only show the user's own activity. Each test dev-server port is a new browser origin with its own IndexedDB.
 - Type-check: `node_modules/.bin/tsc -p tsconfig.app.json --noEmit 2>&1 | grep -E "^client/|^index"`. Baseline warnings: unused `saveCursorPosition` / `restoreCursorPosition` in `RichTextEditor.tsx`. ESLint: `node_modules/.bin/eslint client` (about 12 warnings, 0 errors). SCSS check: `node_modules/.bin/sass --load-path=client/style --quiet client/style/index.scss > /dev/null`.
 - Browser tool quirks: tabs are often hidden (requestAnimationFrame and smooth scroll paused, screenshots can be stale, use selector screenshots); real Ctrl keys are not delivered (dispatch `KeyboardEvent`); use `document.execCommand('insertText')` to type; page ids expire quickly (reopen with 127.0.0.1); Playwright snippets have no `Buffer`.
 - Tool quirks: `multi_replace_string_in_file` checks uniqueness against the original file; `get_errors` can show stale results right after an edit.

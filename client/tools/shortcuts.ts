@@ -20,10 +20,10 @@ import type { tFormatMode } from '@/types';
 // The one place that defines the keyboard shortcuts: what handles them, what shows them (tooltips, keycaps, the
 // settings, the tutorial) and the list in the settings all read from here.
 interface iShortcut {
+    display?: boolean; // Only shown, the app reads a range of keys on its own
     group: 'Text' | 'General' | 'Blocks';
     keys: string[]; // The first one is the one that is shown, the others are alternatives
     label: string;
-    display?: boolean; // Only shown, the app reads a range of keys on its own
     hidden?: boolean; // Left out of the list in the settings
     mode?: tFormatMode; // The format mode that the shortcut toggles
     off?: boolean;
@@ -143,4 +143,5 @@ const colorIndexOf = (event: tKeyEvent): number | null => {
 };
 
 export type { iShortcut, tShortcutId };
+
 export { SHORTCUT_GROUPS, SHORTCUTS, colorIndexOf, shortcutBase, shortcutKey, shortcutOf, shortcutText };

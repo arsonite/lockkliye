@@ -82,7 +82,7 @@ The data is stored by an HSDB server from the teatype library, the UI uses the t
     ./scripts/install
     ```
 
-2. Optionally copy `.env.template` to `.env` to change the client port (`LOCKKLIYE_CLIENT_PORT`, default `8101`) or the HSDB server port (`LOCKKLIYE_PORT`, default `8765`)
+2. `scripts/install` copies `.env.template` to `.env` and creates the data directory (`LOCKKLIYE_DATA_PATH`, default `/var/lib/lockkliye`, owned by you, mode 750). Edit `.env` to change the client port (`LOCKKLIYE_CLIENT_PORT`, default `8101`) or the HSDB server port (`LOCKKLIYE_PORT`, default `8765`)
 3. Start the HSDB server
 
     ```sh
@@ -101,7 +101,7 @@ The data is stored by an HSDB server from the teatype library, the UI uses the t
 
 ## Usage
 
-Run the production build with `pnpm build` and preview it with `pnpm preview`. Notes are stored in `_data/` next to the repository, back that folder up to keep your notes.
+Run the production build with `pnpm build` and preview it with `pnpm preview`. Notes are stored in `LOCKKLIYE_DATA_PATH` (`/var/lib/lockkliye` by default), back that folder up to keep your notes.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -113,6 +113,8 @@ Sorted by priority.
 
 ### High
 
+- make taskbar thinner and reduce opactity when scrolling only showing full when hovering over taskbar or activating shortcuts and also hide the numbers when holding text size shortcut
+- When selecting text and right click, open up options modal, like taking the block of text and creating a new block on top or under current text (with option to focus or remain)
 - Last edited note is always on top
 - Add components: checklist, table and code block
 - Auto-convert list-like text to a list with customizable decorators
