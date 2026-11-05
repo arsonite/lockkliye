@@ -114,12 +114,6 @@ Sorted by priority.
 ### High
 
 - make taskbar thinner and reduce opactity when scrolling only showing full when hovering over taskbar or activating shortcuts and also hide the numbers when holding text size shortcut
-- When selecting text and right click, open up options modal, like taking the block of text and creating a new block on top or under current text (with option to focus or remain)
-- Last edited note is always on top
-- Add components: checklist, table and code block
-- Auto-convert list-like text to a list with customizable decorators
-- Allow reordering notes (right click a folder to enable auto-sorting and choose the kind)
-- Allow pinning notes in folders and globally with right click
 
 ### Low
 
