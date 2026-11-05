@@ -26,6 +26,9 @@ export const getBaseViteConfig = (): UserConfig => {
     const serverPort = Number(env.LOCKKLIYE_PORT ?? 8765);
 
     return {
+        // homepie publishes the app under https://homepie.net/lockkliye/, so that it stays inside the fullscreen
+        // home screen app of homepie (iOS leaves it when navigating to another origin)
+        base: '/lockkliye/',
         plugins: [react(), eslint()],
         resolve: {
             alias: {
@@ -45,7 +48,7 @@ export const getBaseViteConfig = (): UserConfig => {
             },
         },
         server: {
-            // Only reachable through the homepie nginx (https://lockkliye.homepie.net), which handles the login
+            // Only reachable through the homepie nginx (https://homepie.net/lockkliye/), which handles the login
             host: '127.0.0.1',
             port: clientPort,
             strictPort: true,
@@ -53,7 +56,11 @@ export const getBaseViteConfig = (): UserConfig => {
             allowedHosts: ['localhost', '.homepie.net'],
             // The browser talks to this origin only, the HSDB server (127.0.0.1:<LOCKKLIYE_PORT>) is not exposed
             proxy: {
-                '/hsdb': { target: `http://127.0.0.1:${serverPort}`, changeOrigin: true },
+                '/lockkliye/hsdb': {
+                    target: `http://127.0.0.1:${serverPort}`,
+                    changeOrigin: true,
+                    rewrite: (path) => path.replace(/^\/lockkliye/, ''),
+                },
             },
         },
     };

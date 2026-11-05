@@ -33,5 +33,5 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
 
 // Lets the browser start the app without a connection, only in a build: a dev server is not meant to be cached
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
-    window.addEventListener('load', () => void navigator.serviceWorker.register('/sw.js'));
+    window.addEventListener('load', () => void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`));
 }
