@@ -22,6 +22,7 @@ import { resolve } from 'path';
 // (homepie/src/nginx/conf.d/00-homepie-apps.conf)
 export const getBaseViteConfig = (): UserConfig => {
     const env = loadEnv(process.env.NODE_ENV ?? 'development', __dirname, '');
+    const clientHost = env.LOCKKLIYE_HOST ?? '127.0.0.1';
     const clientPort = Number(env.LOCKKLIYE_CLIENT_PORT ?? 8101);
     const serverPort = Number(env.LOCKKLIYE_PORT ?? 8765);
     // Standalone the app runs on /, set LOCKKLIYE_BASE_PATH=/lockkliye/ when homepie publishes it under that path
@@ -48,8 +49,8 @@ export const getBaseViteConfig = (): UserConfig => {
             },
         },
         server: {
-            // Behind homepie only reachable through its nginx (https://homepie.net/lockkliye/), which handles the login
-            host: '127.0.0.1',
+            // Loopback only by default: behind homepie the app is only reachable through its nginx, which handles the login
+            host: clientHost,
             port: clientPort,
             strictPort: true,
             open: false,

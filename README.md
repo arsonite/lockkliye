@@ -82,7 +82,7 @@ The data is stored by an HSDB server from the teatype library, the UI uses the t
     ./scripts/install
     ```
 
-2. `scripts/install` copies `.env.template` to `.env` and creates the data directory (`LOCKKLIYE_DATA_PATH`, default `/var/lib/lockkliye`, owned by you, mode 750). Edit `.env` to change the client port (`LOCKKLIYE_CLIENT_PORT`, default `8101`) or the HSDB server port (`LOCKKLIYE_PORT`, default `8765`)
+2. `scripts/install` copies `.env.template` to `.env` and creates the data directory (`LOCKKLIYE_DATA_PATH`, default `/var/lib/lockkliye`, owned by you, mode 750). Edit `.env` to change the client port (`LOCKKLIYE_CLIENT_PORT`, default `8101`) or the HSDB server port (`LOCKKLIYE_PORT`, default `8765`). `LOCKKLIYE_BASE_PATH` (default `/`) is the path the app is served under, homepie publishes it at `/lockkliye/`. `LOCKKLIYE_HOST` (default `127.0.0.1`) set to `0.0.0.0` also serves it directly via the IP of the machine, without any login
 3. Start the HSDB server
 
     ```sh
