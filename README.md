@@ -113,6 +113,7 @@ Sorted by priority.
 
 ### High
 
+- small hollow circle for bullet, also show current bullet in block style and only show list options if a list is already in the block
 - make taskbar thinner and reduce opactity when scrolling only showing full when hovering over taskbar or activating shortcuts and also hide the numbers when holding text size shortcut
 
 ### Low
