@@ -213,7 +213,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
 
     return (
         <div
-            className={`notes-app ${sidebarExpanded && !mobile ? '' : 'notes-app--rail'} ${
+            className={`notes-app ${sidebarExpanded && !mobile ? '' : 'notes-app--rail'} ${mobile ? 'notes-app--mobile' : ''} ${
                 store.lightMode ? 'light-mode' : ''
             }`}
         >

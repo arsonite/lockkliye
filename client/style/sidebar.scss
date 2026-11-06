@@ -188,8 +188,16 @@
             }
         }
 
-        &:hover &-delete {
-            opacity: 1;
+        @media (hover: hover) {
+            &:hover &-delete {
+                opacity: 1;
+            }
+        }
+
+        @media (hover: none) {
+            &-delete {
+                display: none;
+            }
         }
 
         &-meta {

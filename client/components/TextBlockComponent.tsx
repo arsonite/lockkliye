@@ -99,7 +99,7 @@ export const TextBlockComponent = ({
 }) => {
     const [showStyleMenu, setShowStyleMenu] = useState(false);
     // Where a right-click or a long press opened the menu, null when the button did
-    const [menuPoint, setMenuPoint] = useState<{ x: number; y: number } | null>(null);
+    const [menuPoint, setMenuPoint] = useState<{ x: number; y: number } | 'center' | null>(null);
     const [isResizing, setIsResizing] = useState(false);
     const [isNearEdge, setIsNearEdge] = useState(false);
     const [titleInput, setTitleInput] = useState(block.style.title || '');
@@ -122,8 +122,9 @@ export const TextBlockComponent = ({
     const styleMenuRef = useRef<HTMLDivElement>(null);
     const blockRef = useRef<HTMLDivElement>(null);
     // Holding the block opens the style menu where there is no right-click, holding the width handle resets the width
-    const menuPress = useLongPress(({ x, y }) => {
-        setMenuPoint({ x, y });
+    // It opens in the middle of the screen, a finger on the text would hide it
+    const menuPress = useLongPress(() => {
+        setMenuPoint('center');
         setShowStyleMenu(true);
     });
     const widthPress = useLongPress(
@@ -154,7 +155,7 @@ export const TextBlockComponent = ({
         return () => observer.disconnect();
     }, []);
 
-    // Place the menu at the mouse, kept inside the window
+    // Place the menu at the mouse or in the middle of the screen, kept inside the window
     useLayoutEffect(() => {
         const menu = styleMenuRef.current;
         const block = blockRef.current;
@@ -162,8 +163,12 @@ export const TextBlockComponent = ({
         const blockRect = block.getBoundingClientRect();
         // Not the rect, that is scaled by the opening animation
         const { offsetWidth: width, offsetHeight: height } = menu;
-        const x = Math.max(8, Math.min(menuPoint.x, window.innerWidth - width - 8));
-        const y = Math.max(8, Math.min(menuPoint.y, window.innerHeight - height - 8));
+        const at =
+            menuPoint === 'center'
+                ? { x: (window.innerWidth - width) / 2, y: (window.innerHeight - height) / 2 }
+                : menuPoint;
+        const x = Math.max(8, Math.min(at.x, window.innerWidth - width - 8));
+        const y = Math.max(8, Math.min(at.y, window.innerHeight - height - 8));
         menu.style.left = `${x - blockRect.left}px`;
         menu.style.top = `${y - blockRect.top}px`;
         menu.style.marginTop = '0';

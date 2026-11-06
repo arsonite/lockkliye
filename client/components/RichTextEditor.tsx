@@ -858,9 +858,10 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                         return;
                     }
 
-                    // Ctrl+click on a date opens its calendar, a tap does on a touch screen, which has no Ctrl
+                    // Ctrl+click on a date opens its calendar, a tap does on a touch screen, which has no Ctrl, but only
+                    // once the block is being edited: the first tap places the caret
                     const found = findDate(wordSpan.textContent ?? '');
-                    const touched = (e.nativeEvent as PointerEvent).pointerType === 'touch';
+                    const touched = (e.nativeEvent as PointerEvent).pointerType === 'touch' && focusedBeforeTap.current;
                     if (found && (e.ctrlKey || e.metaKey || touched) && !formatMode) {
                         e.preventDefault();
                         const rect = wordSpan.getBoundingClientRect();
@@ -986,6 +987,8 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
         return () => clearTimeout(timer);
     }, [autoFocus]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    const focusedBeforeTap = useRef(false);
+
     const handleFocus = () => {
         setIsFocused(true);
         if (editorRef.current) {
@@ -1023,6 +1026,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 onFocus={handleFocus}
                 onBlur={handleBlur}
                 onClick={handleClick}
+                onPointerDown={() => (focusedBeforeTap.current = document.activeElement === editorRef.current)}
                 onMouseDown={handleMouseDown}
                 onMouseUp={handleMouseUp}
                 onSelect={handleSelectStart}

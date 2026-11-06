@@ -30,9 +30,13 @@
 .sidebar-row {
     position: relative;
 
-    &:hover .sidebar-row__actions,
-    &:focus-within .sidebar-row__actions {
-        opacity: 1;
+    // Hover is left out where there is none: a touch screen shows the content a hover reveals instead of
+    // clicking, so a row needed two taps. There the long press opens the same actions as a menu.
+    @media (hover: hover) {
+        &:hover .sidebar-row__actions,
+        &:focus-within .sidebar-row__actions {
+            opacity: 1;
+        }
     }
 
     &__actions {
@@ -42,6 +46,10 @@
         margin-left: auto;
         opacity: 0;
         transition: opacity 0.15s;
+
+        @media (hover: none) {
+            display: none;
+        }
     }
 }
 

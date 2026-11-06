@@ -44,6 +44,7 @@ import type { iFolder, iNote, iTextBlock, iWord, tFormatMode, iHistoryEntry, iBl
 
 // Utils
 import useIsMobile from '@/hooks/useIsMobile';
+import useKeyboardTop from '@/hooks/useKeyboardTop';
 import { folderChain } from '@/tools/folderTree';
 import { shortcutText } from '@/tools/shortcuts';
 
@@ -164,6 +165,7 @@ export const NoteEditor = ({
     onUpdateBlockPreset,
 }: iNoteEditorProps) => {
     const mobile = useIsMobile();
+    const keyboardTop = useKeyboardTop(mobile);
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [titleValue, setTitleValue] = useState(note.title);
     const [showHistory, setShowHistory] = useState(false);
@@ -181,6 +183,7 @@ export const NoteEditor = ({
     const [isDragging, setIsDragging] = useState(false);
     // The block that was touched last keeps its buttons on a touch screen, which has no hover to show them
     const [touchedBlockId, setTouchedBlockId] = useState<string | null>(null);
+    const pointerType = useRef('mouse');
     // The box of the text block that is dragged, its width is a share of the note and its margins are part of the layout
     const [draggedBlockRect, setDraggedBlockRect] = useState<{
         width: number;
@@ -400,7 +403,10 @@ export const NoteEditor = ({
             onContextMenu={handleEmptySpaceMenu}
         >
             {/* Floating toolbar - fixed at top, overlays content */}
-            <div className='note-editor__toolbar-overlay'>
+            <div
+                className={`note-editor__toolbar-overlay ${keyboardTop !== null ? 'note-editor__toolbar-overlay--keyboard' : ''}`}
+                style={keyboardTop !== null ? ({ '--keyboard-top': `${keyboardTop}px` } as React.CSSProperties) : undefined}
+            >
                 <FloatingToolbar
                     formatMode={formatMode}
                     selectedColor={selectedColor}
@@ -487,7 +493,12 @@ export const NoteEditor = ({
                                             isBeingDragged ? 'note-editor__block-wrapper--dragging' : ''
                                         } ${block.id === touchedBlockId ? 'note-editor__block-wrapper--touched' : ''}`}
                                         onMouseMove={followMouse}
-                                        onPointerDownCapture={() => setTouchedBlockId(block.id)}
+                                        onPointerDownCapture={(e) => {
+                                            pointerType.current = e.pointerType;
+                                            if (e.pointerType === 'mouse') setTouchedBlockId(null);
+                                        }}
+                                        // On click, not on pointer down: a touch screen must not see the buttons appear before the tap went through
+                                        onClickCapture={() => pointerType.current !== 'mouse' && setTouchedBlockId(block.id)}
                                     >
                                         {/* Placeholder for dragged block */}
                                         {isBeingDragged && isDragging ? (

@@ -32,9 +32,13 @@
     height: 100dvh;
     width: 100%;
 
-    // Where the buttons of a block sit: in the editor, left of the text. Collapsed or on a phone, the rail of the
-    // sidebar lies over this gutter, so the page uses the whole width.
-    --gutter: 48px;
+    // Where the buttons of a block sit: in the editor, left of the text. The buttons are side by side with the drag
+    // handle. On a phone they are one column, over the rail of the sidebar, and the page uses the whole width.
+    --gutter: 72px;
+
+    &--mobile {
+        --gutter: 48px;
+    }
 
     // Only the main area of the app, the settings page has a main of its own
     > main {

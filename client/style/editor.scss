@@ -39,6 +39,19 @@
         .floating-toolbar {
             pointer-events: auto;
         }
+
+        // With the keyboard of a phone open the bar sits on top of it, the colour bar above the main one
+        &--keyboard {
+            position: fixed;
+            top: var(--keyboard-top);
+            bottom: auto;
+            padding: 8px 12px;
+            transform: translateY(-100%);
+
+            .floating-toolbar {
+                flex-direction: column-reverse;
+            }
+        }
     }
 
     &__history-overlay {
@@ -64,10 +77,19 @@
         opacity: 0;
         transition: opacity var(--transition);
 
-        &:hover,
         &:focus-within,
         &:has(.note-editor__history-dropdown) {
             opacity: 1;
+        }
+
+        @media (hover: hover) {
+            &:hover {
+                opacity: 1;
+            }
+        }
+
+        @media (hover: none) {
+            opacity: 0.6;
         }
     }
 
@@ -130,8 +152,10 @@
             transition: opacity var(--transition);
         }
 
-        &:hover::after {
-            opacity: 1;
+        @media (hover: hover) {
+            &:hover::after {
+                opacity: 1;
+            }
         }
 
         &--left {
@@ -158,8 +182,8 @@
     // The left gutter holds the buttons of a block and its drag handle, the right one is smaller by the same
     // amount so the text keeps its width
     &__header {
-        padding: 16px 24px 0 var(--gutter, 48px);
-        // padding: 16px 24px 16px var(--gutter, 48px);
+        padding: 16px 24px 0 var(--gutter, 72px);
+        // padding: 16px 24px 16px var(--gutter, 72px);
         width: 100%;
     }
 
@@ -279,7 +303,7 @@
 
     &__content {
         flex: 1;
-        padding: 16px 24px 16px var(--gutter, 48px);
+        padding: 16px 24px 16px var(--gutter, 72px);
         width: 100%;
     }
 
@@ -298,11 +322,17 @@
             position: absolute;
             top: 0;
             bottom: 0;
-            left: calc(-1 * var(--gutter, 48px));
-            width: var(--gutter, 48px);
+            left: calc(-1 * var(--gutter, 72px));
+            width: var(--gutter, 72px);
         }
 
-        &:hover .text-block__controls,
+        @media (hover: hover) {
+            &:hover .text-block__controls {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+
         &--touched .text-block__controls {
             opacity: 1;
             pointer-events: auto;
@@ -366,14 +396,17 @@
         }
     }
 
-    // The last of the buttons of a block, same size as the others
+    // Next to the buttons of the block, on a phone the last of them, same size as the others
     &__drag-handle {
+        position: absolute;
+        left: 100%;
+        top: 50%;
+        translate: 0 -50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: var(--radius-sm);
+        width: 20px;
+        height: 20px;
         cursor: grab;
         color: var(--text-tertiary);
         touch-action: none;
@@ -384,13 +417,20 @@
             background var(--transition);
 
         &:hover {
-            background: var(--bg-hover);
             color: var(--text-secondary);
         }
 
         &:active {
             cursor: grabbing;
         }
+    }
+
+    .notes-app--mobile &__drag-handle {
+        position: static;
+        translate: none;
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-sm);
     }
 
     &__drag-icon {
