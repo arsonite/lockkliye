@@ -53,6 +53,13 @@ if ! { mkdir -p "$DATA_PATH" 2>/dev/null && [ "$(stat -c %U "$DATA_PATH")" = "$O
 fi
 chmod 750 "$DATA_PATH"
 
+HSDB_PATH="/var/lib/hsdb"
+echo "Creating the HSDB directory $HSDB_PATH ..."
+if ! { mkdir -p "$HSDB_PATH" 2>/dev/null && [ "$(stat -c %U "$HSDB_PATH")" = "$OWNER" ]; }; then
+    sudo install -d -o "$OWNER" -g "$(id -gn "$OWNER")" -m 750 "$HSDB_PATH"
+fi
+chmod 750 "$HSDB_PATH"
+
 echo "Installing frontend dependencies ..."
 (cd "$WORKSPACE_ROOT" && pnpm install)
 

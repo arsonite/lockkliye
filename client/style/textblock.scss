@@ -17,8 +17,10 @@
 .text-block {
     position: relative;
     // The 1px border is always there, so a visible one does not move the text
-    padding: 15px;
-    margin-bottom: 12px;
+    // padding: 15px;
+    padding: 14px;
+    // margin-bottom: 12px;
+    margin-bottom: 7px;
     border: 1px solid transparent;
     border-radius: var(--radius-md);
     // The outline of the hovered block appears at once, its offset is not part of the outline shorthand
@@ -63,15 +65,15 @@
         cursor: ew-resize;
     }
 
-    // Left of the block in the gutter, right next to the drag handle. The padding closes the gap to the handle.
+    // Left of the block in the gutter, one column with the drag handle at the end. Over the rail of a collapsed sidebar.
     &__controls {
         position: absolute;
         top: var(--follow-y, 50%);
-        left: -64px;
+        left: calc(-1 * var(--gutter, 48px) + 6px);
         display: flex;
         flex-direction: column;
         gap: 4px;
-        padding-right: 4px;
+        padding-right: 10px;
         opacity: 0;
         // Hidden controls of a block stay out of the way of the ones of the block above, which reach down over it
         pointer-events: none;
@@ -283,6 +285,14 @@
             user-select: none;
             -webkit-user-select: none;
         }
+    }
+
+    // A date in the text, dashed like the link of a note, Ctrl+click opens its calendar
+    &__date {
+        text-decoration: underline dashed;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 4px;
+        text-decoration-skip-ink: none;
     }
 
     &__link-indicator {

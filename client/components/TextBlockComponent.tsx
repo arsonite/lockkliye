@@ -33,7 +33,8 @@ import type {
 } from '@/types';
 import { enabledOf } from '@/tools/palette';
 import { ChecklistBlock, TableBlock } from './BlockComponents';
-import { BULLETS, DEFAULT_LIST_OPTIONS, NUMBERINGS, convertListMarkers, numberingLabel } from '@/tools/lists';
+import { BULLETS, DEFAULT_LIST_OPTIONS, NUMBERINGS, convertListMarkers, currentListStyle, numberingLabel } from '@/tools/lists';
+import useLongPress from '@/hooks/useLongPress';
 import { PopoverMenu } from './PopoverMenu';
 import { RichTextEditor } from './RichTextEditor';
 import { TeaModal } from '@teatype/components';
@@ -66,6 +67,7 @@ interface iTextBlockComponentProps {
     onEditingChange?: (blockId: string, isEditing: boolean) => void;
     onClearFormatMode?: () => void;
     onSaveAsPreset?: (style: iBlockStyle) => void;
+    handle?: React.ReactNode; // The drag handle, kept under the buttons of the block
 }
 
 export const TextBlockComponent = ({
@@ -88,6 +90,7 @@ export const TextBlockComponent = ({
     onAutoFocused,
     onClearFormatMode,
     onSaveAsPreset,
+    handle,
     confirmDeletions = true,
     showStyleButton = false,
 }: iTextBlockComponentProps & {
@@ -118,16 +121,21 @@ export const TextBlockComponent = ({
     );
     const styleMenuRef = useRef<HTMLDivElement>(null);
     const blockRef = useRef<HTMLDivElement>(null);
-    const longPress = useRef<number | null>(null);
+    // Holding the block opens the style menu where there is no right-click, holding the width handle resets the width
+    const menuPress = useLongPress(({ x, y }) => {
+        setMenuPoint({ x, y });
+        setShowStyleMenu(true);
+    });
+    const widthPress = useLongPress(
+        () => {
+            setIsResizing(false);
+            onStyleChange(block.id, { widthPercent: undefined });
+        },
+        { mouse: true },
+    );
 
+    const cancelWidthPress = widthPress.cancel;
     const blockStyle = block.style;
-
-    const cancelLongPress = () => {
-        if (longPress.current !== null) {
-            clearTimeout(longPress.current);
-            longPress.current = null;
-        }
-    };
 
     // Watch for light mode changes via MutationObserver
     useEffect(() => {
@@ -169,12 +177,8 @@ export const TextBlockComponent = ({
             }
         };
 
-        document.addEventListener('mousedown', handleClickOutside);
-        document.addEventListener('touchstart', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-            document.removeEventListener('touchstart', handleClickOutside);
-        };
+        document.addEventListener('pointerdown', handleClickOutside);
+        return () => document.removeEventListener('pointerdown', handleClickOutside);
     }, [showStyleMenu]);
 
     // Handle width resizing
@@ -197,6 +201,7 @@ export const TextBlockComponent = ({
 
             // Only update if the snapped value changed
             if (clampedWidth !== block.style.widthPercent) {
+                cancelWidthPress(); // Dragged, not held
                 onStyleChange(block.id, { widthPercent: clampedWidth });
             }
         };
@@ -212,7 +217,7 @@ export const TextBlockComponent = ({
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
-    }, [isResizing, block.id, block.style.widthPercent, onStyleChange]);
+    }, [isResizing, block.id, block.style.widthPercent, onStyleChange, cancelWidthPress]);
 
     // Detect when mouse is near right edge of block
     const handleMouseMoveOnBlock = (e: React.MouseEvent) => {
@@ -401,6 +406,10 @@ export const TextBlockComponent = ({
 
     // Save current block style as a preset
     // Choosing what the settings say follows the settings again. The lists of the block change at once.
+    // The lists the block has, the options of a kind are only offered where that kind is in the text
+    const listInUse = !block.kind || block.kind === 'text' ? currentListStyle(block.words) : {};
+    const hasList = Boolean(listInUse.bullet || listInUse.numbering);
+
     const handleListChoice = (key: 'bullet' | 'numbering', value: string) => {
         const { [key]: _previous, ...others } = blockStyle.listOptions ?? {};
         const own: iBlockListOptions = value === listOptions?.[key] ? others : { ...others, [key]: value };
@@ -440,19 +449,13 @@ export const TextBlockComponent = ({
                     setMenuPoint({ x: e.clientX, y: e.clientY });
                     setShowStyleMenu(true);
                 }}
-                // A long press on a touch screen, browsers that send no context menu event for it need this
-                onTouchStart={(e) => {
-                    if (styleMenuRef.current?.contains(e.target as Node) || e.touches.length !== 1) return;
-                    const { clientX: x, clientY: y } = e.touches[0];
-                    cancelLongPress();
-                    longPress.current = window.setTimeout(() => {
-                        setMenuPoint({ x, y });
-                        setShowStyleMenu(true);
-                    }, 500);
+                {...menuPress.handlers}
+                onPointerDown={(e) => {
+                    const target = e.target as HTMLElement;
+                    if (!styleMenuRef.current?.contains(target) && !target.closest('.text-block__controls, .text-block__resize-handle')) {
+                        menuPress.handlers.onPointerDown(e);
+                    }
                 }}
-                onTouchMove={cancelLongPress}
-                onTouchEnd={cancelLongPress}
-                onTouchCancel={cancelLongPress}
             >
                 {/* Block title (legend-style) with color based on background */}
                 {blockStyle.title && (
@@ -471,15 +474,12 @@ export const TextBlockComponent = ({
                 {(isNearEdge || isResizing) && (
                     <div
                         className='text-block__resize-handle'
+                        {...widthPress.handlers}
                         onMouseDown={(e) => {
                             e.preventDefault();
                             setIsResizing(true);
                         }}
-                        onDoubleClick={() => {
-                            setIsResizing(false);
-                            onStyleChange(block.id, { widthPercent: undefined });
-                        }}
-                        title='Double-click to reset the width'
+                        title='Hold to reset the width'
                     />
                 )}
 
@@ -530,6 +530,7 @@ export const TextBlockComponent = ({
                     <button className='text-block__delete-btn' onClick={handleDelete} title='Delete block'>
                         <XIcon width='1em' height='1em' />
                     </button>
+                    {handle}
                 </div>
 
                 {showStyleMenu && (
@@ -724,7 +725,7 @@ export const TextBlockComponent = ({
                                 </div>
                             )}
                         </div>
-                        {(!block.kind || block.kind === 'text') && (
+                        {hasList && (
                             <div className='style-menu__section'>
                                 <span className='style-menu__label'>Lists</span>
                                 {(
@@ -736,22 +737,24 @@ export const TextBlockComponent = ({
                                             (Object.keys(NUMBERINGS) as tNumbering[]).map((id) => [id, numberingLabel(id)]),
                                         ],
                                     ] as ['bullet' | 'numbering', string, string[][]][]
-                                ).map(([key, label, choices]) => (
-                                    <label key={key} className='style-menu__list-row'>
-                                        {label}
-                                        <select
-                                            className='style-menu__select'
-                                            value={blockStyle.listOptions?.[key] ?? listOptions?.[key]}
-                                            onChange={(e) => handleListChoice(key, e.target.value)}
-                                        >
-                                            {choices.map(([value, text]) => (
-                                                <option key={value} value={value}>
-                                                    {text}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </label>
-                                ))}
+                                )
+                                    .filter(([key]) => listInUse[key])
+                                    .map(([key, label, choices]) => (
+                                        <label key={key} className='style-menu__list-row'>
+                                            {label}
+                                            <select
+                                                className='style-menu__select'
+                                                value={listInUse[key]}
+                                                onChange={(e) => handleListChoice(key, e.target.value)}
+                                            >
+                                                {choices.map(([value, text]) => (
+                                                    <option key={value} value={value}>
+                                                        {text}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </label>
+                                    ))}
                             </div>
                         )}
                         {onSaveAsPreset && (

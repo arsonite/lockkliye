@@ -27,6 +27,7 @@ import { SettingsView } from '@/components/SettingsView';
 import { Sidebar } from '@/components/Sidebar';
 
 // Hooks
+import useIsMobile from '@/hooks/useIsMobile';
 import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 import useNotesStore from '@/hooks/useNotesStore';
 
@@ -54,6 +55,12 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
     const toast = useTeaToast();
     // When true, the settings view replaces the editor in the main area
     const [showSettings, setShowSettings] = useState(false);
+    // On a phone the sidebar is a sheet over everything, opened on demand and not part of the saved layout
+    const mobile = useIsMobile();
+    const [sheetOpen, setSheetOpen] = useState(false);
+    const sidebarExpanded = mobile ? sheetOpen : store.sidebarExpanded;
+    const toggleSidebar = mobile ? () => setSheetOpen((open) => !open) : store.toggleSidebar;
+    const closeSheet = () => setSheetOpen(false);
 
     // The toast is rendered in the body, so its light mode comes from the body
     useEffect(() => {
@@ -95,9 +102,10 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
         onEscape: () => {
             store.setFormatMode(null);
             setShowSettings(false);
+            closeSheet();
         },
         onFormatToggle: store.toggleFormatMode,
-        onToggleSidebar: store.toggleSidebar,
+        onToggleSidebar: toggleSidebar,
         onColorIndex: (index) => {
             const color = enabledOf('text', store.palette)[index];
             if ((store.formatMode !== 'color' && store.formatMode !== 'highlight') || !color) {
@@ -205,7 +213,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
 
     return (
         <div
-            className={`notes-app ${store.sidebarExpanded ? '' : 'notes-app--fullscreen'} ${
+            className={`notes-app ${sidebarExpanded && !mobile ? '' : 'notes-app--rail'} ${
                 store.lightMode ? 'light-mode' : ''
             }`}
         >
@@ -213,21 +221,24 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                 notes={store.notes}
                 folders={store.folders}
                 activeNoteId={store.activeNoteId}
-                expanded={store.sidebarExpanded}
+                expanded={sidebarExpanded}
+                mobile={mobile}
                 confirmDeletions={store.confirmDeletions}
                 dirtyNoteIds={store.dirtyNoteIds}
                 syncStatus={store.syncStatus}
                 unsavedCount={store.unsavedCount}
                 use24HourTime={store.use24HourTime}
-                onToggle={store.toggleSidebar}
+                onToggle={toggleSidebar}
                 onSave={handleSave}
                 onNoteSelect={(noteId) => {
                     setShowSettings(false);
                     store.setActiveNote(noteId);
+                    closeSheet();
                 }}
                 onCreateNote={(folderId) => {
                     setShowSettings(false);
                     store.createNewNote(folderId);
+                    closeSheet();
                 }}
                 onDeleteNote={store.deleteNote}
                 onMoveNote={store.moveNote}
@@ -235,7 +246,10 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                 onUpdateFolder={store.updateFolder}
                 onDeleteFolder={store.deleteFolder}
                 settingsOpen={showSettings}
-                onOpenSettings={() => setShowSettings((open) => !open)}
+                onOpenSettings={() => {
+                    setShowSettings((open) => !open);
+                    closeSheet();
+                }}
                 onSetPin={store.setNotePin}
                 onOrderNotes={store.orderNotes}
             />

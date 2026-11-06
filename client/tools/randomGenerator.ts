@@ -261,7 +261,7 @@ const generateBulletListBlock = (): iTextBlock => {
 
     for (let i = 0; i < itemCount; i++) {
         // Add bullet
-        words.push(createWord('•'));
+        words.push(createWord('◦'));
 
         // Add 3-8 words for this item
         const itemWordCount = randInt(3, 8);

@@ -43,6 +43,7 @@ import { TextBlockComponent } from './TextBlockComponent';
 import type { iFolder, iNote, iTextBlock, iWord, tFormatMode, iHistoryEntry, iBlockStyle, iPalette, iListOptions, tBlockData, tBlockKind } from '@/types';
 
 // Utils
+import useIsMobile from '@/hooks/useIsMobile';
 import { folderChain } from '@/tools/folderTree';
 import { shortcutText } from '@/tools/shortcuts';
 
@@ -162,6 +163,7 @@ export const NoteEditor = ({
     onRemoveBlockPreset,
     onUpdateBlockPreset,
 }: iNoteEditorProps) => {
+    const mobile = useIsMobile();
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [titleValue, setTitleValue] = useState(note.title);
     const [showHistory, setShowHistory] = useState(false);
@@ -177,6 +179,8 @@ export const NoteEditor = ({
     const [draggedBlockIndex, setDraggedBlockIndex] = useState<number | null>(null);
     const [previewOrder, setPreviewOrder] = useState<number[] | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+    // The block that was touched last keeps its buttons on a touch screen, which has no hover to show them
+    const [touchedBlockId, setTouchedBlockId] = useState<string | null>(null);
     // The box of the text block that is dragged, its width is a share of the note and its margins are part of the layout
     const [draggedBlockRect, setDraggedBlockRect] = useState<{
         width: number;
@@ -232,7 +236,7 @@ export const NoteEditor = ({
             setPreviewOrder([...order]);
         };
 
-        const handleMouseMove = (e: MouseEvent) => {
+        const handleMouseMove = (e: PointerEvent) => {
             mouseRef.current = { x: e.clientX, y: e.clientY };
             moveGhost();
             reorder(e.clientY);
@@ -250,13 +254,15 @@ export const NoteEditor = ({
         };
 
         document.body.style.cursor = 'grabbing';
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
+        document.addEventListener('pointermove', handleMouseMove);
+        document.addEventListener('pointerup', handleMouseUp);
+        document.addEventListener('pointercancel', handleMouseUp);
 
         return () => {
             document.body.style.cursor = '';
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
+            document.removeEventListener('pointermove', handleMouseMove);
+            document.removeEventListener('pointerup', handleMouseUp);
+            document.removeEventListener('pointercancel', handleMouseUp);
         };
     }, [isDragging, draggedBlockIndex, note.blocks, onBlockReorder]);
 
@@ -266,35 +272,26 @@ export const NoteEditor = ({
         return previewOrder.map((i) => note.blocks[i]);
     }, [note.blocks, previewOrder]);
 
-    // The buttons and the drag handle at the left of a block follow the mouse, as far as the block is high. A block that
-    // is lower than they are keeps them in its middle. They stay where they are while the mouse is on them or on the
-    // style menu, or the rest of their buttons would run away from the mouse.
+    // The buttons at the left of a block (the drag handle is the last of them) follow the mouse, as far as the block is
+    // high. A block that is lower than they are keeps them in its middle. They stay where they are while the mouse is on
+    // them or on the style menu, or the rest of their buttons would run away from the mouse.
     const followMouse = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (
-            isDragging ||
-            (e.target as HTMLElement).closest(
-                '.text-block__controls, .note-editor__drag-handle, .text-block__style-menu',
-            )
-        )
-            return;
+        if (isDragging || (e.target as HTMLElement).closest('.text-block__controls, .text-block__style-menu')) return;
         const block = e.currentTarget.querySelector<HTMLElement>('.text-block');
-        if (!block) return;
+        const controls = block?.querySelector<HTMLElement>('.text-block__controls');
+        if (!block || !controls) return;
         const y = e.clientY - block.getBoundingClientRect().top;
-        const centerOf = (size: number) =>
+        const size = controls.offsetHeight;
+        const center =
             block.offsetHeight <= size
                 ? block.offsetHeight / 2
                 : Math.min(Math.max(y, size / 2), block.offsetHeight - size / 2);
-        const controls = block.querySelector<HTMLElement>('.text-block__controls');
-        if (!controls) return;
-        // The handle sits at the height of the buttons, so the two move as one
-        const center = centerOf(controls.offsetHeight);
         block.style.setProperty('--follow-y', `${center}px`);
-        e.currentTarget.style.setProperty('--handle-y', `${block.offsetTop + center}px`);
     };
 
-    // Handle drag start - now mouse-based
+    // Handle drag start, by mouse, finger or pen
     const handleDragStart = useCallback(
-        (e: React.MouseEvent, index: number) => {
+        (e: React.PointerEvent, index: number) => {
             e.preventDefault();
             const blockId = note.blocks[index]?.id;
             const blockElement = blockId ? blockRefs.current.get(blockId) : null;
@@ -384,7 +381,7 @@ export const NoteEditor = ({
     // the list of components
     const handleEmptySpaceMenu = (event: React.MouseEvent) => {
         const target = event.target as HTMLElement;
-        if (target.closest('.text-block, .note-editor__drag-handle, .note-editor__header, .note-editor__add-buttons, .note-editor__toolbar-overlay, .note-editor__history-overlay')) {
+        if (target.closest('.text-block, .note-editor__header, .note-editor__add-buttons, .note-editor__toolbar-overlay, .note-editor__history-overlay')) {
             return;
         }
         event.preventDefault();
@@ -418,7 +415,7 @@ export const NoteEditor = ({
                 />
             </div>
 
-            <div ref={editorRef} className='note-editor__body' style={{ maxWidth: `${editorWidth}%` }}>
+            <div ref={editorRef} className='note-editor__body' style={{ maxWidth: mobile ? '100%' : `${editorWidth}%` }}>
                 <div className='note-editor__header'>
                     {breadcrumbs.length > 0 && (
                         <div className='note-editor__breadcrumbs'>
@@ -488,21 +485,10 @@ export const NoteEditor = ({
                                         }}
                                         className={`note-editor__block-wrapper ${
                                             isBeingDragged ? 'note-editor__block-wrapper--dragging' : ''
-                                        }`}
+                                        } ${block.id === touchedBlockId ? 'note-editor__block-wrapper--touched' : ''}`}
                                         onMouseMove={followMouse}
+                                        onPointerDownCapture={() => setTouchedBlockId(block.id)}
                                     >
-                                        {/* Drag handle - outside block-content so it stays visible */}
-                                        {!isBeingDragged && (
-                                            <div
-                                                className='note-editor__drag-handle'
-                                                onMouseDown={(e) => handleDragStart(e, originalIndex)}
-                                                title='Drag to reorder'
-                                            >
-                                                <span className='note-editor__drag-icon'>
-                                                    <DragHandleIcon />
-                                                </span>
-                                            </div>
-                                        )}
                                         {/* Placeholder for dragged block */}
                                         {isBeingDragged && isDragging ? (
                                             <div
@@ -543,6 +529,17 @@ export const NoteEditor = ({
                                                     onAutoFocused={onFocusHandled}
                                                     onClearFormatMode={onClearFormatMode}
                                                     onSaveAsPreset={onAddBlockPreset}
+                                                    handle={
+                                                        <div
+                                                            className='note-editor__drag-handle'
+                                                            onPointerDown={(e) => handleDragStart(e, originalIndex)}
+                                                            title='Drag to reorder'
+                                                        >
+                                                            <span className='note-editor__drag-icon'>
+                                                                <DragHandleIcon />
+                                                            </span>
+                                                        </div>
+                                                    }
                                                 />
                                             </div>
                                         )}

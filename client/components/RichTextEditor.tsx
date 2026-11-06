@@ -18,7 +18,9 @@ import { useRef, useCallback, useEffect, useState } from 'react';
 
 // Components
 import { applyFormatMode } from '@/components/WordComponent';
+import { DatePicker } from '@/components/DatePicker';
 import LinkModal from '@/components/LinkModal';
+import { findDate, formatDate, type iFoundDate } from '@/tools/dates';
 import { DEFAULT_LIST_OPTIONS, convertPastedLists, decoratorOf, nextMarker } from '@/tools/lists';
 import { shortcutOf } from '@/tools/shortcuts';
 
@@ -154,6 +156,9 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
         position: { x: 0, y: 0 },
     });
 
+    // The calendar of the date that was opened (Ctrl+click, or a tap on a touch screen)
+    const [datePicker, setDatePicker] = useState<({ span: HTMLElement; x: number; y: number } & iFoundDate) | null>(null);
+
     // Keep wordsRef in sync
     useEffect(() => {
         wordsRef.current = words;
@@ -230,8 +235,12 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 const anchorClass = word.format.anchor ? ' rich-text-editor__anchored' : '';
                 const anchorTitle = word.format.anchor ? ' title="Ctrl+click to open the anchor note"' : '';
 
-                if (styleStr || linkClass || anchorClass) {
-                    return `<span data-word-id="${word.id}" class="rich-text-editor__word${linkClass}${anchorClass}"${anchorTitle} style="${styleStr}">${word.text}</span>${space}`;
+                const isDate = findDate(word.text) !== null;
+                const dateClass = isDate ? ' rich-text-editor__date' : '';
+                const title = isDate ? ' title="Ctrl+click to open the calendar"' : anchorTitle;
+
+                if (styleStr || linkClass || anchorClass || isDate) {
+                    return `<span data-word-id="${word.id}" class="rich-text-editor__word${linkClass}${anchorClass}${dateClass}"${title} style="${styleStr}">${word.text}</span>${space}`;
                 }
                 return `<span data-word-id="${word.id}" class="rich-text-editor__word">${word.text}</span>${space}`;
             })
@@ -773,6 +782,19 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
         updateDOMContent(newWords);
     }, [linkModal.wordId, emit, updateDOMContent]);
 
+    // Replaces a date with another one, in the style it was written in. The text is the source, like while typing.
+    const handleDatePick = useCallback(
+        (date: Date) => {
+            if (!datePicker) return;
+            datePicker.span.textContent = formatDate(date, datePicker);
+            setDatePicker(null);
+            handleInput();
+        },
+        [datePicker, handleInput],
+    );
+
+    const handleDateClose = useCallback(() => setDatePicker(null), []);
+
     // Close link modal
     const handleLinkModalClose = useCallback(() => {
         setLinkModal({
@@ -833,6 +855,16 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                     if (word?.format.anchor && (e.ctrlKey || e.metaKey)) {
                         e.preventDefault();
                         onOpenAnchor?.(word.format.anchor);
+                        return;
+                    }
+
+                    // Ctrl+click on a date opens its calendar, a tap does on a touch screen, which has no Ctrl
+                    const found = findDate(wordSpan.textContent ?? '');
+                    const touched = (e.nativeEvent as PointerEvent).pointerType === 'touch';
+                    if (found && (e.ctrlKey || e.metaKey || touched) && !formatMode) {
+                        e.preventDefault();
+                        const rect = wordSpan.getBoundingClientRect();
+                        setDatePicker({ span: wordSpan as HTMLElement, x: rect.left, y: rect.bottom + 6, ...found });
                         return;
                     }
 
@@ -1006,6 +1038,9 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 onDelete={handleLinkDelete}
                 onClose={handleLinkModalClose}
             />
+            {datePicker && (
+                <DatePicker x={datePicker.x} y={datePicker.y} date={datePicker.date} onPick={handleDatePick} onClose={handleDateClose} />
+            )}
         </>
     );
 };

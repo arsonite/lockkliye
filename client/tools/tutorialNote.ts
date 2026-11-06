@@ -35,7 +35,7 @@ const lines = (rows: iWord[][]): iWord[] =>
     rows.flatMap((row, index) => (index === 0 ? row : [createWord('\n'), ...row]));
 
 // A line of a list
-const item = (...parts: (iWord | iWord[])[]): iWord[] => [createWord('•'), ...parts.flat()];
+const item = (...parts: (iWord | iWord[])[]): iWord[] => [createWord('◦'), ...parts.flat()];
 
 const createTutorialNote = (): iNote => {
     const note = createNote(TUTORIAL_TITLE);

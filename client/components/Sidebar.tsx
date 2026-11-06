@@ -26,6 +26,7 @@ import { DEFAULT_SORT, SORT_MODES, arrangeNotes } from '@/tools/sorting';
 
 // Hooks
 import useHeldModifiers from '@/hooks/useHeldModifiers';
+import useLongPress from '@/hooks/useLongPress';
 import { shortcutBase, shortcutKey, shortcutText } from '@/tools/shortcuts';
 
 // Types
@@ -40,6 +41,7 @@ interface iSidebarProps {
     folders: iFolder[];
     activeNoteId: string | null;
     expanded: boolean;
+    mobile: boolean;
     confirmDeletions: boolean;
     dirtyNoteIds: Set<string>;
     syncStatus: tSyncStatus;
@@ -97,6 +99,7 @@ export const Sidebar = ({
     folders,
     activeNoteId,
     expanded,
+    mobile,
     confirmDeletions,
     dirtyNoteIds,
     syncStatus,
@@ -147,19 +150,20 @@ export const Sidebar = ({
             return;
         }
         const close = () => setContextMenu(null);
-        const onMouseDown = (event: MouseEvent) => {
+        // Pointer, not mouse: a touch screen sends mouse events after the touch that opened the menu ended
+        const onPointerDown = (event: PointerEvent) => {
             if (!(event.target as HTMLElement).closest('.sidebar-menu')) {
                 close();
             }
         };
         const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && close();
-        document.addEventListener('mousedown', onMouseDown);
+        document.addEventListener('pointerdown', onPointerDown);
         document.addEventListener('keydown', onKeyDown);
         window.addEventListener('resize', close);
         window.addEventListener('blur', close);
         document.addEventListener('scroll', close, true);
         return () => {
-            document.removeEventListener('mousedown', onMouseDown);
+            document.removeEventListener('pointerdown', onPointerDown);
             document.removeEventListener('keydown', onKeyDown);
             window.removeEventListener('resize', close);
             window.removeEventListener('blur', close);
@@ -261,6 +265,14 @@ export const Sidebar = ({
         event.stopPropagation();
         setContextMenu({ x: event.clientX, y: event.clientY, items });
     };
+
+    // No right-click on a touch screen: holding a row (or the empty list) opens the same menu
+    const longPress = useLongPress(({ x, y }) => {
+        const row = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-note-id], [data-folder-id]');
+        const note = notes.find((candidate) => candidate.id === row?.dataset.noteId);
+        const folder = folders.find((candidate) => candidate.id === row?.dataset.folderId);
+        setContextMenu({ x, y, items: note ? noteMenu(note) : folder ? folderMenu(folder) : listMenu() });
+    });
 
     const folderMenu = (folder: iFolder): iMenuItem[] => [
         {
@@ -414,7 +426,8 @@ export const Sidebar = ({
 
     const renderNote = (note: iNote, depth: number) => (
         <div
-            draggable
+            draggable={!mobile}
+            data-note-id={note.id}
             className={`tea-sidebar-item sidebar-row ${activeNoteId === note.id ? 'tea-sidebar-item--active' : ''} ${
                 dropTarget === `before:${note.id}` ? 'sidebar-row--drop-before' : ''
             }`}
@@ -481,7 +494,8 @@ export const Sidebar = ({
         return (
             <div key={folder.id} className='folder-node'>
                 <div
-                    draggable
+                    draggable={!mobile}
+                    data-folder-id={folder.id}
                     className={`tea-sidebar-item sidebar-row folder-row ${
                         dropTarget === folder.id ? 'folder-row--drop' : ''
                     }`}
@@ -524,6 +538,7 @@ export const Sidebar = ({
     const tree = (
         <div
             className={`folder-tree ${dropTarget === 'root' ? 'folder-tree--drop' : ''}`}
+            {...longPress.handlers}
             onDragOver={(event) => dragOver(event, 'root')}
             onDragLeave={(event) => event.currentTarget === event.target && setDropTarget(null)}
             onDrop={(event) => dropOn(event, null)}
@@ -586,6 +601,26 @@ export const Sidebar = ({
         </>
     );
 
+    // What the collapsed sidebar keeps: saving and the settings
+    const rail = (
+        <>
+            <button
+                className={`tea-rail__btn sync-status sync-status--${syncStatus === 'idle' && unsavedCount > 0 ? 'unsaved' : syncStatus}`}
+                onClick={onSave}
+                title={`${syncLabel}. Click to save (${shortcutText('save')})`}
+            >
+                <span className='sync-status__dot' />
+            </button>
+            <button
+                className={`tea-rail__btn ${settingsOpen ? 'tea-rail__btn--active' : ''}`}
+                onClick={onOpenSettings}
+                title='Settings'
+            >
+                <SettingsIcon />
+            </button>
+        </>
+    );
+
     const deleteFolderName = folders.find((f) => f.id === deleteFolderId)?.name;
     const deleteCounts = {
         notes: deleteFolderId ? countNotes(deleteFolderId) : 0,
@@ -597,6 +632,8 @@ export const Sidebar = ({
         <>
             <TeaSidebar
                 expanded={expanded}
+                mobile={mobile}
+                rail={rail}
                 toggleKey={heldModifiers === shortcutBase('toggleSidebar').toLowerCase() ? shortcutKey('toggleSidebar') : undefined}
                 footer={footer}
                 headerActions={[

@@ -158,7 +158,8 @@
     // The left gutter holds the buttons of a block and its drag handle, the right one is smaller by the same
     // amount so the text keeps its width
     &__header {
-        padding: 16px 24px 16px 72px;
+        padding: 16px 24px 0 var(--gutter, 48px);
+        // padding: 16px 24px 16px var(--gutter, 48px);
         width: 100%;
     }
 
@@ -278,7 +279,7 @@
 
     &__content {
         flex: 1;
-        padding: 16px 24px 16px 72px;
+        padding: 16px 24px 16px var(--gutter, 48px);
         width: 100%;
     }
 
@@ -297,18 +298,14 @@
             position: absolute;
             top: 0;
             bottom: 0;
-            left: -64px;
-            width: 64px;
+            left: calc(-1 * var(--gutter, 48px));
+            width: var(--gutter, 48px);
         }
 
-        &:hover .note-editor__drag-handle,
-        &:hover .text-block__controls {
+        &:hover .text-block__controls,
+        &--touched .text-block__controls {
             opacity: 1;
             pointer-events: auto;
-        }
-
-        &:has(.text-block--has-title) .note-editor__drag-handle {
-            top: var(--handle-y, calc(50% + 4px));
         }
     }
 
@@ -369,34 +366,30 @@
         }
     }
 
+    // The last of the buttons of a block, same size as the others
     &__drag-handle {
-        position: absolute;
-        left: -28px;
-        // The wrapper also holds the 12px below the block, a title adds 20px above it
-        top: var(--handle-y, calc(50% - 6px));
-        translate: 0 -50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 20px;
-        height: 20px;
-        opacity: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-sm);
         cursor: grab;
         color: var(--text-tertiary);
-        transition:
-            opacity var(--transition),
-            color var(--transition),
-            transform 0.2s ease;
+        touch-action: none;
         user-select: none;
+        -webkit-user-select: none;
+        transition:
+            color var(--transition),
+            background var(--transition);
 
         &:hover {
+            background: var(--bg-hover);
             color: var(--text-secondary);
-            transform: scale(1.1);
         }
 
         &:active {
             cursor: grabbing;
-            transform: scale(0.95);
         }
     }
 

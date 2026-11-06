@@ -40,8 +40,19 @@ interface iCollectionResult<L> {
 
 type tStep<L> = { key: string; item?: L; step: 'keep' | 'pull' | 'push' };
 
+type tPayload = Record<string, string | number | boolean | null>;
+
+type tPush<L> = { kind: 'push'; key: string; item: L; row?: tServerRow; payload: tPayload; rev: number };
+type tDelete = { kind: 'delete'; key: string; row: tServerRow };
+type tOp<L> = tPush<L> | tDelete;
+
 const PULL_ONE_BY_ONE_LIMIT = 5;
-const REQUESTS_AT_ONCE = 8;
+const REQUESTS_AT_ONCE = 16;
+const BULK_SIZE = 200;
+const BULK_REQUESTS_AT_ONCE = 4;
+
+// Set once a server answered that it has no bulk route (older backend), from then on everything is sent one by one
+let bulkMissing = false;
 
 // Items are replaced, never mutated, so the hash only has to be computed once per object
 const hashCache = new WeakMap<object, string>();
@@ -55,15 +66,23 @@ const hashOf = <L extends object>(collection: iCollection<L>, item: L): string =
     return value;
 };
 
-const inChunks = async <T, R>(list: T[], work: (entry: T) => Promise<R>, size = REQUESTS_AT_ONCE): Promise<R[]> => {
-    const results: R[] = [];
-    for (let i = 0; i < list.length; i += size) {
-        results.push(...(await Promise.all(list.slice(i, i + size).map(work))));
-    }
+// A sliding window: a slow request holds up only its own slot, not a whole batch
+const inParallel = async <T, R>(list: T[], work: (entry: T) => Promise<R>, size = REQUESTS_AT_ONCE): Promise<R[]> => {
+    const results = new Array<R>(list.length);
+    let next = 0;
+    const worker = async () => {
+        while (next < list.length) {
+            const index = next++;
+            results[index] = await work(list[index]);
+        }
+    };
+    await Promise.all(Array.from({ length: Math.min(size, list.length) }, worker));
     return results;
 };
 
 const isNotFound = (error: unknown): boolean => (error as { status?: number }).status === 404;
+
+const isMissingRoute = (error: unknown): boolean => [404, 405].includes((error as { status?: number }).status ?? 0);
 
 // Local-only view of what a save would send: changed or never synced entities, and keys deleted since the last sync
 const findDirty = <L extends object>(
@@ -211,7 +230,7 @@ const syncCollection = async <L extends object>(
             pullIds.length > PULL_ONE_BY_ONE_LIMIT
                 ? (await collection.api.fetchAll<tServerRow>(options)).data
                 : (
-                    await inChunks(pullIds, async (id) => {
+                    await inParallel(pullIds, async (id) => {
                         try {
                             return (await collection.api.fetchOne<tServerRow>(id, options)).data;
                         } catch (error) {
@@ -227,6 +246,7 @@ const syncCollection = async <L extends object>(
         }
     }
 
+    const ops: tOp<L>[] = [];
     const pushedKeys: string[] = [];
     const removedKeys: string[] = [];
     let pushed = 0;
@@ -265,10 +285,7 @@ const syncCollection = async <L extends object>(
         const localItem = item as L;
         const rev = Date.now();
         try {
-            const payload: Record<string, string | number | boolean | null> = {
-                ...collection.toRow(localItem),
-                rev,
-            };
+            const payload: tPayload = { ...collection.toRow(localItem), rev };
             const row = remote.get(key);
             for (const [field, parent] of relations) {
                 if (field in payload) {
@@ -277,40 +294,102 @@ const syncCollection = async <L extends object>(
                     payload[field] = null; // A relation that is left out is unset on the server
                 }
             }
-            const stored = (
-                row
-                    ? await collection.api.update<tServerRow>(row.id, payload, { partial: true })
-                    : await collection.api.create<tServerRow>(payload)
-            ).data;
-            // A server that runs older models drops the columns it does not know and still answers with success
-            const dropped = Object.keys(payload).filter(
-                (field) => payload[field] !== null && !relationFields.has(field) && !(field in stored),
-            );
-            nextSynced[key] = { hash: dropped.length > 0 ? '' : hashOf(collection, localItem), id: stored.id, rev };
-            if (dropped.length > 0) {
-                failed++;
-                return localItem;
+            const op: tPush<L> = { kind: 'push', key, item: localItem, row, payload, rev };
+            if (selfFields.length > 0) {
+                await sendOne(op); // Parents first, so no batching
+            } else {
+                ops.push(op);
             }
-            pushedKeys.push(key);
-            pushed++;
         } catch {
             failed++; // Stays dirty, the next save tries again
         }
         return localItem;
     };
 
-    const resolved = selfFields.length > 0 ? await inChunks(plan, work, 1) : await inChunks(plan, work);
+    const settlePush = ({ key, item, payload, rev }: tPush<L>, stored: tServerRow): void => {
+        // A server that runs older models drops the columns it does not know and still answers with success
+        const dropped = Object.keys(payload).filter(
+            (field) => payload[field] !== null && !relationFields.has(field) && !(field in stored),
+        );
+        nextSynced[key] = { hash: dropped.length > 0 ? '' : hashOf(collection, item), id: stored.id, rev };
+        if (dropped.length > 0) {
+            failed++;
+            return;
+        }
+        pushedKeys.push(key);
+        pushed++;
+    };
 
-    await inChunks(toDelete, async ([key, row]) => {
+    const settleDelete = (key: string): void => {
+        delete nextSynced[key];
+        removedKeys.push(key);
+        removed++;
+    };
+
+    const sendOne = async (op: tOp<L>): Promise<void> => {
         try {
-            await collection.api.delete(row.id);
-            delete nextSynced[key];
-            removedKeys.push(key);
-            removed++;
+            if (op.kind === 'delete') {
+                await collection.api.delete(op.row.id);
+                settleDelete(op.key);
+            } else {
+                const stored = (
+                    op.row
+                        ? await collection.api.update<tServerRow>(op.row.id, op.payload, { partial: true })
+                        : await collection.api.create<tServerRow>(op.payload)
+                ).data;
+                settlePush(op, stored);
+            }
         } catch {
             failed++;
         }
-    });
+    };
+
+    // Creates, updates and deletes of one chunk travel in one request, every item reports its own outcome
+    const sendChunk = async (chunk: tOp<L>[]): Promise<void> => {
+        if (!bulkMissing) {
+            const creates = chunk.filter((op): op is tPush<L> => op.kind === 'push' && !op.row);
+            const updates = chunk.filter((op): op is tPush<L> => op.kind === 'push' && !!op.row);
+            const deletes = chunk.filter((op): op is tDelete => op.kind === 'delete');
+            try {
+                const { data } = await collection.api.bulk<tServerRow>({
+                    create: creates.map((op) => op.payload),
+                    update: updates.map((op) => ({ id: (op.row as tServerRow).id, data: op.payload })),
+                    delete: deletes.map((op) => op.row.id),
+                });
+                const settle = <T extends tOp<L>>(list: T[], results: Array<{ ok: boolean; status?: number; data?: unknown }>, onOk: (op: T, data: unknown) => void) =>
+                    list.forEach((op, index) => {
+                        const result = results[index];
+                        if (result?.ok) {
+                            onOk(op, result.data);
+                        } else if (op.kind === 'delete' && result?.status === 404) {
+                            settleDelete(op.key); // Already gone
+                        } else {
+                            failed++;
+                        }
+                    });
+                const pushOk = (op: tPush<L>, row: unknown) => settlePush(op, row as tServerRow);
+                settle(creates, data.create, pushOk);
+                settle(updates, data.update, pushOk);
+                settle(deletes, data.delete, (op) => settleDelete(op.key));
+                return;
+            } catch (error) {
+                if (!isMissingRoute(error)) {
+                    failed += chunk.length; // Stays dirty, the next save tries again
+                    return;
+                }
+                bulkMissing = true;
+            }
+        }
+        await inParallel(chunk, sendOne);
+    };
+
+    const resolved = selfFields.length > 0 ? await inParallel(plan, work, 1) : await inParallel(plan, work);
+
+    if (push) {
+        ops.push(...toDelete.map(([key, row]): tDelete => ({ kind: 'delete', key, row })));
+    }
+    const chunks = Array.from({ length: Math.ceil(ops.length / BULK_SIZE) }, (_, index) => ops.slice(index * BULK_SIZE, (index + 1) * BULK_SIZE));
+    await inParallel(chunks, sendChunk, BULK_REQUESTS_AT_ONCE);
 
     for (const key of Object.keys(nextSynced)) {
         if (!localKeys.has(key) && !remote.has(key)) {

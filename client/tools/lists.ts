@@ -6,10 +6,10 @@
 // Types
 import type { iBlockListOptions, iListOptions, iWord, tNumbering } from '@/types';
 
-const DEFAULT_LIST_OPTIONS: iListOptions = { bullet: '•', numbering: '1.' };
+const DEFAULT_LIST_OPTIONS: iListOptions = { bullet: '◦', numbering: '1.' };
 
 // The bullets offered, nothing else is accepted
-const BULLETS = ['•', '–', '○', '-', '⋄', '>'];
+const BULLETS = ['◦', '•', '–', '○', '-', '⋄', '>'];
 
 // The marker of a number is its number between these
 const NUMBERINGS: Record<tNumbering, [string, string]> = {
@@ -93,6 +93,22 @@ const convertListMarkers = (words: iWord[], options: iListOptions): iWord[] =>
         return text === word.text ? word : { ...word, text };
     });
 
+// What the lists in the words use right now: the first bullet and the first numbering found at the start of a line,
+// nothing for a kind that has no list
+const currentListStyle = (words: iWord[]): iBlockListOptions => {
+    const style: iBlockListOptions = {};
+    words.forEach((word, i) => {
+        const next = words[i + 1];
+        if ((i > 0 && words[i - 1].text !== '\n') || !next || next.text === '\n') return;
+        if (!style.bullet && isBullet(word.text)) style.bullet = word.text;
+        const number = numberOf(word.text);
+        if (!style.numbering && number !== null) {
+            style.numbering = (Object.keys(NUMBERINGS) as tNumbering[]).find((id) => formatNumber(number, id) === word.text);
+        }
+    });
+    return style;
+};
+
 // The sample shown in the menus, like "1. 2. 3."
 const numberingLabel = (id: tNumbering): string => [1, 2, 3].map((n) => formatNumber(n, id)).join(' ');
 
@@ -102,6 +118,7 @@ export {
     NUMBERINGS,
     convertListMarkers,
     convertPastedLists,
+    currentListStyle,
     decoratorOf,
     nextMarker,
     numberingLabel,

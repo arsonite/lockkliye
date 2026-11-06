@@ -113,16 +113,13 @@ Sorted by priority.
 
 ### High
 
-- iphone 16 pro max support, mobile sidebar with sliding open covering everything, X to close, one click for most things, not 2, long press instead of double click
-- small hollow circle for bullet, also show current bullet in block style and only show list options if a list is already in the block
-- make taskbar thinner and reduce opactity when scrolling only showing full when hovering over taskbar or activating shortcuts and also hide the numbers when holding text size shortcut
-- when detecting a date, underline it with dashes and make it ctrl+clickable to open calendar view and show it and edit it
+- when detecting a time, underline it with dashes and make it ctrl+clickable to open a clock you can turn and change it (dates are done, see `client/tools/dates.ts`)
+- when holding shortcut, coloring and highlighting doesnt work
+- when holding shortcut, selecting 2 creates potency 2
 
 ### Low
 
-- when detecting a time, underline it with dashes and make it ctrl+clickable to open a clock you can turn and change it
-- when holding shortcut, coloring and highlighting doesnt work
-- when holding shortcut, selecting 2 creates potency 2
+- make taskbar thinner and reduce opactity when scrolling only showing full when hovering over taskbar or activating shortcuts and also hide the numbers when holding text size shortcut
 - Right click on global to change the settings there too
 - Do not autofocus when creating a new block (setting)
 - Add user authentication
