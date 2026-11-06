@@ -19,9 +19,9 @@ from .Note import Note
 
 # One block of a note, the words point to it
 class Block(BlockStyleFields):
-    content  = HSDBAttribute(str, description='JSON of what a checklist, table or code block holds, left out for text blocks')
+    content      = HSDBAttribute(str, description='JSON of what a checklist, table or code block holds, left out for text blocks')
     list_options = HSDBAttribute(str, description='JSON of the list rules this block sets differently from the settings, left out if none')
-    kind     = HSDBAttribute(str, description='checklist, table or code, left out for text blocks')
-    note     = HSDBRelation.ManyToOne(Note, required=True)
-    position = HSDBAttribute(int, required=True, description='Index of the block within its note')
-    rev      = HSDBAttribute(int, required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
+    kind         = HSDBAttribute(str, description='checklist, table or code, left out for text blocks')
+    note         = HSDBRelation.ManyToOne(Note, required=True)
+    position     = HSDBAttribute(int, required=True, description='Index of the block within its note')
+    rev          = HSDBAttribute(int, required=True, description='Save timestamp (ms), changes whenever the row is written by a client')

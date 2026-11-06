@@ -15,11 +15,11 @@ from teatype.db.hsdb.core import HSDBAttribute, HSDBModel, HSDBRelation
 
 # A folder of notes
 class Folder(HSDBModel):
-    color = HSDBAttribute(str, required=True)
-    icon  = HSDBAttribute(str, required=True)
-    name  = HSDBAttribute(str, required=True)
+    color     = HSDBAttribute(str, required=True)
+    icon      = HSDBAttribute(str, required=True)
+    name      = HSDBAttribute(str, required=True)
     sort_mode = HSDBAttribute(str, description='How the notes of the folder are ordered: edited, title, title-desc, created or manual')
-    rev   = HSDBAttribute(int, required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
+    rev       = HSDBAttribute(int, required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
 
 # A folder can sit in another folder, assigned here because the class cannot name itself in its own body
 Folder.parent = HSDBRelation.ManyToOne(Folder)
