@@ -79,7 +79,7 @@ const createTutorialNote = (): iNote => {
                 ),
                 item(key(shortcutText('sizes')), words('→ Text size, from Title down to Caption')),
                 item(key(shortcutText('anchor')), words('→ Anchor mode')),
-                item(key(shortcutText('toggleSidebar')), words('→ Collapse or expand the sidebar')),
+                item(key(shortcutText('toggleSidebar')), words('→ Collapse or expand the sidebar,'), key(shortcutText('lockAll')), words('→ Lock all notes')),
                 item(key(shortcutText('save')), words('→ Save,'), key(shortcutText('undo')), words('→ Undo,'), key(shortcutText('redo')), words('→ Redo')),
                 item(words('Hold Ctrl, then Shift or Alt, to see the keys under the toolbar buttons')),
             ]),
@@ -229,9 +229,16 @@ const createTutorialNote = (): iNote => {
 
         createBlock(
             words(
-                'The toolbar fades while you scroll and is fully visible again when the mouse is over it or you use a shortcut. Undo and redo are faint at the bottom and only visible when there is something to undo or redo. Hover them and the list of changes opens between the two buttons.',
+                'The toolbar fades while you scroll and is fully visible again when the mouse is over it or you use a shortcut. Undo and redo are faint at the bottom and only visible when there is something to undo or redo, with the number of changes between them. Hover them and the word changes folds out, then the list opens between the two buttons. Hold Ctrl to see their keys.',
             ),
             { title: 'Toolbar and History', borderStyle: 'solid', borderRadius: 8, backgroundColor: 'rgba(105,219,124,0.1)' },
+        ),
+
+        createBlock(
+            words(
+                `Lock a note with the padlock left of its title. One password locks all of them, and opening one locked note opens all of them. They lock again after 10 minutes without input, with the padlock in the second bar next to the toolbar or with ${shortcutText('lockAll')}. The text of a locked note is encrypted in this browser before it is saved or synced, only the title stays readable. The password cannot be reset, Settings > Security changes it.`,
+            ),
+            { title: 'Locked Notes', borderStyle: 'solid', borderRadius: 8, backgroundColor: 'rgba(255,107,107,0.1)' },
         ),
 
         createBlock([createWord('💡', { fontSize: 'larger' }), ...words('Tips', { bold: true, fontSize: 'larger' })]),

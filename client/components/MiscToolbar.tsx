@@ -45,7 +45,7 @@ const MiscToolbar: React.FC<iMiscToolbarProps> = ({ unlocked, onLockAll }) => {
                     title={
                         unlocked
                             ? `Lock all notes (${shortcutText('lockAll')}), they also lock after 10 minutes without input`
-                            : 'All notes are locked'
+                            : 'No locked note is open'
                     }
                 >
                     {unlocked ? <UnlockIcon /> : <LockIcon />}
