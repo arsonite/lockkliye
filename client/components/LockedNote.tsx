@@ -63,11 +63,22 @@ const LockedNote: React.FC<iLockedNoteProps> = ({ note, hasPassword, unlocked, u
     } else {
         body = (
             <form className='locked-note__form' onSubmit={submit}>
+                <input
+                    className='lock-form__username'
+                    type='text'
+                    name='username'
+                    value='Lockkliye'
+                    autoComplete='username'
+                    tabIndex={-1}
+                    readOnly
+                    aria-hidden='true'
+                />
                 <p className='locked-note__text'>This note is locked. Enter the password to open all locked notes.</p>
                 <div className='locked-note__row'>
                     <input
                         className='lock-form__input'
                         type='password'
+                        name='password'
                         placeholder='Password'
                         value={password}
                         onChange={(e) => {

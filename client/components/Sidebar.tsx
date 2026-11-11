@@ -61,6 +61,7 @@ interface iSidebarProps {
     onDeleteFolder: (folderId: string) => void;
     onOpenSettings: () => void;
     onSetPin: (noteId: string, pin: tPin | undefined) => void;
+    onToggleLock: (noteId: string) => void;
     onOrderNotes: (folderId: string | null, ids: string[]) => void; // The order the notes were dragged into
 }
 
@@ -119,6 +120,7 @@ export const Sidebar = ({
     onDeleteFolder,
     onOpenSettings,
     onSetPin,
+    onToggleLock,
     onOrderNotes,
 }: iSidebarProps) => {
     const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
@@ -317,6 +319,7 @@ export const Sidebar = ({
         ...(note.pinned === 'folder' ? [] : [{ label: 'Pin in folder', onClick: () => onSetPin(note.id, 'folder') }]),
         ...(note.pinned === 'global' ? [] : [{ label: 'Pin globally', onClick: () => onSetPin(note.id, 'global') }]),
         ...(note.pinned ? [{ label: 'Unpin', onClick: () => onSetPin(note.id, undefined) }] : []),
+        { label: isLocked(note) ? 'Remove lock' : 'Lock note', onClick: () => onToggleLock(note.id) },
         { label: 'Delete note', danger: true, onClick: () => handleNoteDelete(note) },
     ];
 

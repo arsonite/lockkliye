@@ -106,6 +106,17 @@
         }
     }
 
+    // Present for password managers, which fill and save the password under it
+    &__username {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        border: 0;
+        opacity: 0;
+        pointer-events: none;
+    }
+
     &__hint {
         margin: 0;
         color: var(--text-secondary);

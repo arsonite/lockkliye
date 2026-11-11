@@ -22,8 +22,6 @@ import { Flipper, Flipped } from 'react-flip-toolkit';
 // TeaType components
 import {
     BookmarkIcon,
-    LockIcon,
-    UnlockIcon,
     ChecklistIcon,
     CodeIcon,
     DragHandleIcon,
@@ -84,11 +82,9 @@ interface iNoteEditorProps {
     blockPresets: iBlockStyle[];
     listOptions: iListOptions;
     focusBlockId?: string | null; // A block that was just added, its editor takes the focus
-    hasPassword: boolean;
     locksOpen: boolean; // Locked notes are readable right now
 
     onTitleChange: (title: string) => void;
-    onToggleLock: () => void;
     onLockAll: () => void;
     onToggleAnchor: (isAnchor: boolean) => void;
     onAnchorChange: (noteId: string) => void;
@@ -147,7 +143,6 @@ export const NoteEditor = ({
     blockPresets,
     listOptions,
     onTitleChange,
-    onToggleLock,
     onLockAll,
     onToggleAnchor,
     onAnchorChange,
@@ -162,7 +157,6 @@ export const NoteEditor = ({
     onBlockAdd,
     onBlockAddBefore,
     focusBlockId,
-    hasPassword,
     locksOpen,
     onFocusHandled,
     onBlockAddWithPreset,
@@ -506,7 +500,7 @@ export const NoteEditor = ({
                     onColorChange={onColorChange}
                     onSizeChange={onSizeChange}
                 />
-                {hasPassword && <MiscToolbar unlocked={locksOpen} onLockAll={onLockAll} />}
+                {isLocked(note) && <MiscToolbar unlocked={locksOpen} onLockAll={onLockAll} />}
             </div>
 
             <div
@@ -538,19 +532,6 @@ export const NoteEditor = ({
                             }
                         >
                             <BookmarkIcon />
-                        </button>
-                        <button
-                            className={`note-editor__anchor-btn ${
-                                isLocked(note) ? 'note-editor__anchor-btn--active' : ''
-                            }`}
-                            onClick={onToggleLock}
-                            title={
-                                isLocked(note)
-                                    ? 'This note is locked with the password. Click to take the lock off.'
-                                    : 'Lock this note with a password'
-                            }
-                        >
-                            {isLocked(note) ? <LockIcon /> : <UnlockIcon />}
                         </button>
                         {isEditingTitle ? (
                             <input

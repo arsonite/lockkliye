@@ -33,6 +33,7 @@ interface iPasswordModalProps {
 }
 
 const MIN_LENGTH = 4;
+const FORM_ID = 'lock-password-form';
 
 const TITLES: Record<tPasswordMode, string> = {
     create: 'Set a password',
@@ -90,13 +91,23 @@ const PasswordModal: React.FC<iPasswordModalProps> = ({ mode, onSubmit, onClose 
                     <button className='tea-modal-btn tea-modal-btn--secondary' onClick={onClose}>
                         Cancel
                     </button>
-                    <button className='tea-modal-btn tea-modal-btn--primary' onClick={() => submit()} disabled={busy}>
+                    <button className='tea-modal-btn tea-modal-btn--primary' type='submit' form={FORM_ID} disabled={busy}>
                         {mode === 'unlock' ? 'Unlock' : mode === 'change' ? 'Change' : 'Set password'}
                     </button>
                 </>
             }
         >
-            <form className='lock-form' onSubmit={submit}>
+            <form id={FORM_ID} className='lock-form' onSubmit={submit}>
+                <input
+                    className='lock-form__username'
+                    type='text'
+                    name='username'
+                    value='Lockkliye'
+                    autoComplete='username'
+                    tabIndex={-1}
+                    readOnly
+                    aria-hidden='true'
+                />
                 {!supported() && (
                     <p className='lock-form__error'>
                         Locking needs a secure connection: open the app over HTTPS or on localhost.
@@ -112,6 +123,7 @@ const PasswordModal: React.FC<iPasswordModalProps> = ({ mode, onSubmit, onClose 
                     <input
                         className='lock-form__input'
                         type='password'
+                        name='password'
                         placeholder={mode === 'change' ? 'Current password' : 'Password'}
                         value={current}
                         onChange={(e) => setCurrent(e.target.value)}
@@ -124,6 +136,7 @@ const PasswordModal: React.FC<iPasswordModalProps> = ({ mode, onSubmit, onClose 
                         <input
                             className='lock-form__input'
                             type='password'
+                            name={mode === 'change' ? 'new-password' : 'password'}
                             placeholder={mode === 'change' ? 'New password' : 'Password'}
                             value={next}
                             onChange={(e) => setNext(e.target.value)}
@@ -133,6 +146,7 @@ const PasswordModal: React.FC<iPasswordModalProps> = ({ mode, onSubmit, onClose 
                         <input
                             className='lock-form__input'
                             type='password'
+                            name='new-password-repeat'
                             placeholder='Repeat the password'
                             value={verify}
                             onChange={(e) => setVerify(e.target.value)}
@@ -141,8 +155,6 @@ const PasswordModal: React.FC<iPasswordModalProps> = ({ mode, onSubmit, onClose 
                     </>
                 )}
                 {error && <p className='lock-form__error'>{error}</p>}
-                {/* Enter in a field submits the form */}
-                <button type='submit' hidden />
             </form>
         </TeaModal>
     );

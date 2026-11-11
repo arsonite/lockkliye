@@ -71,10 +71,24 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
     // The password dialog, with the note that is to be locked once it is through
     const [passwordMode, setPasswordMode] = useState<tPasswordMode | null>(null);
     const [noteToLock, setNoteToLock] = useState<string | null>(null);
+    // A locked note whose lock is to come off as soon as the password has opened it
+    const [unlockRemoval, setUnlockRemoval] = useState<string | null>(null);
     const closePassword = () => {
         setPasswordMode(null);
         setNoteToLock(null);
+        setUnlockRemoval(null);
     };
+
+    useEffect(() => {
+        if (!unlockRemoval) return;
+        const note = store.notes.find((n) => n.id === unlockRemoval);
+        if (!note) {
+            setUnlockRemoval(null);
+        } else if (note.open) {
+            store.removeLock(unlockRemoval);
+            setUnlockRemoval(null);
+        }
+    }, [unlockRemoval, store]);
 
     // The toast is rendered in the body, so its light mode comes from the body
     useEffect(() => {
@@ -117,20 +131,27 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
         }
     };
 
-    // Locks the active note, taking the password first when there is none or the notes are closed
-    const handleToggleLock = () => {
-        const note = store.activeNote;
+    // Locks a note or takes its lock off, taking the password first when there is none or the notes are closed
+    const handleToggleLock = (noteId: string) => {
+        const note = store.notes.find((n) => n.id === noteId);
         if (!note) return;
         if (isLocked(note)) {
-            store.removeLock(note.id);
+            if (note.open) {
+                store.removeLock(noteId);
+            } else if (store.unlocked) {
+                setUnlockRemoval(noteId);
+            } else {
+                setUnlockRemoval(noteId);
+                setPasswordMode('unlock');
+            }
             return;
         }
         if (!store.hasPassword || !store.unlocked) {
-            setNoteToLock(note.id);
+            setNoteToLock(noteId);
             setPasswordMode(store.hasPassword ? 'unlock' : 'create');
             return;
         }
-        store.lockNote(note.id);
+        store.lockNote(noteId);
     };
 
     const handlePassword = async (
@@ -145,7 +166,8 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
             return 'The current password is wrong.';
         }
         if (noteToLock) await store.lockNote(noteToLock);
-        closePassword();
+        setPasswordMode(null);
+        setNoteToLock(null);
         if (mode === 'change') toast.success('Password changed');
         return null;
     };
@@ -305,6 +327,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                     closeSheet();
                 }}
                 onSetPin={store.setNotePin}
+                onToggleLock={handleToggleLock}
                 onOrderNotes={store.orderNotes}
             />
 
@@ -390,9 +413,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         showStyleButton={store.showStyleButton}
                         use24HourTime={store.use24HourTime}
                         blockPresets={store.blockPresets}
-                        hasPassword={store.hasPassword}
                         locksOpen={store.unlocked}
-                        onToggleLock={handleToggleLock}
                         onLockAll={store.lockAll}
                         onTitleChange={handleTitleChange}
                         onToggleAnchor={handleToggleAnchor}
