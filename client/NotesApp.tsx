@@ -385,7 +385,6 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                 ) : store.activeNote && isLocked(store.activeNote) && !store.activeNote.open ? (
                     <LockedNote
                         key={store.activeNote.id}
-                        note={store.activeNote}
                         hasPassword={store.hasPassword}
                         unlocked={store.unlocked}
                         unreadable={store.unreadable.includes(store.activeNote.lock?.data ?? '')}

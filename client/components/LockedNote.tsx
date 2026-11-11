@@ -19,14 +19,13 @@ import { useState } from 'react';
 // TeaType icons
 import { LockIcon } from '@teatype/icons';
 
-// Types
-import type { iNote } from '@/types';
+// Components
+import MiscToolbar from './MiscToolbar';
 
 // Utility
 import { supported } from '@/tools/lock';
 
 interface iLockedNoteProps {
-    note: iNote;
     hasPassword: boolean;
     unlocked: boolean; // The password was entered, the text is being opened
     unreadable: boolean; // The note was locked with another password
@@ -34,7 +33,7 @@ interface iLockedNoteProps {
 }
 
 // Shown instead of a locked note: unlocking one note opens all of them
-const LockedNote: React.FC<iLockedNoteProps> = ({ note, hasPassword, unlocked, unreadable, onUnlock }) => {
+const LockedNote: React.FC<iLockedNoteProps> = ({ hasPassword, unlocked, unreadable, onUnlock }) => {
     const [password, setPassword] = useState('');
     const [wrong, setWrong] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -102,10 +101,12 @@ const LockedNote: React.FC<iLockedNoteProps> = ({ note, hasPassword, unlocked, u
 
     return (
         <div className='locked-note'>
+            <div className='note-editor__toolbar-overlay'>
+                <MiscToolbar unlocked={false} onLockAll={() => undefined} />
+            </div>
             <div className='locked-note__icon'>
                 <LockIcon />
             </div>
-            <h2 className='locked-note__title'>{note.title}</h2>
             {body}
         </div>
     );

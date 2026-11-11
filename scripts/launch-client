@@ -14,7 +14,6 @@
 
 # Third-party imports
 from teatype.cli import BaseStartCLI
-from teatype.io import path, shell
 
 class LaunchClient(BaseStartCLI):
     def pre_execute(self):

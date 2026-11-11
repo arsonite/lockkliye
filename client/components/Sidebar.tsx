@@ -17,12 +17,12 @@
 import { useState, useRef, useEffect } from 'react';
 
 // TeaType
-import { BookmarkIcon, ChevronIcon, FolderIcon, LockIcon, PinIcon, SettingsIcon, XIcon } from '@teatype/icons';
+import { BookmarkIcon, ChevronIcon, FolderIcon, LockIcon, PinIcon, SettingsIcon, UnlockIcon, XIcon } from '@teatype/icons';
 import { TeaSidebar, TeaModal } from '@teatype/components';
 
 // Utility
 import { descendantIds, folderPath } from '@/tools/folderTree';
-import { isLocked } from '@/tools/lock';
+import { isLocked, isOpen } from '@/tools/lock';
 import { DEFAULT_SORT, SORT_MODES, arrangeNotes } from '@/tools/sorting';
 
 // Hooks
@@ -464,8 +464,8 @@ export const Sidebar = ({
                             </span>
                         )}
                         {isLocked(note) && (
-                            <span className='sidebar-row__anchor' title='Locked'>
-                                <LockIcon />
+                            <span className='sidebar-row__anchor' title={isOpen(note) ? 'Locked note, open' : 'Locked'}>
+                                {isOpen(note) ? <UnlockIcon /> : <LockIcon />}
                             </span>
                         )}
                         {note.isAnchor && (

@@ -500,7 +500,7 @@ export const NoteEditor = ({
                     onColorChange={onColorChange}
                     onSizeChange={onSizeChange}
                 />
-                {isLocked(note) && <MiscToolbar unlocked={locksOpen} onLockAll={onLockAll} />}
+                {isLocked(note) && <MiscToolbar unlocked={locksOpen && !!note.open} onLockAll={onLockAll} />}
             </div>
 
             <div
