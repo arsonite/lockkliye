@@ -34,6 +34,7 @@ import type {
     iFolder,
     iHistoryEntry,
     iListOptions,
+    iLockSetup,
     iNote,
     iPalette,
     iTextBlock,
@@ -44,6 +45,7 @@ import type {
 
 // Util
 import { sanitizeAccent } from '@/tools/accent';
+import { sanitizeLockSetup } from '@/tools/lock';
 import { sanitizeAnchorStyle } from '@/tools/anchorStyle';
 import { sanitizeBlockListOptions, sanitizeListOptions } from '@/tools/lists';
 import { sanitizePalette } from '@/tools/palette';
@@ -102,6 +104,7 @@ interface iSettingsItem {
     accentColor: string;
     listOptions: iListOptions;
     anchorStyle: iAnchorStyle;
+    lockSetup: iLockSetup | null;
     palette: iPalette;
 }
 
@@ -208,6 +211,8 @@ const noteCollection: iCollection<iNote> = {
         // Only sent when there is something to say, so the notes that have neither keep their hash
         ...(note.pinned ? { pin_scope: note.pinned } : {}),
         ...(note.order === undefined ? {} : { sort_order: note.order }),
+        // The text of a locked note is only sent encrypted, a lock that was taken off sends empty values to clear the server's
+        ...(note.lock ? { lock_data: note.lock.data, lock_iv: note.lock.iv } : {}),
     }),
     fromRow: (row, key) => ({
         id: key,
@@ -217,6 +222,7 @@ const noteCollection: iCollection<iNote> = {
         isAnchor: row.is_anchor === true,
         pinned: row.pinned ? (row.pin_scope === 'global' ? 'global' : 'folder') : undefined,
         order: typeof row.sort_order === 'number' ? row.sort_order : undefined,
+        lock: row.lock_data ? { data: text(row.lock_data), iv: text(row.lock_iv) } : undefined,
         createdAt: row.created_ms as number,
         updatedAt: row.updated_ms as number,
     }),
@@ -242,6 +248,8 @@ const settingsCollection: iCollection<iSettingsItem> = {
         show_block_borders: settings.showBlockBorders,
         show_style_button: settings.showStyleButton,
         use_24_hour_time: settings.use24HourTime,
+        // Only once there is a password, the settings of everyone else keep their hash
+        ...(settings.lockSetup ? { lock_setup: JSON.stringify(settings.lockSetup) } : {}),
     }),
     fromRow: (row) => ({
         lightMode: row.light_mode as boolean,
@@ -253,6 +261,7 @@ const settingsCollection: iCollection<iSettingsItem> = {
         accentColor: sanitizeAccent(row.accent_color),
         listOptions: sanitizeListOptions(row.list_options ? JSON.parse(text(row.list_options)) : undefined),
         anchorStyle: sanitizeAnchorStyle(row.anchor_style ? JSON.parse(text(row.anchor_style)) : undefined),
+        lockSetup: sanitizeLockSetup(row.lock_setup ? JSON.parse(text(row.lock_setup)) : undefined),
         palette: sanitizePalette(row.palette ? JSON.parse(text(row.palette)) : undefined),
     }),
     slot: () => SETTINGS_KEY,

@@ -148,6 +148,20 @@ interface iNote {
     pinned?: tPin;
     order?: number; // Position among the notes of a manually sorted folder
     isAnchor?: boolean; // Words of other notes can be anchored to this note
+    lock?: iSealed; // The text of a locked note, encrypted. Empty data: the lock was taken off, so the server forgets it too
+    open?: boolean; // Only in memory: the blocks of a locked note are readable, the password was entered
+}
+
+// Text that was encrypted with the key of the password (AES-GCM), both base64
+interface iSealed {
+    data: string;
+    iv: string;
+}
+
+// What tells a right password from a wrong one: a known text encrypted with the key, and the salt of the key
+interface iLockSetup {
+    salt: string;
+    check: iSealed;
 }
 
 // Folder for organizing notes
@@ -206,6 +220,7 @@ interface iNotesState {
     anchorStyle: iAnchorStyle; // How an anchored word looks
     blockPresets: iBlockStyle[]; // Saved block presets
     palette: iPalette; // Which colors and gradients the toolbar and the block style menu offer
+    lockSetup: iLockSetup | null; // Set once the user has made a password for locked notes
 }
 
 // The text colors that are on by default, the full list is in util/palette.ts
@@ -472,9 +487,11 @@ export type {
     tFormatMode,
     iHistoryEntry,
     iNote,
+    iLockSetup,
     iNotesState,
     iPalette,
     iPaletteSlot,
+    iSealed,
     iTextBlock,
     tPaletteKind,
     iWord,

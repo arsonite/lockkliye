@@ -22,6 +22,8 @@ import { Flipper, Flipped } from 'react-flip-toolkit';
 // TeaType components
 import {
     BookmarkIcon,
+    LockIcon,
+    UnlockIcon,
     ChecklistIcon,
     CodeIcon,
     DragHandleIcon,
@@ -36,6 +38,7 @@ import { TeaModal, TeaPopover } from '@teatype/components';
 
 // Components
 import FloatingToolbar from './FloatingToolbar';
+import MiscToolbar from './MiscToolbar';
 import { TextBlockComponent } from './TextBlockComponent';
 
 // Types
@@ -46,7 +49,9 @@ import useIsMobile from '@/hooks/useIsMobile';
 import useKeyboardTop from '@/hooks/useKeyboardTop';
 import useLongPress from '@/hooks/useLongPress';
 import { folderChain } from '@/tools/folderTree';
+import { isLocked } from '@/tools/lock';
 import { shortcutText } from '@/tools/shortcuts';
+import useHeldModifiers from '@/hooks/useHeldModifiers';
 
 // What can be added to a note besides the text of the blocks, in the order of the menus
 const COMPONENTS: [tBlockKind, string, React.ReactNode][] = [
@@ -79,8 +84,12 @@ interface iNoteEditorProps {
     blockPresets: iBlockStyle[];
     listOptions: iListOptions;
     focusBlockId?: string | null; // A block that was just added, its editor takes the focus
+    hasPassword: boolean;
+    locksOpen: boolean; // Locked notes are readable right now
 
     onTitleChange: (title: string) => void;
+    onToggleLock: () => void;
+    onLockAll: () => void;
     onToggleAnchor: (isAnchor: boolean) => void;
     onAnchorChange: (noteId: string) => void;
     onOpenNote: (noteId: string) => void;
@@ -138,6 +147,8 @@ export const NoteEditor = ({
     blockPresets,
     listOptions,
     onTitleChange,
+    onToggleLock,
+    onLockAll,
     onToggleAnchor,
     onAnchorChange,
     onOpenNote,
@@ -151,6 +162,8 @@ export const NoteEditor = ({
     onBlockAdd,
     onBlockAddBefore,
     focusBlockId,
+    hasPassword,
+    locksOpen,
     onFocusHandled,
     onBlockAddWithPreset,
     onBlockReorder,
@@ -172,6 +185,28 @@ export const NoteEditor = ({
     const [titleValue, setTitleValue] = useState(note.title);
     const [showHistory, setShowHistory] = useState(false);
     const historyRef = useRef<HTMLDivElement>(null);
+    const heldModifiers = useHeldModifiers();
+    // Holding Ctrl shows the keys that are left of undo and redo, also while a button has nothing to do and is invisible
+    const heldParts = heldModifiers ? heldModifiers.split('+') : [];
+    const keysLeft = (id: 'undo' | 'redo'): string | null => {
+        const parts = shortcutText(id).split('+');
+        const modifiers = parts.slice(0, -1).map((part) => part.toLowerCase());
+        if (heldParts.length === 0 || !heldParts.every((part) => modifiers.includes(part))) return null;
+        return parts.filter((part) => !heldParts.includes(part.toLowerCase())).join('+');
+    };
+    const undoKeys = keysLeft('undo');
+    const redoKeys = keysLeft('redo');
+    // The number of changes folds out into its label first, the list of them follows
+    const [historyHover, setHistoryHover] = useState(false);
+    const [historyUnfolded, setHistoryUnfolded] = useState(false);
+    useEffect(() => {
+        if (!historyHover) {
+            setHistoryUnfolded(false);
+            return;
+        }
+        const timer = setTimeout(() => setHistoryUnfolded(true), 220);
+        return () => clearTimeout(timer);
+    }, [historyHover]);
 
     // A list that was opened by a tap closes with a tap anywhere else
     useEffect(() => {
@@ -471,6 +506,7 @@ export const NoteEditor = ({
                     onColorChange={onColorChange}
                     onSizeChange={onSizeChange}
                 />
+                {hasPassword && <MiscToolbar unlocked={locksOpen} onLockAll={onLockAll} />}
             </div>
 
             <div
@@ -502,6 +538,19 @@ export const NoteEditor = ({
                             }
                         >
                             <BookmarkIcon />
+                        </button>
+                        <button
+                            className={`note-editor__anchor-btn ${
+                                isLocked(note) ? 'note-editor__anchor-btn--active' : ''
+                            }`}
+                            onClick={onToggleLock}
+                            title={
+                                isLocked(note)
+                                    ? 'This note is locked with the password. Click to take the lock off.'
+                                    : 'Lock this note with a password'
+                            }
+                        >
+                            {isLocked(note) ? <LockIcon /> : <UnlockIcon />}
                         </button>
                         {isEditingTitle ? (
                             <input
@@ -858,19 +907,24 @@ export const NoteEditor = ({
             <div className='note-editor__history-overlay'>
                 <div className='note-editor__history-indicator'>
                     <button
-                        className={`note-editor__undo-btn ${!canUndo ? 'note-editor__undo-btn--disabled' : ''}`}
+                        className={`note-editor__undo-btn ${!canUndo ? 'note-editor__undo-btn--disabled' : ''} ${
+                            undoKeys ? 'note-editor__undo-btn--hint' : ''
+                        }`}
                         onClick={onUndo}
                         disabled={!canUndo}
                         title={`Undo (${shortcutText('undo')})`}
                     >
                         <UndoIcon />
+                        {undoKeys && <span className='note-editor__history-key'>{undoKeys}</span>}
                     </button>
 
                     <div
                         ref={historyRef}
                         className={`note-editor__history ${historyCount === 0 ? 'note-editor__history--empty' : ''} ${
-                            showHistory ? 'note-editor__history--open' : ''
-                        }`}
+                            historyHover || showHistory ? 'note-editor__history--label' : ''
+                        } ${historyUnfolded || showHistory ? 'note-editor__history--open' : ''}`}
+                        onPointerEnter={(e) => e.pointerType === 'mouse' && setHistoryHover(true)}
+                        onPointerLeave={(e) => e.pointerType === 'mouse' && setHistoryHover(false)}
                     >
                         <div className='note-editor__history-panel'>
                             <div className='note-editor__history-header'>
@@ -912,17 +966,20 @@ export const NoteEditor = ({
                             title={`${historyCount} change${historyCount !== 1 ? 's' : ''}`}
                         >
                             <span className='note-editor__history-count'>{historyCount}</span>
-                            <span className='note-editor__history-label'>changes</span>
+                            <span className='note-editor__history-label'>change{historyCount !== 1 ? 's' : ''}</span>
                         </button>
                     </div>
 
                     <button
-                        className={`note-editor__redo-btn ${!canRedo ? 'note-editor__redo-btn--disabled' : ''}`}
+                        className={`note-editor__redo-btn ${!canRedo ? 'note-editor__redo-btn--disabled' : ''} ${
+                            redoKeys ? 'note-editor__redo-btn--hint' : ''
+                        }`}
                         onClick={onRedo}
                         disabled={!canRedo}
                         title={`Redo (${shortcutText('redo')})`}
                     >
                         <RedoIcon />
+                        {redoKeys && <span className='note-editor__history-key'>{redoKeys}</span>}
                     </button>
                 </div>
             </div>

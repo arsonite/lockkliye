@@ -21,6 +21,8 @@ class Note(HSDBModel):
     created_ms = HSDBAttribute(int,  required=True)
     folder     = HSDBRelation.ManyToOne(Folder) # Optional, left out for a note without folder
     is_anchor  = HSDBAttribute(bool, description='Words of other notes can point to an anchor note')
+    lock_data  = HSDBAttribute(str,  description='Encrypted blocks of a locked note (AES-GCM, base64), a locked note has no Block entries. Empty once the lock is taken off')
+    lock_iv    = HSDBAttribute(str,  description='Initialization vector of lock_data (base64)')
     pin_scope  = HSDBAttribute(str,  description='folder or global, where a pinned note is kept on top')
     pinned     = HSDBAttribute(bool, required=True)
     rev        = HSDBAttribute(int,  required=True, description='Save timestamp (ms), changes whenever the row is written by a client')

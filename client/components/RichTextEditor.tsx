@@ -943,6 +943,9 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
 
             if (!formatMode || !editorRef.current) return;
 
+            // A color or an anchor is applied by the pick, not by the selection
+            if (PICKED_MODES.includes(formatMode)) return;
+
             // In edit mode with selection, apply formatting to selection
             if (isFocused) {
                 const selection = window.getSelection();

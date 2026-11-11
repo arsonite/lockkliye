@@ -14,7 +14,7 @@
  */
 
 // React imports
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 
 // Types
 import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyle, iAnchorStyle, iHistoryEntry, iListOptions, tBlockData, tBlockKind, tPaletteKind, tPin } from '@/types';
@@ -27,9 +27,11 @@ import { DEFAULT_ANCHOR_STYLE, sanitizeAnchorStyle } from '@/tools/anchorStyle';
 import { DEFAULT_LIST_OPTIONS, sanitizeListOptions } from '@/tools/lists';
 import { MAX_ENABLED, catalogOf, defaultPalette, sanitizePalette } from '@/tools/palette';
 import { generateRandomFolderTree, generateRandomNote, randomizeDates } from '@/tools/randomGenerator';
+import { isLocked, sanitizeLockSetup, withoutText } from '@/tools/lock';
 import { createTutorialNote } from '@/tools/tutorialNote';
 import useSync from '@/sync/useSync';
 import type { iPersisted } from '@/tools/indexedDB';
+import useNoteLock from '@/hooks/useNoteLock';
 import usePersist from '@/hooks/usePersist';
 
 const MAX_HISTORY_SIZE = 100;
@@ -52,6 +54,9 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
         // Older versions saved less
         return {
             ...stored,
+            // Nothing readable of a locked note comes back from storage
+            notes: stored.notes.map(withoutText),
+            lockSetup: sanitizeLockSetup(stored.lockSetup),
             sidebarExpanded: readSidebarExpanded(),
             lightMode: stored.lightMode ?? false,
             selectedSize: stored.selectedSize ?? 'normal',
@@ -89,6 +94,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
         accentColor: DEFAULT_ACCENT,
         listOptions: DEFAULT_LIST_OPTIONS,
         anchorStyle: DEFAULT_ANCHOR_STYLE,
+        lockSetup: null,
         palette: defaultPalette(),
         blockPresets: [
             // Default presets
@@ -156,9 +162,27 @@ const useNotesStore = (persisted: iPersisted) => {
     const isUndoing = useRef(false);
     const lastChange = useRef<{ noteId: string; group: string; time: number } | null>(null);
 
+    const lock = useNoteLock({ state, setState, setHistory, setRedoStack });
+    const resetLock = lock.reset;
+
+    // What is saved and synced of locked notes is sealed: no blocks, no history, the text only inside their lock
+    const lockedIds = useMemo(() => new Set(state.notes.filter(isLocked).map((note) => note.id)), [state.notes]);
+    const savedState = useMemo(
+        () => (lockedIds.size > 0 ? { ...state, notes: state.notes.map(withoutText) } : state),
+        [state, lockedIds],
+    );
+    const savedHistory = useMemo(
+        () => (lockedIds.size > 0 ? history.filter((entry) => !lockedIds.has(entry.noteId)) : history),
+        [history, lockedIds],
+    );
+    const savedRedo = useMemo(
+        () => (lockedIds.size > 0 ? redoStack.filter((entry) => !lockedIds.has(entry.noteId)) : redoStack),
+        [redoStack, lockedIds],
+    );
+
     const sync = useSync({
         state,
-        history,
+        history: savedHistory,
         historyLimit: MAX_HISTORY_SIZE,
         freshInstall,
         storedMeta: persisted.sync,
@@ -174,9 +198,9 @@ const useNotesStore = (persisted: iPersisted) => {
         }
     }, [state.sidebarExpanded]);
 
-    usePersist('data', state);
-    usePersist('history', history);
-    usePersist('redo', redoStack);
+    usePersist('data', savedState);
+    usePersist('history', savedHistory);
+    usePersist('redo', savedRedo);
 
     // Save state to history before modifications (per-note)
     // Edits with the same group within a short time are one step, the group tells a block from another
@@ -745,11 +769,11 @@ const useNotesStore = (persisted: iPersisted) => {
 
     // Export functions
     const exportAsText = useCallback(() => {
-        return exportNotesAsText(state.notes);
+        return exportNotesAsText(state.notes.filter((note) => !isLocked(note)));
     }, [state.notes]);
 
     const exportAsJson = useCallback(() => {
-        return exportNotesAsJson(state.notes, state.folders);
+        return exportNotesAsJson(state.notes.map(withoutText), state.folders);
     }, [state.notes, state.folders]);
 
     const exportSettings = useCallback(() => {
@@ -782,7 +806,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 if (result.notes) {
                     // Merge notes by ID - skip if ID already exists, otherwise add
                     const existingIds = new Set(prev.notes.map(n => n.id));
-                    const newNotes = result.notes.filter((n: iNote) => !existingIds.has(n.id));
+                    const newNotes = result.notes.filter((n: iNote) => !existingIds.has(n.id)).map(withoutText);
                     newState.notes = [...newNotes, ...prev.notes];
                 }
                 if (result.folders) {
@@ -836,7 +860,7 @@ const useNotesStore = (persisted: iPersisted) => {
 
             if (result.notes) {
                 const existingIds = new Set(prev.notes.map(n => n.id));
-                const newNotes = result.notes.filter((n: iNote) => !existingIds.has(n.id));
+                const newNotes = result.notes.filter((n: iNote) => !existingIds.has(n.id)).map(withoutText);
                 newState.notes = [...newNotes, ...prev.notes];
             }
             if (result.folders) {
@@ -939,7 +963,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 type: 'lockkliye-backup',
                 version: 1,
                 exportedAt: Date.now(),
-                notes: state.notes,
+                notes: state.notes.map(withoutText),
                 folders: state.folders,
                 settings: {
                     lightMode: state.lightMode,
@@ -951,15 +975,16 @@ const useNotesStore = (persisted: iPersisted) => {
                     accentColor: state.accentColor,
                     listOptions: state.listOptions,
                     anchorStyle: state.anchorStyle,
+                    lockSetup: state.lockSetup,
                     palette: state.palette,
                 },
                 blockPresets: state.blockPresets,
-                history,
+                history: savedHistory,
             },
             null,
             2,
         );
-    }, [state, history]);
+    }, [state, savedHistory]);
 
     // A backup replaces everything that is here, the next save makes the server match it
     const importBackup = useCallback((jsonString: string): boolean => {
@@ -969,10 +994,13 @@ const useNotesStore = (persisted: iPersisted) => {
                 return false;
             }
             const settings = data.settings ?? {};
-            const references = withValidReferences(data.notes, data.folders);
+            const references = withValidReferences(data.notes.map(withoutText), data.folders);
+            // Nothing is open after a restore, the password of the backup (or this one) opens the locked notes again
+            resetLock();
             setState((prev: iNotesState) => ({
                 ...prev,
                 ...references,
+                lockSetup: sanitizeLockSetup(settings.lockSetup) ?? prev.lockSetup,
                 lightMode: settings.lightMode ?? prev.lightMode,
                 editorWidth: settings.editorWidth ?? prev.editorWidth,
                 confirmDeletions: settings.confirmDeletions ?? prev.confirmDeletions,
@@ -995,7 +1023,7 @@ const useNotesStore = (persisted: iPersisted) => {
         } catch {
             return false;
         }
-    }, []);
+    }, [resetLock]);
 
     // A random folder with subfolders, notes and subnotes for testing
     const createRandomFolder = useCallback(() => {
@@ -1191,6 +1219,9 @@ const useNotesStore = (persisted: iPersisted) => {
         setNotePin,
         orderNotes,
         setActiveFolder,
+
+        // Locked notes
+        ...lock,
 
         // Sidebar
         toggleSidebar,

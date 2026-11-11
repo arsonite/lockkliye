@@ -56,6 +56,7 @@ const SHORTCUT_KEYS = {
     redo: 'Ctrl+Shift+Z',
     escape: 'Escape',
     toggleSidebar: 'Ctrl+L',
+    lockAll: 'Ctrl+Shift+L',
     newBlock: 'Shift+Enter',
 };
 
@@ -89,6 +90,7 @@ const SHORTCUTS = define({
     redo: { group: 'General', keys: [SHORTCUT_KEYS.redo, 'Ctrl+Y'], label: 'Redo' },
     escape: { group: 'General', keys: [SHORTCUT_KEYS.escape], label: 'Leave formatting mode and close the settings' },
     toggleSidebar: { group: 'General', keys: [SHORTCUT_KEYS.toggleSidebar], label: 'Collapse or expand the sidebar' },
+    lockAll: { group: 'General', keys: [SHORTCUT_KEYS.lockAll], label: 'Lock all notes' },
 
     newBlock: { group: 'Blocks', keys: [SHORTCUT_KEYS.newBlock], label: 'New block below' },
 });

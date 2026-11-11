@@ -17,11 +17,12 @@
 import { useState, useRef, useEffect } from 'react';
 
 // TeaType
-import { BookmarkIcon, ChevronIcon, FolderIcon, PinIcon, SettingsIcon, XIcon } from '@teatype/icons';
+import { BookmarkIcon, ChevronIcon, FolderIcon, LockIcon, PinIcon, SettingsIcon, XIcon } from '@teatype/icons';
 import { TeaSidebar, TeaModal } from '@teatype/components';
 
 // Utility
 import { descendantIds, folderPath } from '@/tools/folderTree';
+import { isLocked } from '@/tools/lock';
 import { DEFAULT_SORT, SORT_MODES, arrangeNotes } from '@/tools/sorting';
 
 // Hooks
@@ -193,6 +194,7 @@ export const Sidebar = ({
     };
 
     const getNotePreview = (note: iNote): string => {
+        if (isLocked(note)) return 'Locked';
         const words = note.blocks.flatMap((b) => b.words.map((w) => w.text)).filter(Boolean);
         return words.slice(0, 10).join(' ') || 'No content';
     };
@@ -200,6 +202,7 @@ export const Sidebar = ({
     // Check if note is empty
     const isNoteEmpty = (note: iNote): boolean => {
         return (
+            !isLocked(note) &&
             note.blocks.length === 0 ||
             (note.blocks.length === 1 && note.blocks[0].words.length <= 1 && !note.blocks[0].words[0]?.text.trim())
         );
@@ -414,7 +417,8 @@ export const Sidebar = ({
     const needle = query.trim().toLowerCase();
     const noteMatches = (note: iNote): boolean => {
         if (!needle) return true;
-        const text = `${note.title} ${note.blocks.flatMap((block) => block.words.map((word) => word.text)).join(' ')}`.toLowerCase();
+        const body = isLocked(note) ? '' : note.blocks.flatMap((block) => block.words.map((word) => word.text)).join(' ');
+        const text = `${note.title} ${body}`.toLowerCase();
         return needle.split(/\s+/).every((term) => text.includes(term));
     };
     const folderNameMatches = (folder: iFolder): boolean => !!needle && folder.name.toLowerCase().includes(needle);
@@ -454,6 +458,11 @@ export const Sidebar = ({
                                 title={note.pinned === 'global' ? 'Pinned globally' : 'Pinned in its folder'}
                             >
                                 <PinIcon />
+                            </span>
+                        )}
+                        {isLocked(note) && (
+                            <span className='sidebar-row__anchor' title='Locked'>
+                                <LockIcon />
                             </span>
                         )}
                         {note.isAnchor && (

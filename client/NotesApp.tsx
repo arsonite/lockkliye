@@ -22,7 +22,9 @@ import { NoteIcon } from '@teatype/icons';
 
 // Components
 import ModeCursor from '@/components/ModeCursor';
+import LockedNote from '@/components/LockedNote';
 import { NoteEditor } from '@/components/NoteEditor';
+import PasswordModal, { type tPasswordMode } from '@/components/PasswordModal';
 import { SettingsView } from '@/components/SettingsView';
 import { Sidebar } from '@/components/Sidebar';
 
@@ -36,6 +38,7 @@ import useNotesStore from '@/hooks/useNotesStore';
 import { loadPersisted, type iPersisted } from '@/tools/indexedDB';
 import { accentVars } from '@/tools/accent';
 import { anchorVars } from '@/tools/anchorStyle';
+import { isLocked } from '@/tools/lock';
 import { enabledOf } from '@/tools/palette';
 
 // Types
@@ -64,6 +67,14 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
     const sidebarExpanded = mobile ? sheetOpen : store.sidebarExpanded;
     const toggleSidebar = mobile ? () => setSheetOpen((open) => !open) : store.toggleSidebar;
     const closeSheet = () => setSheetOpen(false);
+
+    // The password dialog, with the note that is to be locked once it is through
+    const [passwordMode, setPasswordMode] = useState<tPasswordMode | null>(null);
+    const [noteToLock, setNoteToLock] = useState<string | null>(null);
+    const closePassword = () => {
+        setPasswordMode(null);
+        setNoteToLock(null);
+    };
 
     // The toast is rendered in the body, so its light mode comes from the body
     useEffect(() => {
@@ -106,6 +117,39 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
         }
     };
 
+    // Locks the active note, taking the password first when there is none or the notes are closed
+    const handleToggleLock = () => {
+        const note = store.activeNote;
+        if (!note) return;
+        if (isLocked(note)) {
+            store.removeLock(note.id);
+            return;
+        }
+        if (!store.hasPassword || !store.unlocked) {
+            setNoteToLock(note.id);
+            setPasswordMode(store.hasPassword ? 'unlock' : 'create');
+            return;
+        }
+        store.lockNote(note.id);
+    };
+
+    const handlePassword = async (
+        mode: tPasswordMode,
+        { current, next }: { current: string; next: string },
+    ): Promise<string | null> => {
+        if (mode === 'create') {
+            if (!(await store.createPassword(next))) return 'Locking is not available here. Use HTTPS or localhost.';
+        } else if (mode === 'unlock') {
+            if (!(await store.unlock(current))) return 'Wrong password.';
+        } else if (!(await store.changePassword(current, next))) {
+            return 'The current password is wrong.';
+        }
+        if (noteToLock) await store.lockNote(noteToLock);
+        closePassword();
+        if (mode === 'change') toast.success('Password changed');
+        return null;
+    };
+
     // Global keyboard shortcuts: Escape leaves format mode and closes settings
     useKeyboardShortcuts({
         onEscape: () => {
@@ -115,6 +159,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
         },
         onFormatToggle: store.toggleFormatMode,
         onToggleSidebar: toggleSidebar,
+        onLockAll: store.lockAll,
         onColorIndex: (index) => {
             const color = enabledOf('text', store.palette)[index];
             if ((store.formatMode !== 'color' && store.formatMode !== 'highlight') || !color) {
@@ -285,6 +330,10 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         onShowBlockBordersChange={store.setShowBlockBorders}
                         onShowStyleButtonChange={store.setShowStyleButton}
                         onUse24HourTimeChange={store.setUse24HourTime}
+                        hasPassword={store.hasPassword}
+                        locksOpen={store.unlocked}
+                        onSetPassword={() => setPasswordMode(store.hasPassword ? 'change' : 'create')}
+                        onLockAll={store.lockAll}
                         onClearAllHistory={store.clearAllHistory}
                         onTogglePaletteEntry={store.togglePaletteEntry}
                         onAddPaletteEntry={store.addCustomPaletteEntry}
@@ -310,6 +359,15 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         onClose={() => setShowSettings(false)}
                         toast={toast}
                     />
+                ) : store.activeNote && isLocked(store.activeNote) && !store.activeNote.open ? (
+                    <LockedNote
+                        key={store.activeNote.id}
+                        note={store.activeNote}
+                        hasPassword={store.hasPassword}
+                        unlocked={store.unlocked}
+                        unreadable={store.unreadable.includes(store.activeNote.lock?.data ?? '')}
+                        onUnlock={store.unlock}
+                    />
                 ) : store.activeNote ? (
                     <NoteEditor
                         note={store.activeNote}
@@ -332,6 +390,10 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         showStyleButton={store.showStyleButton}
                         use24HourTime={store.use24HourTime}
                         blockPresets={store.blockPresets}
+                        hasPassword={store.hasPassword}
+                        locksOpen={store.unlocked}
+                        onToggleLock={handleToggleLock}
+                        onLockAll={store.lockAll}
                         onTitleChange={handleTitleChange}
                         onToggleAnchor={handleToggleAnchor}
                         onAnchorChange={store.setSelectedAnchor}
@@ -375,6 +437,8 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                     </div>
                 )}
             </main>
+
+            <PasswordModal mode={passwordMode} onSubmit={handlePassword} onClose={closePassword} />
 
             <ModeCursor formatMode={store.formatMode} selectedColor={store.selectedColor} />
 

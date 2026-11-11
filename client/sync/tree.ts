@@ -26,6 +26,9 @@ import {
 import { createBlock, createWord } from '@/types';
 import type { iBlockStyle, iFolder, iHistoryEntry, iNote } from '@/types';
 
+// Util
+import { isLocked } from '@/tools/lock';
+
 // What the app stores as nested objects is stored on the server as flat entries: this module takes the
 // app state apart into those entries (deriveItems) and puts the entries of a sync result back together (assemble).
 interface iSyncItems {
@@ -84,6 +87,8 @@ const deriveItems = (
     const items: iSyncItems = { folders, notes, settings: [settings], blocks: [], words: [], presets: [], history };
 
     for (const note of notes) {
+        // The text of a locked note is inside its encrypted lock, the server keeps no blocks or words of it
+        if (isLocked(note)) continue;
         note.blocks.forEach((block, position) => {
             items.blocks.push(
                 memo(blockItems, block, `${note.id}:${position}`, () => ({
@@ -126,6 +131,8 @@ const assemble = (
     const blocksByNote = group(result.blocks, (item) => item.noteId);
 
     const notes = result.notes.map((note) => {
+        // A locked note has no entries, its text is opened from the lock with the password
+        if (isLocked(note)) return note;
         const blocks = (blocksByNote.get(note.id) ?? []).sort(byPosition).map((item) => {
             const words = (wordsByBlock.get(item.id) ?? []).sort(byPosition).map((entry) => entry.word);
             const original = item.block;

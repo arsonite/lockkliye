@@ -17,7 +17,7 @@
 import { useRef, useState } from 'react';
 
 // TeaType icons
-import { CodeIcon, ColorIcon, ContrastIcon, KeyboardIcon, PencilIcon, TransferIcon } from '@teatype/icons';
+import { CodeIcon, ColorIcon, ContrastIcon, KeyboardIcon, LockIcon, PencilIcon, TransferIcon } from '@teatype/icons';
 
 // TeaType components
 import { TeaButton, TeaModal, TeaSettingsPage, type iTeaSettingsCategory, type iUseTeaToastReturn } from '@teatype/components';
@@ -57,6 +57,10 @@ interface iSettingsViewProps {
     onShowBlockBordersChange: (value: boolean) => void;
     onShowStyleButtonChange: (value: boolean) => void;
     onUse24HourTimeChange: (value: boolean) => void;
+    hasPassword: boolean;
+    locksOpen: boolean;
+    onSetPassword: () => void;
+    onLockAll: () => void;
     onClearAllHistory: () => void;
     onTogglePaletteEntry: (kind: tPaletteKind, value: string) => void;
     onAddPaletteEntry: (kind: tPaletteKind, value: string) => void;
@@ -130,6 +134,10 @@ export const SettingsView = ({
     onShowBlockBordersChange,
     onShowStyleButtonChange,
     onUse24HourTimeChange,
+    hasPassword,
+    locksOpen,
+    onSetPassword,
+    onLockAll,
     onClearAllHistory,
     onTogglePaletteEntry,
     onAddPaletteEntry,
@@ -365,6 +373,49 @@ export const SettingsView = ({
                     items: [
                         paletteItem('block', 'Block colors', 'The Background row of the style menu of a block.'),
                         paletteItem('gradient', 'Block gradients', 'The Gradient row of the style menu of a block.'),
+                    ],
+                },
+            ],
+        },
+        {
+            id: 'security',
+            label: 'Security',
+            icon: <LockIcon />,
+            description:
+                'One password locks the notes you choose. Their text is encrypted in this browser before it is saved or synced, titles stay readable. Opening one locked note opens all of them, and they lock again after 10 minutes without input.',
+            groups: [
+                {
+                    id: 'lock-password',
+                    title: 'Password',
+                    items: [
+                        {
+                            id: 'lock-set',
+                            label: hasPassword ? 'Change password' : 'Set a password',
+                            description: hasPassword
+                                ? 'Locked notes are encrypted again with the new one.'
+                                : 'Then lock a note with the lock next to its title.',
+                            control: {
+                                type: 'button',
+                                label: hasPassword ? 'Change' : 'Set password',
+                                onClick: onSetPassword,
+                            },
+                        },
+                        ...(hasPassword
+                            ? [
+                                  {
+                                      id: 'lock-now',
+                                      label: 'Lock all notes',
+                                      description: locksOpen
+                                          ? 'Locked notes are readable right now.'
+                                          : 'All locked notes are closed.',
+                                      control: {
+                                          type: 'button' as const,
+                                          label: 'Lock now',
+                                          onClick: onLockAll,
+                                      },
+                                  },
+                              ]
+                            : []),
                     ],
                 },
             ],

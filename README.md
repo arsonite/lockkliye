@@ -115,7 +115,6 @@ Sorted by priority.
 
 ### Low
 
-- Allow password lockdown of single notes (iCloud style), same password for all
 - Right click on global to change the settings there too
 - Add user authentication
 
