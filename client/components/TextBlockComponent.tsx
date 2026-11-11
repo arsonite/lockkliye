@@ -124,19 +124,17 @@ export const TextBlockComponent = ({
     const styleMenuRef = useRef<HTMLDivElement>(null);
     const blockRef = useRef<HTMLDivElement>(null);
     const mobile = useIsMobile();
-    // Holding the block opens the style menu where there is no right-click, holding the width handle resets the width
+    // Holding the block opens the style menu where there is no right-click, holding the width handle resets the width on a touch screen (a mouse double-clicks it)
     // It opens in the middle of the screen, a finger on the text would hide it
     const menuPress = useLongPress(() => {
         setMenuPoint('center');
         setShowStyleMenu(true);
     });
-    const widthPress = useLongPress(
-        () => {
-            setIsResizing(false);
-            onStyleChange(block.id, { widthPercent: undefined });
-        },
-        { mouse: true },
-    );
+    const resetWidth = () => {
+        setIsResizing(false);
+        onStyleChange(block.id, { widthPercent: undefined });
+    };
+    const widthPress = useLongPress(resetWidth);
 
     const cancelWidthPress = widthPress.cancel;
     const blockStyle = block.style;
@@ -487,7 +485,8 @@ export const TextBlockComponent = ({
                             e.preventDefault();
                             setIsResizing(true);
                         }}
-                        title='Hold to reset the width'
+                        onDoubleClick={resetWidth}
+                        title='Double-click (hold on a touch screen) to reset the width'
                     />
                 )}
 
