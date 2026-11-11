@@ -113,18 +113,15 @@ Sorted by priority.
 
 ### High
 
-- when detecting a time, underline it with dashes and make it ctrl+clickable to open a clock you can turn and change it (dates are done, see `client/tools/dates.ts`)
-- when holding shortcut, coloring and highlighting doesnt work
-- when holding shortcut, selecting 2 creates potency 2
+- Implement long press for all right click elements like block settings
+- make taskbar thinner and reduce opactity when scrolling only showing full when hovering over taskbar or activating shortcuts and also hide the numbers when holding text size shortcut
 
 ### Low
 
-- make taskbar thinner and reduce opactity when scrolling only showing full when hovering over taskbar or activating shortcuts and also hide the numbers when holding text size shortcut
 - Right click on global to change the settings there too
 - Do not autofocus when creating a new block (setting)
 - Add user authentication
 - Allow password lockdown of single notes (iCloud style)
-- Implement long press for all right click elements like block settings
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
