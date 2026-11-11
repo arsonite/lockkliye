@@ -25,6 +25,5 @@ class Settings(HSDBModel):
     rev                = HSDBAttribute(int,  required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
     show_block_borders = HSDBAttribute(bool, description='Outline the block under the mouse')
     show_style_button  = HSDBAttribute(bool, description='Show the block style button next to a block')
-    sidebar_expanded   = HSDBAttribute(bool, required=True)
     theme              = HSDBAttribute(str,  description='Name of the color theme, light_mode is kept for older clients')
     use_24_hour_time   = HSDBAttribute(bool, description='Show times as 14:30 instead of 2:30 PM')

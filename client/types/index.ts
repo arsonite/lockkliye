@@ -182,7 +182,6 @@ type iPalette = Record<tPaletteKind, iPaletteSlot>;
 // App settings
 interface iAppSettings {
     lightMode: boolean;
-    sidebarExpanded: boolean;
 }
 
 // App state
@@ -191,7 +190,7 @@ interface iNotesState {
     folders: iFolder[];
     activeNoteId: string | null;
     activeFolderId: string | null;
-    sidebarExpanded: boolean;
+    sidebarExpanded: boolean; // Only of this browser (localStorage), not saved in the data, the export or on the server
     formatMode: tFormatMode;
     selectedColor: string;
     selectedSize: string;
@@ -340,7 +339,6 @@ interface iSettingsExportData {
     exportedAt: number;
     settings: {
         lightMode: boolean;
-        sidebarExpanded: boolean;
         editorWidth: number;
         confirmDeletions: boolean;
         showBlockBorders?: boolean;
@@ -370,7 +368,6 @@ const exportNotesAsJson = (notes: iNote[], folders: iFolder[]): string => {
 const exportSettingsAsJson = (
     settings: {
         lightMode: boolean;
-        sidebarExpanded: boolean;
         editorWidth: number;
         confirmDeletions: boolean;
         showBlockBorders?: boolean;
@@ -406,7 +403,6 @@ const importFromJson = (jsonString: string): {
     folders?: iFolder[];
     settings?: {
         lightMode?: boolean;
-        sidebarExpanded?: boolean;
         editorWidth?: number;
         confirmDeletions?: boolean;
         showBlockBorders?: boolean;

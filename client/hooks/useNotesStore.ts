@@ -14,7 +14,7 @@
  */
 
 // React imports
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 // Types
 import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyle, iAnchorStyle, iHistoryEntry, iListOptions, tBlockData, tBlockKind, tPaletteKind, tPin } from '@/types';
@@ -37,11 +37,22 @@ const MAX_HISTORY_SIZE = 100;
 const COALESCE_MS = 1500;
 const COALESCED = ['Edit text', 'Edit block', 'Update block style', 'Update note'];
 
+// Which way the sidebar is, is a thing of this browser: it stays in localStorage and is not saved with the data
+const SIDEBAR_KEY = 'lockkliye-sidebar-expanded';
+const readSidebarExpanded = (): boolean => {
+    try {
+        return localStorage.getItem(SIDEBAR_KEY) !== 'false';
+    } catch {
+        return true;
+    }
+};
+
 const getInitialState = (stored?: iNotesState): iNotesState => {
     if (stored) {
         // Older versions saved less
         return {
             ...stored,
+            sidebarExpanded: readSidebarExpanded(),
             lightMode: stored.lightMode ?? false,
             selectedSize: stored.selectedSize ?? 'normal',
             selectedAnchorId: stored.selectedAnchorId ?? null,
@@ -64,7 +75,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
         folders: [],
         activeNoteId: sampleNote.id,
         activeFolderId: null,
-        sidebarExpanded: true,
+        sidebarExpanded: readSidebarExpanded(),
         formatMode: null,
         selectedColor: FORMAT_COLORS[0],
         selectedSize: 'normal',
@@ -154,6 +165,14 @@ const useNotesStore = (persisted: iPersisted) => {
         setState,
         setHistory,
     });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(SIDEBAR_KEY, String(state.sidebarExpanded));
+        } catch {
+            // Private mode or a full storage: the sidebar just starts expanded next time
+        }
+    }, [state.sidebarExpanded]);
 
     usePersist('data', state);
     usePersist('history', history);
@@ -737,7 +756,6 @@ const useNotesStore = (persisted: iPersisted) => {
         return exportSettingsAsJson(
             {
                 lightMode: state.lightMode,
-                sidebarExpanded: state.sidebarExpanded,
                 editorWidth: state.editorWidth,
                 confirmDeletions: state.confirmDeletions,
                 showBlockBorders: state.showBlockBorders,
@@ -750,7 +768,7 @@ const useNotesStore = (persisted: iPersisted) => {
             },
             state.blockPresets
         );
-    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.use24HourTime, state.accentColor, state.listOptions, state.anchorStyle, state.palette, state.blockPresets]);
+    }, [state.lightMode, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.use24HourTime, state.accentColor, state.listOptions, state.anchorStyle, state.palette, state.blockPresets]);
 
     const importFromJson = useCallback((jsonString: string) => {
         const result = parseImportJson(jsonString);
@@ -780,7 +798,6 @@ const useNotesStore = (persisted: iPersisted) => {
             if (result.type === 'settings' || result.type === 'legacy') {
                 if (result.settings) {
                     if (result.settings.lightMode !== undefined) newState.lightMode = result.settings.lightMode;
-                    if (result.settings.sidebarExpanded !== undefined) newState.sidebarExpanded = result.settings.sidebarExpanded;
                     if (result.settings.editorWidth !== undefined) newState.editorWidth = result.settings.editorWidth;
                     if (result.settings.confirmDeletions !== undefined) newState.confirmDeletions = result.settings.confirmDeletions;
                     if (result.settings.showBlockBorders !== undefined) newState.showBlockBorders = result.settings.showBlockBorders;
@@ -846,7 +863,6 @@ const useNotesStore = (persisted: iPersisted) => {
 
             if (result.settings) {
                 if (result.settings.lightMode !== undefined) newState.lightMode = result.settings.lightMode;
-                if (result.settings.sidebarExpanded !== undefined) newState.sidebarExpanded = result.settings.sidebarExpanded;
                 if (result.settings.editorWidth !== undefined) newState.editorWidth = result.settings.editorWidth;
                 if (result.settings.confirmDeletions !== undefined) newState.confirmDeletions = result.settings.confirmDeletions;
                 if (result.settings.showBlockBorders !== undefined) newState.showBlockBorders = result.settings.showBlockBorders;
@@ -927,7 +943,6 @@ const useNotesStore = (persisted: iPersisted) => {
                 folders: state.folders,
                 settings: {
                     lightMode: state.lightMode,
-                    sidebarExpanded: state.sidebarExpanded,
                     editorWidth: state.editorWidth,
                     confirmDeletions: state.confirmDeletions,
                     showBlockBorders: state.showBlockBorders,
@@ -959,7 +974,6 @@ const useNotesStore = (persisted: iPersisted) => {
                 ...prev,
                 ...references,
                 lightMode: settings.lightMode ?? prev.lightMode,
-                sidebarExpanded: settings.sidebarExpanded ?? prev.sidebarExpanded,
                 editorWidth: settings.editorWidth ?? prev.editorWidth,
                 confirmDeletions: settings.confirmDeletions ?? prev.confirmDeletions,
                 showBlockBorders: settings.showBlockBorders ?? prev.showBlockBorders,

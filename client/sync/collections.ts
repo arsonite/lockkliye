@@ -94,7 +94,6 @@ interface iPresetItem {
 // The app settings are one row
 interface iSettingsItem {
     lightMode: boolean;
-    sidebarExpanded: boolean;
     editorWidth: number;
     confirmDeletions: boolean;
     showBlockBorders: boolean;
@@ -242,12 +241,10 @@ const settingsCollection: iCollection<iSettingsItem> = {
         }),
         show_block_borders: settings.showBlockBorders,
         show_style_button: settings.showStyleButton,
-        sidebar_expanded: settings.sidebarExpanded,
         use_24_hour_time: settings.use24HourTime,
     }),
     fromRow: (row) => ({
         lightMode: row.light_mode as boolean,
-        sidebarExpanded: row.sidebar_expanded as boolean,
         editorWidth: row.editor_width as number,
         confirmDeletions: row.confirm_deletions as boolean,
         showBlockBorders: row.show_block_borders !== false,

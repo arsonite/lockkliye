@@ -80,7 +80,6 @@ interface iUseSyncProps {
 
 const settingsOf = (state: iNotesState): iSettingsItem => ({
     lightMode: state.lightMode,
-    sidebarExpanded: state.sidebarExpanded,
     editorWidth: state.editorWidth,
     confirmDeletions: state.confirmDeletions,
     showBlockBorders: state.showBlockBorders,
@@ -167,7 +166,7 @@ const useSync = ({ state, history, historyLimit, freshInstall, storedMeta, setSt
     const settings = useMemo(
         () => settingsOf(state),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.use24HourTime, state.accentColor, state.listOptions, state.anchorStyle, state.palette],
+        [state.lightMode, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.use24HourTime, state.accentColor, state.listOptions, state.anchorStyle, state.palette],
     );
     const presets = useMemo(
         () => deriveItems([], [], state.blockPresets, settings, []).presets,
