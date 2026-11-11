@@ -83,10 +83,10 @@
         z-index: 10;
     }
 
-    // The drag handle on a desktop: in the middle of the block, beside the buttons
+    // The drag handle on a desktop: beside the buttons, at the height of their middle, so both follow the mouse together
     &__handle {
         position: absolute;
-        top: 50%;
+        top: var(--follow-y, 50%);
         left: -33px;
         padding: 2px 1px;
         opacity: 0;
@@ -308,6 +308,16 @@
     &__date,
     &__time {
         text-decoration: underline dashed;
+        text-decoration-thickness: 1px;
+        text-underline-offset: 4px;
+        text-decoration-skip-ink: none;
+    }
+
+    // An anchored word, the line and the weight are settings (Settings > Editor > Anchors). The pointer shows while Ctrl
+    // is held, see below.
+    span.rich-text-editor__anchored {
+        font-weight: var(--anchor-weight, inherit);
+        text-decoration: underline var(--anchor-line, dashed) var(--accent);
         text-decoration-thickness: 1px;
         text-underline-offset: 4px;
         text-decoration-skip-ink: none;

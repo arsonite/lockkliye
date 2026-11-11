@@ -17,12 +17,12 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 
 // Components
+import { TeaDatePicker, TeaTimePicker } from '@teatype/components';
 import { applyFormatMode } from '@/components/WordComponent';
-import { DatePicker } from '@/components/DatePicker';
 import LinkModal from '@/components/LinkModal';
-import { TimePicker } from '@/components/TimePicker';
 import { findDate, formatDate, type iFoundDate } from '@/tools/dates';
 import { DEFAULT_LIST_OPTIONS, convertPastedLists, decoratorOf, nextMarker } from '@/tools/lists';
+import useLongPress from '@/hooks/useLongPress';
 import { shortcutOf } from '@/tools/shortcuts';
 import { findTime, formatTime, type iFoundTime } from '@/tools/times';
 
@@ -91,15 +91,6 @@ const getWordStyle = (format: iWordFormat): React.CSSProperties => {
         if (!format.color || format.color === 'inherit') style.color = '#0a84ff';
         style.textDecoration = (style.textDecoration || '') + ' underline';
         style.cursor = 'pointer';
-    }
-
-    // Dashed like a date, the pointer shows while Ctrl is held (see the notes-app--ctrl rules)
-    if (format.anchor) {
-        style.textDecoration = (style.textDecoration || '') + ' underline dashed';
-        style.textDecorationColor = 'var(--accent)';
-        style.textDecorationThickness = '1px';
-        style.textUnderlineOffset = '4px';
-        style.textDecorationSkipInk = 'none';
     }
 
     switch (format.fontSize) {
@@ -741,21 +732,20 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
         [onAddBlockAfter, listOptions, lineBeforeCaret],
     );
 
-    const handleContextMenu = useCallback(
-        (event: React.MouseEvent) => {
+    // Opens the menu of the selected text at a point, false when nothing of this editor is selected
+    const openSelectionMenu = useCallback(
+        (x: number, y: number) => {
             const editor = editorRef.current;
             const selection = window.getSelection();
-            if (!onSelectionMenu || !editor || !selection || selection.isCollapsed || selection.rangeCount === 0) return;
+            if (!onSelectionMenu || !editor || !selection || selection.isCollapsed || selection.rangeCount === 0) return false;
             const range = selection.getRangeAt(0);
-            if (!editor.contains(range.commonAncestorContainer)) return;
+            if (!editor.contains(range.commonAncestorContainer)) return false;
 
-            event.preventDefault();
-            event.stopPropagation();
             // The menu takes the focus, the range stays valid as long as the text does not change
             const saved = range.cloneRange();
             onSelectionMenu({
-                x: event.clientX,
-                y: event.clientY,
+                x,
+                y,
                 take: () => {
                     const holder = document.createElement('div');
                     holder.appendChild(saved.cloneContents());
@@ -764,9 +754,30 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                     return { selected, remaining: parseHTMLToWords(editor) };
                 },
             });
+            return true;
         },
         [onSelectionMenu, parseHTMLToWords],
     );
+
+    const handleContextMenu = (event: React.MouseEvent) => {
+        if (!openSelectionMenu(event.clientX, event.clientY)) return;
+        event.preventDefault();
+        event.stopPropagation();
+    };
+
+    // A finger has no right-click: holding the selected text opens the same menu, without the block menu below it
+    const selectionPress = useLongPress(({ x, y }) => {
+        openSelectionMenu(x, y);
+    });
+    const handleSelectionPress = (event: React.PointerEvent) => {
+        if (event.pointerType === 'mouse') return;
+        const selection = window.getSelection();
+        const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+        const editor = editorRef.current;
+        if (!onSelectionMenu || !editor || !range || selection?.isCollapsed || !editor.contains(range.commonAncestorContainer)) return;
+        selectionPress.handlers.onPointerDown(event);
+        event.stopPropagation();
+    };
 
     // Handle paste - strip formatting and insert plain text
     const handlePaste = useCallback(
@@ -1075,10 +1086,17 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 onKeyDown={handleKeyDown}
                 onPaste={handlePaste}
                 onContextMenu={handleContextMenu}
+                onPointerMove={selectionPress.handlers.onPointerMove}
+                onPointerUp={selectionPress.handlers.onPointerUp}
+                onPointerCancel={selectionPress.handlers.onPointerCancel}
+                onClickCapture={selectionPress.handlers.onClickCapture}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
                 onClick={handleClick}
-                onPointerDown={() => (focusedBeforeTap.current = document.activeElement === editorRef.current)}
+                onPointerDown={(event) => {
+                    focusedBeforeTap.current = document.activeElement === editorRef.current;
+                    handleSelectionPress(event);
+                }}
                 onMouseDown={handleMouseDown}
                 onMouseUp={handleMouseUp}
                 onSelect={handleSelectStart}
@@ -1095,7 +1113,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 onClose={handleLinkModalClose}
             />
             {timePicker && (
-                <TimePicker
+                <TeaTimePicker
                     x={timePicker.x}
                     y={timePicker.y}
                     hours={timePicker.hours}
@@ -1106,7 +1124,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 />
             )}
             {datePicker && (
-                <DatePicker x={datePicker.x} y={datePicker.y} date={datePicker.date} onPick={handleDatePick} onClose={handleDateClose} />
+                <TeaDatePicker x={datePicker.x} y={datePicker.y} date={datePicker.date} onPick={handleDatePick} onClose={handleDateClose} />
             )}
         </>
     );

@@ -26,6 +26,17 @@ interface iLongPressOptions {
 
 const MOVE_TOLERANCE = 10;
 
+// The mouse events a browser makes up after a touch would close the menu the press just opened
+const swallowMouse = () => {
+    const swallow = (event: Event) => event.stopImmediatePropagation();
+    window.addEventListener('mousedown', swallow, true);
+    window.addEventListener('mouseup', swallow, true);
+    setTimeout(() => {
+        window.removeEventListener('mousedown', swallow, true);
+        window.removeEventListener('mouseup', swallow, true);
+    }, 600);
+};
+
 /**
  * Handlers that call `onLongPress` with the position of the press once it was held still for `delay` ms.
  * `cancel` stops a press that is running, e.g. because the pointer turned into a drag.
@@ -69,7 +80,10 @@ const useLongPress = (
                     cancel();
                 }
             },
-            onPointerUp: cancel,
+            onPointerUp: (event: ReactPointerEvent) => {
+                cancel();
+                if (fired.current && event.pointerType !== 'mouse') swallowMouse();
+            },
             onPointerCancel: cancel,
             onClickCapture: (event: React.MouseEvent) => {
                 if (fired.current) {

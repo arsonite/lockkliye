@@ -32,11 +32,10 @@ import {
     UndoIcon,
     XIcon,
 } from '@teatype/icons';
-import { TeaModal } from '@teatype/components';
+import { TeaModal, TeaPopover } from '@teatype/components';
 
 // Components
 import FloatingToolbar from './FloatingToolbar';
-import { PopoverMenu } from './PopoverMenu';
 import { TextBlockComponent } from './TextBlockComponent';
 
 // Types
@@ -45,6 +44,7 @@ import type { iFolder, iNote, iTextBlock, iWord, tFormatMode, iHistoryEntry, iBl
 // Utils
 import useIsMobile from '@/hooks/useIsMobile';
 import useKeyboardTop from '@/hooks/useKeyboardTop';
+import useLongPress from '@/hooks/useLongPress';
 import { folderChain } from '@/tools/folderTree';
 import { shortcutText } from '@/tools/shortcuts';
 
@@ -171,6 +171,17 @@ export const NoteEditor = ({
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [titleValue, setTitleValue] = useState(note.title);
     const [showHistory, setShowHistory] = useState(false);
+    const historyRef = useRef<HTMLDivElement>(null);
+
+    // A list that was opened by a tap closes with a tap anywhere else
+    useEffect(() => {
+        if (!showHistory) return;
+        const close = (e: PointerEvent) => {
+            if (!historyRef.current?.contains(e.target as Node)) setShowHistory(false);
+        };
+        document.addEventListener('pointerdown', close);
+        return () => document.removeEventListener('pointerdown', close);
+    }, [showHistory]);
     const [showPresetMenu, setShowPresetMenu] = useState(false);
     const [editingPresetIndex, setEditingPresetIndex] = useState<number | null>(null);
     const [editingPresetTitle, setEditingPresetTitle] = useState('');
@@ -194,6 +205,16 @@ export const NoteEditor = ({
         marginBottom: number;
     } | null>(null);
     const editorRef = useRef<HTMLDivElement>(null);
+
+    // The toolbar fades while the page is scrolled, a shortcut brings it back until the next scroll
+    const [scrolled, setScrolled] = useState(false);
+    useEffect(() => {
+        const wake = (e: KeyboardEvent) => {
+            if (e.ctrlKey || e.metaKey || e.altKey) setScrolled(false);
+        };
+        window.addEventListener('keydown', wake);
+        return () => window.removeEventListener('keydown', wake);
+    }, []);
     const contentRef = useRef<HTMLDivElement>(null);
     const presetMenuRef = useRef<HTMLDivElement>(null);
     const blockRefs = useRef<Map<string, HTMLDivElement>>(new Map());
@@ -208,6 +229,16 @@ export const NoteEditor = ({
         }
     };
     useLayoutEffect(moveGhost, [isDragging]);
+
+    // The handle sits at the left edge of a phone, where a swipe goes back in the browser. A touch that starts on the
+    // handle is taken for the drag, which needs a non-passive listener.
+    useEffect(() => {
+        const claim = (e: TouchEvent) => {
+            if ((e.target as HTMLElement).closest?.('.note-editor__drag-handle')) e.preventDefault();
+        };
+        document.addEventListener('touchstart', claim, { passive: false });
+        return () => document.removeEventListener('touchstart', claim);
+    }, []);
 
     // Mouse-based drag system for full control
     useEffect(() => {
@@ -258,13 +289,17 @@ export const NoteEditor = ({
             setDraggedBlockRect(null);
         };
 
+        // A finger that drags a block must not scroll the page or swipe back, a listener has to be non-passive for that
+        const blockTouch = (e: TouchEvent) => e.preventDefault();
         document.body.style.cursor = 'grabbing';
+        document.addEventListener('touchmove', blockTouch, { passive: false });
         document.addEventListener('pointermove', handleMouseMove);
         document.addEventListener('pointerup', handleMouseUp);
         document.addEventListener('pointercancel', handleMouseUp);
 
         return () => {
             document.body.style.cursor = '';
+            document.removeEventListener('touchmove', blockTouch);
             document.removeEventListener('pointermove', handleMouseMove);
             document.removeEventListener('pointerup', handleMouseUp);
             document.removeEventListener('pointercancel', handleMouseUp);
@@ -384,29 +419,44 @@ export const NoteEditor = ({
 
     // The blocks, the header and the buttons have their own right-click, the empty space (also between the blocks) opens
     // the list of components
-    const handleEmptySpaceMenu = (event: React.MouseEvent) => {
-        const target = event.target as HTMLElement;
-        if (target.closest('.text-block, .note-editor__header, .note-editor__add-buttons, .note-editor__toolbar-overlay, .note-editor__history-overlay')) {
-            return;
-        }
-        event.preventDefault();
-        // After the last block that starts above the click
+    const EMPTY_SPACE_EXCLUDED =
+        '.text-block, .note-editor__header, .note-editor__add-buttons, .note-editor__toolbar-overlay, .note-editor__history-overlay';
+
+    const openInsertMenu = (x: number, y: number) => {
+        // After the last block that starts above the point
         let index = 0;
         note.blocks.forEach((block, position) => {
             const rect = blockRefs.current.get(block.id)?.getBoundingClientRect();
-            if (rect && rect.top + rect.height / 2 < event.clientY) index = position + 1;
+            if (rect && rect.top + rect.height / 2 < y) index = position + 1;
         });
-        setInsertMenu({ x: event.clientX, y: event.clientY, index });
+        setInsertMenu({ x, y, index });
+    };
+
+    const handleEmptySpaceMenu = (event: React.MouseEvent) => {
+        if ((event.target as HTMLElement).closest(EMPTY_SPACE_EXCLUDED)) return;
+        event.preventDefault();
+        openInsertMenu(event.clientX, event.clientY);
+    };
+
+    // Holding the empty space does the same where there is no right-click
+    const emptyPress = useLongPress(({ x, y }) => openInsertMenu(x, y));
+    const handleEmptySpacePress = (event: React.PointerEvent) => {
+        if ((event.target as HTMLElement).closest(`${EMPTY_SPACE_EXCLUDED}, button, input, a`)) return;
+        emptyPress.handlers.onPointerDown(event);
     };
 
     return (
         <div
             className={`note-editor ${showBlockBorders ? 'note-editor--block-borders' : ''}`}
             onContextMenu={handleEmptySpaceMenu}
+            {...emptyPress.handlers}
+            onPointerDown={handleEmptySpacePress}
         >
             {/* Floating toolbar - fixed at top, overlays content */}
             <div
-                className={`note-editor__toolbar-overlay ${keyboardTop !== null ? 'note-editor__toolbar-overlay--keyboard' : ''}`}
+                className={`note-editor__toolbar-overlay ${keyboardTop !== null ? 'note-editor__toolbar-overlay--keyboard' : ''} ${
+                    scrolled && !formatMode ? 'note-editor__toolbar-overlay--dim' : ''
+                }`}
                 style={keyboardTop !== null ? ({ '--keyboard-top': `${keyboardTop}px` } as React.CSSProperties) : undefined}
             >
                 <FloatingToolbar
@@ -423,7 +473,11 @@ export const NoteEditor = ({
                 />
             </div>
 
-            <div ref={editorRef} className='note-editor__body' style={{ maxWidth: mobile ? '100%' : `${editorWidth}%` }}>
+            <div
+                ref={editorRef}
+                className='note-editor__body'
+                onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 8)}
+                style={{ maxWidth: mobile ? '100%' : `${editorWidth}%` }}>
                 <div className='note-editor__header'>
                     {breadcrumbs.length > 0 && (
                         <div className='note-editor__breadcrumbs'>
@@ -607,7 +661,7 @@ export const NoteEditor = ({
                                     {COMPONENTS.filter(([kind]) => kind !== 'text').map(([kind, label, icon]) => (
                                         <button
                                             key={kind}
-                                            className='popover-menu__item'
+                                            className='tea-popover__item'
                                             onClick={() => {
                                                 onBlockInsert(kind);
                                                 setShowComponentMenu(false);
@@ -720,11 +774,11 @@ export const NoteEditor = ({
 
             {/* The components, where the empty space was clicked */}
             {insertMenu && (
-                <PopoverMenu x={insertMenu.x} y={insertMenu.y} onClose={() => setInsertMenu(null)}>
+                <TeaPopover x={insertMenu.x} y={insertMenu.y} onClose={() => setInsertMenu(null)}>
                     {COMPONENTS.map(([kind, label, icon]) => (
                         <button
                             key={kind}
-                            className='popover-menu__item'
+                            className='tea-popover__item'
                             onClick={() => {
                                 onBlockInsert(kind, insertMenu.index);
                                 setInsertMenu(null);
@@ -734,7 +788,7 @@ export const NoteEditor = ({
                             {label}
                         </button>
                     ))}
-                </PopoverMenu>
+                </TeaPopover>
             )}
 
             {/* Remove Anchor Confirmation Modal */}
@@ -800,7 +854,7 @@ export const NoteEditor = ({
                 <p>Are you sure you want to delete "{blockPresets[deletePresetIndex ?? 0]?.title || 'this preset'}"?</p>
             </TeaModal>
 
-            {/* History indicator - fixed at bottom, overlays content, visible while the mouse is over it */}
+            {/* History indicator - fixed at bottom, faint until the mouse is over it, the list opens between undo and redo */}
             <div className='note-editor__history-overlay'>
                 <div className='note-editor__history-indicator'>
                     <button
@@ -812,46 +866,25 @@ export const NoteEditor = ({
                         <UndoIcon />
                     </button>
 
-                    <button
-                        className={`note-editor__history-btn ${
-                            historyCount === 0 ? 'note-editor__history-btn--disabled' : ''
+                    <div
+                        ref={historyRef}
+                        className={`note-editor__history ${historyCount === 0 ? 'note-editor__history--empty' : ''} ${
+                            showHistory ? 'note-editor__history--open' : ''
                         }`}
-                        onClick={() => historyCount > 0 && setShowHistory(!showHistory)}
-                        disabled={historyCount === 0}
-                        title={`${historyCount} change${historyCount !== 1 ? 's' : ''} - Click to view history`}
                     >
-                        <span className='note-editor__history-count'>{historyCount}</span>
-                        <span className='note-editor__history-label'>changes</span>
-                    </button>
-
-                    <button
-                        className={`note-editor__redo-btn ${!canRedo ? 'note-editor__redo-btn--disabled' : ''}`}
-                        onClick={onRedo}
-                        disabled={!canRedo}
-                        title={`Redo (${shortcutText('redo')})`}
-                    >
-                        <RedoIcon />
-                    </button>
-
-                    {showHistory && historyCount > 0 && (
-                        <div className='note-editor__history-dropdown'>
+                        <div className='note-editor__history-panel'>
                             <div className='note-editor__history-header'>
                                 <span>History ({historyCount})</span>
-                                <div className='note-editor__history-actions'>
-                                    <button
-                                        className='note-editor__history-clear'
-                                        title='Delete the history of this note, on the server with the next save'
-                                        onClick={() => {
-                                            onClearHistory();
-                                            setShowHistory(false);
-                                        }}
-                                    >
-                                        Clear
-                                    </button>
-                                    <button onClick={() => setShowHistory(false)}>
-                                        <XIcon width='1em' height='1em' />
-                                    </button>
-                                </div>
+                                <button
+                                    className='note-editor__history-clear'
+                                    title='Delete the history of this note, on the server with the next save'
+                                    onClick={() => {
+                                        onClearHistory();
+                                        setShowHistory(false);
+                                    }}
+                                >
+                                    Clear
+                                </button>
                             </div>
                             <div className='note-editor__history-list'>
                                 {getHistory()
@@ -872,7 +905,25 @@ export const NoteEditor = ({
                                     ))}
                             </div>
                         </div>
-                    )}
+                        <button
+                            className='note-editor__history-btn'
+                            onClick={() => setShowHistory(!showHistory)}
+                            disabled={historyCount === 0}
+                            title={`${historyCount} change${historyCount !== 1 ? 's' : ''}`}
+                        >
+                            <span className='note-editor__history-count'>{historyCount}</span>
+                            <span className='note-editor__history-label'>changes</span>
+                        </button>
+                    </div>
+
+                    <button
+                        className={`note-editor__redo-btn ${!canRedo ? 'note-editor__redo-btn--disabled' : ''}`}
+                        onClick={onRedo}
+                        disabled={!canRedo}
+                        title={`Redo (${shortcutText('redo')})`}
+                    >
+                        <RedoIcon />
+                    </button>
                 </div>
             </div>
         </div>

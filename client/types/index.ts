@@ -126,6 +126,14 @@ interface iListOptions {
     numbering: tNumbering;
 }
 
+// The line under an anchored word, and whether the word is bold
+type tAnchorLine = 'dashed' | 'solid';
+
+interface iAnchorStyle {
+    line: tAnchorLine;
+    bold: boolean;
+}
+
 // What a block sets differently from the default of the settings
 type iBlockListOptions = Partial<iListOptions>;
 
@@ -196,6 +204,7 @@ interface iNotesState {
     use24HourTime: boolean; // Times are shown as 14:30 instead of 2:30 PM
     accentColor: string; // Hex color of the accents, orange by default
     listOptions: iListOptions;
+    anchorStyle: iAnchorStyle; // How an anchored word looks
     blockPresets: iBlockStyle[]; // Saved block presets
     palette: iPalette; // Which colors and gradients the toolbar and the block style menu offer
 }
@@ -339,6 +348,7 @@ interface iSettingsExportData {
         use24HourTime?: boolean;
         accentColor?: string;
         listOptions?: iListOptions;
+        anchorStyle?: iAnchorStyle;
         palette?: iPalette;
     };
     blockPresets: iBlockStyle[];
@@ -368,6 +378,7 @@ const exportSettingsAsJson = (
         use24HourTime?: boolean;
         accentColor?: string;
         listOptions?: iListOptions;
+        anchorStyle?: iAnchorStyle;
         palette?: iPalette;
     },
     blockPresets: iBlockStyle[]
@@ -403,6 +414,7 @@ const importFromJson = (jsonString: string): {
         use24HourTime?: boolean;
         accentColor?: string;
         listOptions?: iListOptions;
+        anchorStyle?: iAnchorStyle;
         palette?: iPalette;
     };
     blockPresets?: iBlockStyle[];
@@ -451,6 +463,8 @@ export type {
     iChecklistData,
     iChecklistItem,
     iBlockListOptions,
+    iAnchorStyle,
+    tAnchorLine,
     iListOptions,
     tNumbering,
     iTableData,

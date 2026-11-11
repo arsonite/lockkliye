@@ -33,11 +33,17 @@
         left: 0;
         right: 0;
         z-index: 100;
-        padding: 16px 24px;
+        padding: 8px 24px;
         pointer-events: none;
 
         .floating-toolbar {
             pointer-events: auto;
+            transition: opacity 250ms;
+        }
+
+        // Scrolled: the bars fade, they are fully there when the mouse is over them, a shortcut is used or a mode is on
+        &--dim .floating-toolbar:not(:hover, :focus-within) {
+            opacity: 0.3;
         }
 
         // With the keyboard of a phone open the bar sits on top of it, the colour bar above the main one
@@ -66,31 +72,14 @@
         pointer-events: none;
     }
 
-    // Hidden until the mouse is over it, also while its list is open
+    // Always there, the undo and redo buttons and the list of changes are faint until the mouse is over them
     &__history-indicator {
         pointer-events: auto;
         position: relative;
         display: flex;
-        align-items: center;
-        gap: 4px;
+        align-items: flex-end;
+        gap: 6px;
         padding: 8px 16px;
-        opacity: 0;
-        transition: opacity var(--transition);
-
-        &:focus-within,
-        &:has(.note-editor__history-dropdown) {
-            opacity: 1;
-        }
-
-        @media (hover: hover) {
-            &:hover {
-                opacity: 1;
-            }
-        }
-
-        @media (hover: none) {
-            opacity: 0.6;
-        }
     }
 
     &__body {
@@ -102,6 +91,7 @@
         width: 100%;
         overflow-y: overlay;
         overflow-x: hidden;
+        overscroll-behavior: contain;
         transition: max-width 50ms ease-out;
         padding-top: 80px;
         padding-bottom: 70px;
@@ -599,29 +589,68 @@
         font-style: italic;
     }
 
+    // Between undo and redo: the number of changes, over the list that unfolds above it and widens the box
+    &__history {
+        display: flex;
+        flex-direction: column;
+        width: 112px;
+        overflow: hidden;
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: var(--radius-md);
+        opacity: 0.25;
+        transition:
+            width 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+            opacity var(--transition),
+            background var(--transition),
+            border-color var(--transition),
+            box-shadow var(--transition);
+
+        &--empty {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        &--open,
+        &:focus-within,
+        &:not(&--empty):hover {
+            width: 280px;
+            opacity: 1;
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border-color: var(--glass-border);
+            box-shadow: var(--shadow);
+
+            .note-editor__history-panel {
+                max-height: 300px;
+                opacity: 1;
+            }
+        }
+    }
+
+    &__history-panel {
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition:
+            max-height 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+            opacity var(--transition);
+    }
+
     &__history-btn {
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 6px;
-        padding: 8px 12px;
-        background: var(--bg-glass);
-        border: 1px solid var(--glass-border);
-        border-radius: var(--radius-md);
+        height: 32px;
+        padding: 0 12px;
+        background: transparent;
+        border: none;
         color: var(--text-secondary);
         cursor: pointer;
         font-size: 12px;
-        transition: all var(--transition);
-        backdrop-filter: blur(10px);
-
-        &:hover:not(&--disabled) {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-        }
-
-        &--disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+        white-space: nowrap;
     }
 
     &__history-count {
@@ -647,43 +676,26 @@
         border-radius: var(--radius-sm);
         color: var(--text-secondary);
         font-size: 14px;
+        opacity: 0.45;
         transition: all var(--transition);
 
         &:hover:not(&--disabled) {
             background: var(--bg-hover);
             color: var(--text-primary);
+            opacity: 1;
         }
 
         &--disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
+            opacity: 0;
+            pointer-events: none;
         }
-    }
-
-    &__history-dropdown {
-        position: absolute;
-        bottom: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        margin-bottom: 8px;
-        min-width: 250px;
-        max-height: 300px;
-        background: var(--bg-glass);
-        backdrop-filter: blur(20px) saturate(180%);
-        -webkit-backdrop-filter: blur(20px) saturate(180%);
-        border: 1px solid var(--glass-border);
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow);
-        z-index: 200;
-        overflow: hidden;
-        animation: dropdownOpen 200ms ease-out;
     }
 
     &__history-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 12px 16px;
+        padding: 10px 14px;
         border-bottom: 1px solid var(--border);
         font-size: 13px;
         font-weight: 600;
@@ -701,12 +713,6 @@
                 color: var(--text-primary);
             }
         }
-    }
-
-    &__history-actions {
-        display: flex;
-        align-items: center;
-        gap: 12px;
     }
 
     &__history-header &__history-clear {

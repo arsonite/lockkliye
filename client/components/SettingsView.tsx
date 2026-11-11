@@ -26,10 +26,11 @@ import { TeaButton, TeaModal, TeaSettingsPage, type iTeaSettingsCategory, type i
 import PaletteEditor from './PaletteEditor';
 
 // Types
-import type { iListOptions, iPalette, tNumbering, tPaletteKind } from '@/types';
+import type { iAnchorStyle, iListOptions, iPalette, tNumbering, tPaletteKind } from '@/types';
 
 // Utils
 import { DEFAULT_ACCENT } from '@/tools/accent';
+import { ANCHOR_LINES, sanitizeAnchorStyle } from '@/tools/anchorStyle';
 import { BULLETS, NUMBERINGS, numberingLabel, sanitizeListOptions } from '@/tools/lists';
 import { SHORTCUT_GROUPS } from '@/tools/shortcuts';
 import { generateShortText, generateLongText, generateTitle, copyToClipboard } from '@/tools/randomGenerator';
@@ -49,6 +50,8 @@ interface iSettingsViewProps {
     onToggleLightMode: () => void;
     onAccentColorChange: (color: string) => void;
     onListOptionsChange: (options: iListOptions) => void;
+    anchorStyle: iAnchorStyle;
+    onAnchorStyleChange: (style: iAnchorStyle) => void;
     onEditorWidthChange: (width: number) => void;
     onConfirmDeletionsChange: (value: boolean) => void;
     onShowBlockBordersChange: (value: boolean) => void;
@@ -120,6 +123,8 @@ export const SettingsView = ({
     onToggleLightMode,
     onAccentColorChange,
     onListOptionsChange,
+    anchorStyle,
+    onAnchorStyleChange,
     onEditorWidthChange,
     onConfirmDeletionsChange,
     onShowBlockBordersChange,
@@ -303,6 +308,33 @@ export const SettingsView = ({
                                 })),
                                 onChange: (numbering: string) =>
                                     onListOptionsChange(sanitizeListOptions({ ...listOptions, numbering })),
+                            },
+                        },
+                    ],
+                },
+                {
+                    id: 'anchors',
+                    title: 'Anchors',
+                    description: 'How a word that is linked to an anchor note looks. Ctrl+click on it opens the note.',
+                    items: [
+                        {
+                            id: 'anchor-line',
+                            label: 'Line',
+                            control: {
+                                type: 'select',
+                                value: anchorStyle.line,
+                                options: ANCHOR_LINES.map((line) => ({ value: line, label: line === 'dashed' ? 'Dashed' : 'Solid' })),
+                                onChange: (line: string) => onAnchorStyleChange(sanitizeAnchorStyle({ ...anchorStyle, line })),
+                            },
+                        },
+                        {
+                            id: 'anchor-bold',
+                            label: 'Bold',
+                            description: 'Anchored words are written in bold.',
+                            control: {
+                                type: 'toggle',
+                                value: anchorStyle.bold,
+                                onChange: (bold: boolean) => onAnchorStyleChange({ ...anchorStyle, bold }),
                             },
                         },
                     ],
@@ -574,9 +606,9 @@ export const SettingsView = ({
                         },
                         {
                             id: 'restore-tutorial',
-                            label: 'Tutorial notes',
+                            label: 'Tutorial note',
                             description:
-                                'Adds the tutorial and the page of new features again, or resets them to the current version if they are still there.',
+                                'Adds the tutorial note again, or resets it to the current version if it is still there.',
                             control: { type: 'button', label: 'Restore', onClick: onRestoreTutorial },
                         },
                         {

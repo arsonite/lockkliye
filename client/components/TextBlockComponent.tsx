@@ -36,9 +36,8 @@ import { ChecklistBlock, TableBlock } from './BlockComponents';
 import { BULLETS, DEFAULT_LIST_OPTIONS, NUMBERINGS, convertListMarkers, currentListStyle, numberingLabel } from '@/tools/lists';
 import useIsMobile from '@/hooks/useIsMobile';
 import useLongPress from '@/hooks/useLongPress';
-import { PopoverMenu } from './PopoverMenu';
 import { RichTextEditor } from './RichTextEditor';
-import { TeaModal } from '@teatype/components';
+import { TeaModal, TeaPopover } from '@teatype/components';
 
 interface iTextBlockComponentProps {
     block: iTextBlock;
@@ -819,18 +818,18 @@ export const TextBlockComponent = ({
 
             {/* What to do with the selected text: move it into a new block, with or without following it */}
             {selectionMenu && (
-                <PopoverMenu x={selectionMenu.x} y={selectionMenu.y} onClose={() => setSelectionMenu(null)}>
+                <TeaPopover x={selectionMenu.x} y={selectionMenu.y} onClose={() => setSelectionMenu(null)}>
                     {(
                         [
                             [['Move above', 'above', false], ['Move below', 'below', false]],
                             [['Above and focus', 'above', true], ['Below and focus', 'below', true]],
                         ] as [string, 'above' | 'below', boolean][][]
                     ).map((row) => (
-                        <div key={row[0][0]} className='popover-menu__row'>
+                        <div key={row[0][0]} className='tea-popover__row'>
                             {row.map(([label, position, focusNew]) => (
                                 <button
                                     key={label}
-                                    className='popover-menu__button'
+                                    className='tea-popover__button'
                                     onClick={() => {
                                         const { selected, remaining } = selectionMenu.take();
                                         onMoveSelection?.(block.id, remaining, selected, position, focusNew);
@@ -842,7 +841,7 @@ export const TextBlockComponent = ({
                             ))}
                         </div>
                     ))}
-                </PopoverMenu>
+                </TeaPopover>
             )}
 
             {/* Delete Confirmation Modal */}

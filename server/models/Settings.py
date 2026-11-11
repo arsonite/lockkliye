@@ -16,6 +16,7 @@ from teatype.db.hsdb.core import HSDBAttribute, HSDBModel
 # There is only one row. The saved block styles are BlockPreset entries pointing to it.
 class Settings(HSDBModel):
     accent_color       = HSDBAttribute(str,  description='Hex color of the accents, orange when empty')
+    anchor_style       = HSDBAttribute(str,  description='JSON of the look of an anchored word: line (dashed, solid) and bold')
     confirm_deletions  = HSDBAttribute(bool, required=True)
     editor_width       = HSDBAttribute(int,  required=True)
     light_mode         = HSDBAttribute(bool, required=True)

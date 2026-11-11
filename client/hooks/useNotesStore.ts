@@ -17,16 +17,17 @@
 import { useState, useCallback, useRef } from 'react';
 
 // Types
-import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyle, iHistoryEntry, iListOptions, tBlockData, tBlockKind, tPaletteKind, tPin } from '@/types';
+import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyle, iAnchorStyle, iHistoryEntry, iListOptions, tBlockData, tBlockKind, tPaletteKind, tPin } from '@/types';
 
 // Util
 import { createNote, createFolder, createBlock, createBlockOfKind, createWord, FORMAT_COLORS, exportNotesAsText, exportNotesAsJson, exportSettingsAsJson, importFromJson as parseImportJson } from '@/types';
 import { descendantIds, repairFolders } from '@/tools/folderTree';
 import { DEFAULT_ACCENT, sanitizeAccent } from '@/tools/accent';
+import { DEFAULT_ANCHOR_STYLE, sanitizeAnchorStyle } from '@/tools/anchorStyle';
 import { DEFAULT_LIST_OPTIONS, sanitizeListOptions } from '@/tools/lists';
 import { MAX_ENABLED, catalogOf, defaultPalette, sanitizePalette } from '@/tools/palette';
 import { generateRandomFolderTree, generateRandomNote, randomizeDates } from '@/tools/randomGenerator';
-import { createTutorialNotes } from '@/tools/tutorialNote';
+import { createTutorialNote } from '@/tools/tutorialNote';
 import useSync from '@/sync/useSync';
 import type { iPersisted } from '@/tools/indexedDB';
 import usePersist from '@/hooks/usePersist';
@@ -50,17 +51,18 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
             use24HourTime: stored.use24HourTime ?? true,
             accentColor: sanitizeAccent(stored.accentColor),
             listOptions: sanitizeListOptions(stored.listOptions),
+            anchorStyle: sanitizeAnchorStyle(stored.anchorStyle),
             palette: sanitizePalette(stored.palette),
         };
     }
 
     // Create default state with sample data
-    const tutorialNotes = createTutorialNotes();
+    const sampleNote = createTutorialNote();
 
     return {
-        notes: tutorialNotes,
+        notes: [sampleNote],
         folders: [],
-        activeNoteId: tutorialNotes[0].id,
+        activeNoteId: sampleNote.id,
         activeFolderId: null,
         sidebarExpanded: true,
         formatMode: null,
@@ -75,6 +77,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
         use24HourTime: true,
         accentColor: DEFAULT_ACCENT,
         listOptions: DEFAULT_LIST_OPTIONS,
+        anchorStyle: DEFAULT_ANCHOR_STYLE,
         palette: defaultPalette(),
         blockPresets: [
             // Default presets
@@ -742,11 +745,12 @@ const useNotesStore = (persisted: iPersisted) => {
                 use24HourTime: state.use24HourTime,
                 accentColor: state.accentColor,
                 listOptions: state.listOptions,
+                anchorStyle: state.anchorStyle,
                 palette: state.palette,
             },
             state.blockPresets
         );
-    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.use24HourTime, state.accentColor, state.listOptions, state.palette, state.blockPresets]);
+    }, [state.lightMode, state.sidebarExpanded, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.use24HourTime, state.accentColor, state.listOptions, state.anchorStyle, state.palette, state.blockPresets]);
 
     const importFromJson = useCallback((jsonString: string) => {
         const result = parseImportJson(jsonString);
@@ -784,6 +788,7 @@ const useNotesStore = (persisted: iPersisted) => {
                     if (result.settings.use24HourTime !== undefined) newState.use24HourTime = result.settings.use24HourTime;
                     if (result.settings.accentColor !== undefined) newState.accentColor = sanitizeAccent(result.settings.accentColor);
                     if (result.settings.listOptions !== undefined) newState.listOptions = sanitizeListOptions(result.settings.listOptions);
+                    if (result.settings.anchorStyle !== undefined) newState.anchorStyle = sanitizeAnchorStyle(result.settings.anchorStyle);
                     if (result.settings.palette) newState.palette = sanitizePalette(result.settings.palette);
                 }
                 if (result.blockPresets) {
@@ -849,6 +854,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 if (result.settings.use24HourTime !== undefined) newState.use24HourTime = result.settings.use24HourTime;
                 if (result.settings.accentColor !== undefined) newState.accentColor = sanitizeAccent(result.settings.accentColor);
                 if (result.settings.listOptions !== undefined) newState.listOptions = sanitizeListOptions(result.settings.listOptions);
+                if (result.settings.anchorStyle !== undefined) newState.anchorStyle = sanitizeAnchorStyle(result.settings.anchorStyle);
                 if (result.settings.palette) newState.palette = sanitizePalette(result.settings.palette);
             }
             if (result.blockPresets) {
@@ -929,6 +935,7 @@ const useNotesStore = (persisted: iPersisted) => {
                     use24HourTime: state.use24HourTime,
                     accentColor: state.accentColor,
                     listOptions: state.listOptions,
+                    anchorStyle: state.anchorStyle,
                     palette: state.palette,
                 },
                 blockPresets: state.blockPresets,
@@ -960,6 +967,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 use24HourTime: settings.use24HourTime ?? prev.use24HourTime,
                 accentColor: settings.accentColor !== undefined ? sanitizeAccent(settings.accentColor) : prev.accentColor,
                 listOptions: settings.listOptions !== undefined ? sanitizeListOptions(settings.listOptions) : prev.listOptions,
+                anchorStyle: settings.anchorStyle !== undefined ? sanitizeAnchorStyle(settings.anchorStyle) : prev.anchorStyle,
                 palette: settings.palette ? sanitizePalette(settings.palette) : prev.palette,
                 blockPresets: Array.isArray(data.blockPresets) ? data.blockPresets : prev.blockPresets,
                 activeNoteId: references.notes[0]?.id ?? null,
@@ -1001,26 +1009,20 @@ const useNotesStore = (persisted: iPersisted) => {
         return note;
     }, []);
 
-    // The tutorial notes are added again, or reset when they are still there
+    // The tutorial note is added again, or reset when it is still there
     const restoreTutorialNote = useCallback(() => {
-        const tutorials = createTutorialNotes();
+        const tutorial = createTutorialNote();
         setState((prev: iNotesState) => {
-            const titles = new Set(tutorials.map((tutorial) => tutorial.title));
-            const existing = new Map(
-                prev.notes.filter((note: iNote) => titles.has(note.title)).map((note: iNote) => [note.title, note]),
-            );
-            const added = tutorials.filter((tutorial) => !existing.has(tutorial.title));
-            const first = existing.get(tutorials[0].title) ?? tutorials[0];
+            const existing = prev.notes.find((note: iNote) => note.title === tutorial.title);
+            if (!existing) {
+                return { ...prev, notes: [tutorial, ...prev.notes], activeNoteId: tutorial.id };
+            }
             return {
                 ...prev,
-                notes: [
-                    ...added,
-                    ...prev.notes.map((note: iNote) => {
-                        const tutorial = tutorials.find((candidate) => candidate.title === note.title);
-                        return tutorial ? { ...note, blocks: tutorial.blocks, updatedAt: Date.now() } : note;
-                    }),
-                ],
-                activeNoteId: first.id,
+                notes: prev.notes.map((note: iNote) =>
+                    note.id === existing.id ? { ...note, blocks: tutorial.blocks, updatedAt: Date.now() } : note,
+                ),
+                activeNoteId: existing.id,
             };
         });
     }, []);
@@ -1047,6 +1049,10 @@ const useNotesStore = (persisted: iPersisted) => {
 
     const setAccentColor = useCallback((value: string) => {
         setState((prev: iNotesState) => ({ ...prev, accentColor: sanitizeAccent(value) }));
+    }, []);
+
+    const setAnchorStyle = useCallback((value: iAnchorStyle) => {
+        setState((prev: iNotesState) => ({ ...prev, anchorStyle: sanitizeAnchorStyle(value) }));
     }, []);
 
     const setListOptions = useCallback((value: iListOptions) => {
@@ -1231,6 +1237,7 @@ const useNotesStore = (persisted: iPersisted) => {
         setShowStyleButton,
         setAccentColor,
         setListOptions,
+        setAnchorStyle,
         setUse24HourTime,
         togglePaletteEntry,
         addCustomPaletteEntry,

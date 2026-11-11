@@ -45,7 +45,7 @@
 
 body.light-mode .tea-toast-container,
 body.light-mode .tea-modal-overlay,
-body.light-mode .popover-menu {
+body.light-mode .tea-popover {
     @include light-theme-vars;
     --surface-elevated: #fff;
 }
@@ -118,7 +118,6 @@ body.light-mode .tea-modal-overlay {
         color: var(--text-primary);
     }
 
-    .note-editor__history-btn,
     .note-editor__undo-btn,
     .note-editor__redo-btn {
         background: var(--bg-glass);
@@ -127,10 +126,6 @@ body.light-mode .tea-modal-overlay {
 
     .note-editor__history-header {
         color: var(--text-primary);
-    }
-
-    .note-editor__history-dropdown {
-        background: var(--bg-glass);
     }
 
     .floating-toolbar__size-menu {

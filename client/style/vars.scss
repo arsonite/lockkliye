@@ -55,6 +55,8 @@ body,
 #root {
     height: 100%;
     width: 100%;
+    // No pull to refresh or swipe back from a drag that runs out of the page
+    overscroll-behavior: none;
 }
 
 body {

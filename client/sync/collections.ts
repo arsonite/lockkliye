@@ -29,6 +29,7 @@ import {
 
 // Types
 import type {
+    iAnchorStyle,
     iBlockStyle,
     iFolder,
     iHistoryEntry,
@@ -43,6 +44,7 @@ import type {
 
 // Util
 import { sanitizeAccent } from '@/tools/accent';
+import { sanitizeAnchorStyle } from '@/tools/anchorStyle';
 import { sanitizeBlockListOptions, sanitizeListOptions } from '@/tools/lists';
 import { sanitizePalette } from '@/tools/palette';
 
@@ -100,6 +102,7 @@ interface iSettingsItem {
     use24HourTime: boolean;
     accentColor: string;
     listOptions: iListOptions;
+    anchorStyle: iAnchorStyle;
     palette: iPalette;
 }
 
@@ -227,6 +230,7 @@ const settingsCollection: iCollection<iSettingsItem> = {
     key: () => SETTINGS_KEY,
     toRow: (settings) => ({
         accent_color: settings.accentColor,
+        anchor_style: JSON.stringify(settings.anchorStyle),
         confirm_deletions: settings.confirmDeletions,
         editor_width: settings.editorWidth,
         light_mode: settings.lightMode,
@@ -251,6 +255,7 @@ const settingsCollection: iCollection<iSettingsItem> = {
         use24HourTime: row.use_24_hour_time !== false,
         accentColor: sanitizeAccent(row.accent_color),
         listOptions: sanitizeListOptions(row.list_options ? JSON.parse(text(row.list_options)) : undefined),
+        anchorStyle: sanitizeAnchorStyle(row.anchor_style ? JSON.parse(text(row.anchor_style)) : undefined),
         palette: sanitizePalette(row.palette ? JSON.parse(text(row.palette)) : undefined),
     }),
     slot: () => SETTINGS_KEY,

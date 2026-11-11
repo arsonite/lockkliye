@@ -226,10 +226,9 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                             title={`Text Size (${shortcutText('sizes')})`}
                         >
                             <span className='floating-toolbar__icon'>Aa</span>
-                            {sizeHinted && <span className='floating-toolbar__key'>{shortcutKey('sizes').replace('…', '-')}</span>}
                         </button>
 
-                        {/* Holding Ctrl+Alt lists the sizes with their numbers */}
+                        {/* Holding Ctrl+Alt lists the sizes, without their numbers */}
                         {(showSizeMenu || sizeHinted) && (
                             <div className='floating-toolbar__size-menu'>
                                 {SIZE_PRESETS.map((preset) => (
@@ -253,7 +252,9 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                                         >
                                             {preset.label}
                                         </span>
-                                        <span className='floating-toolbar__size-shortcut'>{shortcutKey(preset.shortcut)}</span>
+                                        {!sizeHinted && (
+                                            <span className='floating-toolbar__size-shortcut'>{shortcutKey(preset.shortcut)}</span>
+                                        )}
                                     </button>
                                 ))}
                             </div>

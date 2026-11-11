@@ -35,6 +35,7 @@ import useNotesStore from '@/hooks/useNotesStore';
 // Utility
 import { loadPersisted, type iPersisted } from '@/tools/indexedDB';
 import { accentVars } from '@/tools/accent';
+import { anchorVars } from '@/tools/anchorStyle';
 import { enabledOf } from '@/tools/palette';
 
 // Types
@@ -75,6 +76,12 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
             document.documentElement.style.setProperty(name, value),
         );
     }, [store.accentColor, store.lightMode]);
+
+    useEffect(() => {
+        Object.entries(anchorVars(store.anchorStyle)).forEach(([name, value]) =>
+            document.documentElement.style.setProperty(name, value),
+        );
+    }, [store.anchorStyle]);
 
     /**
      * Saves unsaved changes to the server and reports the outcome via toast.
@@ -271,6 +278,8 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         onToggleLightMode={store.toggleLightMode}
                         onAccentColorChange={store.setAccentColor}
                         onListOptionsChange={store.setListOptions}
+                        anchorStyle={store.anchorStyle}
+                        onAnchorStyleChange={store.setAnchorStyle}
                         onEditorWidthChange={store.setEditorWidth}
                         onConfirmDeletionsChange={store.setConfirmDeletions}
                         onShowBlockBordersChange={store.setShowBlockBorders}
