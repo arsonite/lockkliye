@@ -113,15 +113,11 @@ Sorted by priority.
 
 ### High
 
-- Implement long press for all right click elements like block settings
-- make taskbar thinner and reduce opactity when scrolling only showing full when hovering over taskbar or activating shortcuts and also hide the numbers when holding text size shortcut
-
 ### Low
 
+- Allow password lockdown of single notes (iCloud style), same password for all
 - Right click on global to change the settings there too
-- Do not autofocus when creating a new block (setting)
 - Add user authentication
-- Allow password lockdown of single notes (iCloud style)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

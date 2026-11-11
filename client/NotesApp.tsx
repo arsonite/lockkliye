@@ -27,6 +27,7 @@ import { SettingsView } from '@/components/SettingsView';
 import { Sidebar } from '@/components/Sidebar';
 
 // Hooks
+import useHeldModifiers from '@/hooks/useHeldModifiers';
 import useIsMobile from '@/hooks/useIsMobile';
 import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 import useNotesStore from '@/hooks/useNotesStore';
@@ -57,6 +58,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
     const [showSettings, setShowSettings] = useState(false);
     // On a phone the sidebar is a sheet over everything, opened on demand and not part of the saved layout
     const mobile = useIsMobile();
+    const held = useHeldModifiers();
     const [sheetOpen, setSheetOpen] = useState(false);
     const sidebarExpanded = mobile ? sheetOpen : store.sidebarExpanded;
     const toggleSidebar = mobile ? () => setSheetOpen((open) => !open) : store.toggleSidebar;
@@ -214,8 +216,8 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
     return (
         <div
             className={`notes-app ${sidebarExpanded && !mobile ? '' : 'notes-app--rail'} ${mobile ? 'notes-app--mobile' : ''} ${
-                store.lightMode ? 'light-mode' : ''
-            }`}
+                held.startsWith('ctrl') ? 'notes-app--ctrl' : ''
+            } ${store.lightMode ? 'light-mode' : ''}`}
         >
             <Sidebar
                 notes={store.notes}
@@ -310,6 +312,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         palette={store.palette}
                         selectedSize={store.selectedSize}
                         selectedAnchorId={store.selectedAnchorId}
+                        formatPicks={store.formatPicks}
                         editorWidth={store.editorWidth}
                         historyCount={store.historyCount}
                         redoCount={store.redoCount}

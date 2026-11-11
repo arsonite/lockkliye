@@ -51,7 +51,8 @@
     }
 
     @media (hover: hover) {
-        &:hover .text-block__controls {
+        &:hover .text-block__controls,
+        &:hover .text-block__handle {
             opacity: 1;
             pointer-events: auto;
         }
@@ -80,6 +81,19 @@
         transition: opacity var(--transition);
         transform: translateY(-50%);
         z-index: 10;
+    }
+
+    // The drag handle on a desktop: in the middle of the block, beside the buttons
+    &__handle {
+        position: absolute;
+        top: 50%;
+        left: -33px;
+        padding: 2px 1px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--transition);
+        translate: 0 -50%;
+        z-index: 11;
     }
 
     &__style-btn,
@@ -290,12 +304,21 @@
         }
     }
 
-    // A date in the text, dashed like the link of a note, Ctrl+click opens its calendar
-    &__date {
+    // A date or a time in the text, dashed like an anchor, Ctrl+click opens its calendar or its clock
+    &__date,
+    &__time {
         text-decoration: underline dashed;
         text-decoration-thickness: 1px;
         text-underline-offset: 4px;
         text-decoration-skip-ink: none;
+    }
+
+    // Holding Ctrl turns the cursor to a pointer on what Ctrl+click opens. Format mode keeps its crosshair, except
+    // for an anchor, which Ctrl+click opens in any mode.
+    .notes-app--ctrl & span.rich-text-editor__anchored,
+    .notes-app--ctrl &:not(&--format-mode) span.rich-text-editor__date,
+    .notes-app--ctrl &:not(&--format-mode) span.rich-text-editor__time {
+        cursor: pointer;
     }
 
     &__link-indicator {

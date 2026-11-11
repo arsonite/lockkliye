@@ -72,9 +72,11 @@ const useKeyboardShortcuts: React.FC<iUseKeyboardShortcutsProps> = (props) => {
         }
 
         // Picks a color of the toolbar while the color bar is open
+        // The keys are taken even without a color bar: on some layouts Shift and a digit would type a character
         const colorIndex = colorIndexOf(e);
-        if (colorIndex !== null && props.onColorIndex?.(colorIndex)) {
+        if (colorIndex !== null) {
             e.preventDefault();
+            if (!e.repeat) props.onColorIndex?.(colorIndex);
             return;
         }
 
@@ -82,7 +84,8 @@ const useKeyboardShortcuts: React.FC<iUseKeyboardShortcutsProps> = (props) => {
         if (mode) {
             e.preventDefault();
 
-            props.onFormatToggle(mode);
+            // Holding the keys repeats them, which would switch the mode on and off again
+            if (!e.repeat) props.onFormatToggle(mode);
         }
     }, [props.onFormatToggle, props.onColorIndex, props.onEscape, props.onSave, props.onUndo, props.onRedo, props.onToggleSidebar]);
 

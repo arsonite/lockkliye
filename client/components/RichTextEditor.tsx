@@ -20,12 +20,17 @@ import { useRef, useCallback, useEffect, useState } from 'react';
 import { applyFormatMode } from '@/components/WordComponent';
 import { DatePicker } from '@/components/DatePicker';
 import LinkModal from '@/components/LinkModal';
+import { TimePicker } from '@/components/TimePicker';
 import { findDate, formatDate, type iFoundDate } from '@/tools/dates';
 import { DEFAULT_LIST_OPTIONS, convertPastedLists, decoratorOf, nextMarker } from '@/tools/lists';
 import { shortcutOf } from '@/tools/shortcuts';
+import { findTime, formatTime, type iFoundTime } from '@/tools/times';
 
 // Types
 import { createWord, HYPERLINKS_ENABLED, iListOptions, iWord, iWordFormat, tFormatMode } from '@/types';
+
+// The modes that need a color or an anchor note chosen before they format anything
+const PICKED_MODES: tFormatMode[] = ['color', 'highlight', 'anchor'];
 
 // Marks the caret in a copy of the text, a character that is not typed
 const CARET_MARK = '\uE000';
@@ -36,6 +41,8 @@ interface iRichTextEditorProps {
     selectedColor: string;
     selectedSize: string;
     selectedAnchorId?: string | null;
+    // Counts the colors and anchors that were picked: a pick formats the selection, the mode itself does not
+    formatPicks?: number;
     words: iWord[];
 
     variant?: 'code'; // Shifted to the right with a gray line and a monospaced font
@@ -86,11 +93,13 @@ const getWordStyle = (format: iWordFormat): React.CSSProperties => {
         style.cursor = 'pointer';
     }
 
+    // Dashed like a date, the pointer shows while Ctrl is held (see the notes-app--ctrl rules)
     if (format.anchor) {
-        style.textDecoration = (style.textDecoration || '') + ' underline';
+        style.textDecoration = (style.textDecoration || '') + ' underline dashed';
         style.textDecorationColor = 'var(--accent)';
-        style.textUnderlineOffset = '3px';
-        style.cursor = 'pointer';
+        style.textDecorationThickness = '1px';
+        style.textUnderlineOffset = '4px';
+        style.textDecorationSkipInk = 'none';
     }
 
     switch (format.fontSize) {
@@ -130,6 +139,7 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
     selectedColor,
     selectedSize: _selectedSize,
     selectedAnchorId,
+    formatPicks = 0,
     onOpenAnchor,
     autoFocus,
     onAutoFocused,
@@ -158,6 +168,8 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
 
     // The calendar of the date that was opened (Ctrl+click, or a tap on a touch screen)
     const [datePicker, setDatePicker] = useState<({ span: HTMLElement; x: number; y: number } & iFoundDate) | null>(null);
+    // The clock of a time, opened the same way
+    const [timePicker, setTimePicker] = useState<({ span: HTMLElement; x: number; y: number } & iFoundTime) | null>(null);
 
     // Keep wordsRef in sync
     useEffect(() => {
@@ -236,10 +248,15 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 const anchorTitle = word.format.anchor ? ' title="Ctrl+click to open the anchor note"' : '';
 
                 const isDate = findDate(word.text) !== null;
-                const dateClass = isDate ? ' rich-text-editor__date' : '';
-                const title = isDate ? ' title="Ctrl+click to open the calendar"' : anchorTitle;
+                const isTime = !isDate && findTime(word.text) !== null;
+                const dateClass = isDate ? ' rich-text-editor__date' : isTime ? ' rich-text-editor__time' : '';
+                const title = isDate
+                    ? ' title="Ctrl+click to open the calendar"'
+                    : isTime
+                      ? ' title="Ctrl+click to open the clock"'
+                      : anchorTitle;
 
-                if (styleStr || linkClass || anchorClass || isDate) {
+                if (styleStr || linkClass || anchorClass || isDate || isTime) {
                     return `<span data-word-id="${word.id}" class="rich-text-editor__word${linkClass}${anchorClass}${dateClass}"${title} style="${styleStr}">${word.text}</span>${space}`;
                 }
                 return `<span data-word-id="${word.id}" class="rich-text-editor__word">${word.text}</span>${space}`;
@@ -598,6 +615,11 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
     useEffect(() => {
         // Only apply if format mode changed from null/different to a new mode
         if (formatMode && prevFormatModeRef.current !== formatMode) {
+            // A color or an anchor still has to be chosen, its mode stays open until then
+            if (PICKED_MODES.includes(formatMode)) {
+                prevFormatModeRef.current = formatMode;
+                return;
+            }
             // Small delay to let selection settle
             const timer = setTimeout(() => {
                 applyFormattingToSelection();
@@ -609,6 +631,14 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
             prevFormatModeRef.current = null;
         }
     }, [formatMode, applyFormattingToSelection]);
+
+    // A color or an anchor that is picked while text is selected goes onto the selection
+    const lastPicks = useRef(formatPicks);
+    useEffect(() => {
+        if (formatPicks === lastPicks.current) return;
+        lastPicks.current = formatPicks;
+        applyFormattingToSelection();
+    }, [formatPicks, applyFormattingToSelection]);
 
     // Handle input changes
     const handleInput = useCallback(() => {
@@ -795,6 +825,19 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
 
     const handleDateClose = useCallback(() => setDatePicker(null), []);
 
+    // Replaces a time with another one, in the style it was written in
+    const handleTimePick = useCallback(
+        (hours: number, minutes: number) => {
+            if (!timePicker) return;
+            timePicker.span.textContent = formatTime(hours, minutes, timePicker);
+            setTimePicker(null);
+            handleInput();
+        },
+        [timePicker, handleInput],
+    );
+
+    const handleTimeClose = useCallback(() => setTimePicker(null), []);
+
     // Close link modal
     const handleLinkModalClose = useCallback(() => {
         setLinkModal({
@@ -866,6 +909,15 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                         e.preventDefault();
                         const rect = wordSpan.getBoundingClientRect();
                         setDatePicker({ span: wordSpan as HTMLElement, x: rect.left, y: rect.bottom + 6, ...found });
+                        return;
+                    }
+
+                    // The same for a time, which opens its clock
+                    const foundTime = found ? null : findTime(wordSpan.textContent ?? '');
+                    if (foundTime && (e.ctrlKey || e.metaKey || touched) && !formatMode) {
+                        e.preventDefault();
+                        const rect = wordSpan.getBoundingClientRect();
+                        setTimePicker({ span: wordSpan as HTMLElement, x: rect.left, y: rect.bottom + 6, ...foundTime });
                         return;
                     }
 
@@ -1042,6 +1094,17 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
                 onDelete={handleLinkDelete}
                 onClose={handleLinkModalClose}
             />
+            {timePicker && (
+                <TimePicker
+                    x={timePicker.x}
+                    y={timePicker.y}
+                    hours={timePicker.hours}
+                    minutes={timePicker.minutes}
+                    twelve={timePicker.twelve}
+                    onPick={handleTimePick}
+                    onClose={handleTimeClose}
+                />
+            )}
             {datePicker && (
                 <DatePicker x={datePicker.x} y={datePicker.y} date={datePicker.date} onPick={handleDatePick} onClose={handleDateClose} />
             )}

@@ -327,7 +327,8 @@
         }
 
         @media (hover: hover) {
-            &:hover .text-block__controls {
+            &:hover .text-block__controls,
+            &:hover .text-block__handle {
                 opacity: 1;
                 pointer-events: auto;
             }
@@ -382,6 +383,7 @@
 
         // Hide controls and resize handles in the ghost
         .text-block__controls,
+        .text-block__handle,
         .text-block__resize-handle {
             display: none !important;
         }
@@ -396,17 +398,14 @@
         }
     }
 
-    // Next to the buttons of the block, on a phone the last of them, same size as the others
+    // In the middle of the block on a desktop, on a phone the last of the buttons, same size as the others
     &__drag-handle {
-        position: absolute;
-        left: 100%;
-        top: 50%;
-        translate: 0 -50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 20px;
-        height: 20px;
+        width: 28px;
+        height: 28px;
+        border-radius: var(--radius-sm);
         cursor: grab;
         color: var(--text-tertiary);
         touch-action: none;
@@ -426,16 +425,22 @@
     }
 
     .notes-app--mobile &__drag-handle {
-        position: static;
-        translate: none;
         width: 32px;
         height: 32px;
-        border-radius: var(--radius-sm);
     }
 
     &__drag-icon {
-        font-size: 16px;
-        line-height: 1;
+        display: flex;
+
+        svg {
+            width: 24px;
+            height: 24px;
+        }
+    }
+
+    .notes-app--mobile &__drag-icon svg {
+        width: 18px;
+        height: 18px;
     }
 
     // Keyframe animations for drag and drop

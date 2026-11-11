@@ -1,6 +1,16 @@
 /**
  * @license
  * Copyright (C) 2024-2026 Burak Günaydin
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  */
 
 // The checklist and table components of a block
@@ -300,5 +310,132 @@
     &__today {
         padding: 6px;
         color: var(--accent);
+    }
+}
+
+// The clock of a time in the text, in a popover menu
+.time-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 232px;
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+    }
+
+    &__colon {
+        color: var(--text-secondary);
+        font-size: 1.75rem;
+        font-weight: 500;
+    }
+
+    &__unit {
+        padding: 2px 10px;
+        background: var(--bg-hover);
+        border: none;
+        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+        cursor: pointer;
+        font: inherit;
+        font-size: 1.75rem;
+        font-variant-numeric: tabular-nums;
+        font-weight: 500;
+
+        &--active {
+            background: var(--accent);
+            color: #fff;
+        }
+    }
+
+    &__halves {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin-left: 8px;
+    }
+
+    &__half {
+        padding: 2px 6px;
+        background: transparent;
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-sm);
+        color: var(--text-secondary);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.6875rem;
+
+        &--active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+    }
+
+    // The face is turned with the pointer, on a touch screen the page must not scroll with it
+    &__dial {
+        align-self: center;
+        width: 200px;
+        height: 200px;
+        cursor: pointer;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    &__face {
+        fill: var(--bg-hover);
+    }
+
+    &__hand {
+        stroke: var(--accent);
+        stroke-width: 2;
+    }
+
+    &__hand-dot,
+    &__hand-tip {
+        fill: var(--accent);
+    }
+
+    &__number {
+        fill: var(--text-primary);
+        font-size: 12px;
+        pointer-events: none;
+
+        &--selected {
+            fill: #fff;
+        }
+    }
+
+    &__footer {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    &__action {
+        padding: 6px 12px;
+        background: transparent;
+        border: none;
+        border-radius: var(--radius-sm);
+        color: var(--accent);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.8125rem;
+
+        &:hover {
+            background: var(--bg-hover);
+        }
+
+        &--primary {
+            background: var(--accent);
+            color: #fff;
+
+            &:hover {
+                background: var(--accent-hover);
+            }
+        }
     }
 }

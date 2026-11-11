@@ -253,7 +253,8 @@
     input {
         box-sizing: border-box;
         width: 100%;
-        padding: 7px 10px;
+        height: 28px;
+        padding: 0 10px;
 
         background: var(--surface-elevated);
         border: 1px solid var(--border);

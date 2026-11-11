@@ -34,6 +34,7 @@ import type {
 import { enabledOf } from '@/tools/palette';
 import { ChecklistBlock, TableBlock } from './BlockComponents';
 import { BULLETS, DEFAULT_LIST_OPTIONS, NUMBERINGS, convertListMarkers, currentListStyle, numberingLabel } from '@/tools/lists';
+import useIsMobile from '@/hooks/useIsMobile';
 import useLongPress from '@/hooks/useLongPress';
 import { PopoverMenu } from './PopoverMenu';
 import { RichTextEditor } from './RichTextEditor';
@@ -46,6 +47,7 @@ interface iTextBlockComponentProps {
     palette: iPalette;
     selectedSize: string;
     selectedAnchorId?: string | null;
+    formatPicks?: number;
     onOpenAnchor?: (noteId: string) => void;
     onWordFormatChange: (blockId: string, wordId: string, format: Partial<iWord['format']>) => void;
     onWordsChange: (blockId: string, words: iWord[]) => void;
@@ -77,6 +79,7 @@ export const TextBlockComponent = ({
     palette,
     selectedSize,
     selectedAnchorId,
+    formatPicks,
     onOpenAnchor,
     onWordsChange,
     onDataChange,
@@ -121,6 +124,7 @@ export const TextBlockComponent = ({
     );
     const styleMenuRef = useRef<HTMLDivElement>(null);
     const blockRef = useRef<HTMLDivElement>(null);
+    const mobile = useIsMobile();
     // Holding the block opens the style menu where there is no right-click, holding the width handle resets the width
     // It opens in the middle of the screen, a finger on the text would hide it
     const menuPress = useLongPress(() => {
@@ -535,8 +539,11 @@ export const TextBlockComponent = ({
                     <button className='text-block__delete-btn' onClick={handleDelete} title='Delete block'>
                         <XIcon width='1em' height='1em' />
                     </button>
-                    {handle}
+                    {mobile && handle}
                 </div>
+
+                {/* On a phone the handle is the last button of the column, on a desktop it sits in the middle of the block */}
+                {!mobile && <div className='text-block__handle'>{handle}</div>}
 
                 {showStyleMenu && (
                     <div className='text-block__style-menu' ref={styleMenuRef}>
@@ -795,6 +802,7 @@ export const TextBlockComponent = ({
                         selectedColor={selectedColor}
                         selectedSize={selectedSize}
                         selectedAnchorId={selectedAnchorId}
+                        formatPicks={formatPicks}
                         onOpenAnchor={onOpenAnchor}
                         onWordsChange={(newWords) => onWordsChange(block.id, newWords)}
                         onAddBlockAfter={() => onAddBlockAfter(block.id)}

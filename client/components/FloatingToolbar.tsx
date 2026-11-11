@@ -109,9 +109,6 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
             onFormatModeChange(null);
             return;
         }
-        if (!anchorNotes.some((note) => note.id === selectedAnchorId) && anchorNotes.length > 0) {
-            onAnchorChange(anchorNotes[0].id);
-        }
         onFormatModeChange('anchor');
     };
 

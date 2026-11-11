@@ -66,6 +66,7 @@ interface iNoteEditorProps {
     palette: iPalette;
     selectedSize: string;
     selectedAnchorId?: string | null;
+    formatPicks: number;
     editorWidth: number;
     historyCount: number;
     redoCount: number;
@@ -124,6 +125,7 @@ export const NoteEditor = ({
     palette,
     selectedSize,
     selectedAnchorId,
+    formatPicks,
     editorWidth,
     historyCount,
     redoCount: _redoCount,
@@ -279,7 +281,7 @@ export const NoteEditor = ({
     // high. A block that is lower than they are keeps them in its middle. They stay where they are while the mouse is on
     // them or on the style menu, or the rest of their buttons would run away from the mouse.
     const followMouse = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isDragging || (e.target as HTMLElement).closest('.text-block__controls, .text-block__style-menu')) return;
+        if (isDragging || (e.target as HTMLElement).closest('.text-block__controls, .text-block__handle, .text-block__style-menu')) return;
         const block = e.currentTarget.querySelector<HTMLElement>('.text-block');
         const controls = block?.querySelector<HTMLElement>('.text-block__controls');
         if (!block || !controls) return;
@@ -525,6 +527,7 @@ export const NoteEditor = ({
                                                     showStyleButton={showStyleButton}
                                                     selectedSize={selectedSize}
                                                     selectedAnchorId={selectedAnchorId}
+                                                    formatPicks={formatPicks}
                                                     onOpenAnchor={onOpenNote}
                                                     confirmDeletions={confirmDeletions}
                                                     onWordFormatChange={onWordFormatChange}

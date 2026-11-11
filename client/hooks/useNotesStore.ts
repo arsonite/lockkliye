@@ -26,7 +26,7 @@ import { DEFAULT_ACCENT, sanitizeAccent } from '@/tools/accent';
 import { DEFAULT_LIST_OPTIONS, sanitizeListOptions } from '@/tools/lists';
 import { MAX_ENABLED, catalogOf, defaultPalette, sanitizePalette } from '@/tools/palette';
 import { generateRandomFolderTree, generateRandomNote, randomizeDates } from '@/tools/randomGenerator';
-import { createTutorialNote } from '@/tools/tutorialNote';
+import { createTutorialNotes } from '@/tools/tutorialNote';
 import useSync from '@/sync/useSync';
 import type { iPersisted } from '@/tools/indexedDB';
 import usePersist from '@/hooks/usePersist';
@@ -55,12 +55,12 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
     }
 
     // Create default state with sample data
-    const sampleNote = createTutorialNote();
+    const tutorialNotes = createTutorialNotes();
 
     return {
-        notes: [sampleNote],
+        notes: tutorialNotes,
         folders: [],
-        activeNoteId: sampleNote.id,
+        activeNoteId: tutorialNotes[0].id,
         activeFolderId: null,
         sidebarExpanded: true,
         formatMode: null,
@@ -430,23 +430,28 @@ const useNotesStore = (persisted: iPersisted) => {
     }, []);
 
     // Format mode
+    // Anchor mode applies the chosen anchor note, so one is picked as soon as the mode starts
+    const startMode = (prev: iNotesState, mode: tFormatMode): iNotesState => {
+        if (mode !== 'anchor') return { ...prev, formatMode: mode };
+        const anchors = prev.notes.filter((note) => note.isAnchor);
+        const chosen = anchors.some((note) => note.id === prev.selectedAnchorId) ? prev.selectedAnchorId : anchors[0]?.id;
+        return { ...prev, formatMode: mode, selectedAnchorId: chosen ?? null };
+    };
+
     const setFormatMode = useCallback((mode: tFormatMode) => {
-        setState((prev: iNotesState) => ({ ...prev, formatMode: mode }));
+        setState((prev: iNotesState) => startMode(prev, mode));
     }, []);
 
     const toggleFormatMode = useCallback((mode: tFormatMode) => {
-        setState((prev: iNotesState) => {
-            if (prev.formatMode === mode) return { ...prev, formatMode: null };
-            if (mode !== 'anchor') return { ...prev, formatMode: mode };
-            // Anchor mode applies the chosen anchor note, so one is picked as soon as the mode starts
-            const anchors = prev.notes.filter((note) => note.isAnchor);
-            const chosen = anchors.some((note) => note.id === prev.selectedAnchorId) ? prev.selectedAnchorId : anchors[0]?.id;
-            return { ...prev, formatMode: mode, selectedAnchorId: chosen ?? null };
-        });
+        setState((prev: iNotesState) => (prev.formatMode === mode ? { ...prev, formatMode: null } : startMode(prev, mode)));
     }, []);
+
+    // A pick formats the selected text, even if it is the color or the anchor that was chosen already
+    const [formatPicks, setFormatPicks] = useState(0);
 
     const setSelectedColor = useCallback((color: string) => {
         setState((prev: iNotesState) => ({ ...prev, selectedColor: color }));
+        setFormatPicks((picks) => picks + 1);
     }, []);
 
     const setSelectedSize = useCallback((size: string) => {
@@ -455,6 +460,7 @@ const useNotesStore = (persisted: iPersisted) => {
 
     const setSelectedAnchor = useCallback((noteId: string | null) => {
         setState((prev: iNotesState) => ({ ...prev, selectedAnchorId: noteId }));
+        setFormatPicks((picks) => picks + 1);
     }, []);
 
     // Taking the anchor off a note also takes it off every word that points to it
@@ -995,20 +1001,26 @@ const useNotesStore = (persisted: iPersisted) => {
         return note;
     }, []);
 
-    // The tutorial note is added again, or reset when it is still there
+    // The tutorial notes are added again, or reset when they are still there
     const restoreTutorialNote = useCallback(() => {
-        const tutorial = createTutorialNote();
+        const tutorials = createTutorialNotes();
         setState((prev: iNotesState) => {
-            const existing = prev.notes.find((note: iNote) => note.title === tutorial.title);
-            if (!existing) {
-                return { ...prev, notes: [tutorial, ...prev.notes], activeNoteId: tutorial.id };
-            }
+            const titles = new Set(tutorials.map((tutorial) => tutorial.title));
+            const existing = new Map(
+                prev.notes.filter((note: iNote) => titles.has(note.title)).map((note: iNote) => [note.title, note]),
+            );
+            const added = tutorials.filter((tutorial) => !existing.has(tutorial.title));
+            const first = existing.get(tutorials[0].title) ?? tutorials[0];
             return {
                 ...prev,
-                notes: prev.notes.map((note: iNote) =>
-                    note.id === existing.id ? { ...note, blocks: tutorial.blocks, updatedAt: Date.now() } : note,
-                ),
-                activeNoteId: existing.id,
+                notes: [
+                    ...added,
+                    ...prev.notes.map((note: iNote) => {
+                        const tutorial = tutorials.find((candidate) => candidate.title === note.title);
+                        return tutorial ? { ...note, blocks: tutorial.blocks, updatedAt: Date.now() } : note;
+                    }),
+                ],
+                activeNoteId: first.id,
             };
         });
     }, []);
@@ -1165,6 +1177,7 @@ const useNotesStore = (persisted: iPersisted) => {
         setSidebarExpanded,
 
         // Format mode
+        formatPicks,
         setFormatMode,
         toggleFormatMode,
         setSelectedColor,

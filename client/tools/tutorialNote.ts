@@ -22,6 +22,7 @@ import type { iNote, iWord, iWordFormat } from '@/types';
 
 // The tutorial is found again by its title, restoring it resets this note instead of adding a second one
 const TUTORIAL_TITLE = 'Welcome to Lockkliye';
+const NEW_FEATURES_TITLE = 'What is new in Lockkliye';
 
 // The words of a text
 const words = (text: string, format: iWordFormat = {}): iWord[] =>
@@ -194,4 +195,106 @@ const createTutorialNote = (): iNote => {
     return note;
 };
 
-export { TUTORIAL_TITLE, createTutorialNote };
+// A second page for the newer features, it is restored together with the first one
+const createNewFeaturesNote = (): iNote => {
+    const note = createNote(NEW_FEATURES_TITLE);
+    const section = (icon: string, title: string): iWord[] => [
+        createWord(icon, { fontSize: 'larger' }),
+        ...words(title, { bold: true, fontSize: 'larger' }),
+    ];
+    const card = (title: string, color: string, text: iWord[]) =>
+        createBlock(text, { title, borderStyle: 'solid', borderRadius: 8, backgroundColor: color });
+
+    note.blocks = [
+        createBlock([
+            createWord('What', { bold: true, fontSize: 'huge', color: '#74c0fc' }),
+            createWord('is', { bold: true, fontSize: 'huge' }),
+            createWord('new', { bold: true, fontSize: 'huge', color: '#ff9500' }),
+        ]),
+
+        createBlock(
+            words('A tour of the newer features, with examples you can try right here.', { fontSize: 'large' }),
+            { backgroundColor: 'rgba(116,192,252,0.1)', borderRadius: 12 },
+        ),
+
+        createBlock(section('📅', 'Dates and Times')),
+
+        card('Dates', 'rgba(255,212,59,0.1)', [
+            ...words('A date like'),
+            ...words('2026-03-14,'),
+            ...words('14.03.2026 or'),
+            ...words('14/03/2026 is underlined with dashes. Ctrl+click on it (a tap on a touch screen, once the block is in edit mode) opens a calendar where you pick another day. The date keeps its style.'),
+        ]),
+
+        card('Times', 'rgba(255,169,77,0.1)', [
+            ...words('A time like'),
+            ...words('14:30,'),
+            ...words('9:05,'),
+            ...words('14:30:15 or'),
+            ...words('2:30pm is underlined with dashes as well. Ctrl+click on it opens a clock. Drag the hand to the hour, then to the minutes, press "Set" and the text changes. "Now" jumps to the current time. A time written with am or pm keeps that way of writing, the 24 hour clock has two rings.'),
+        ]),
+
+        card('Hold Ctrl', 'rgba(177,151,252,0.1)', words(
+            'While Ctrl is held, the mouse turns into a pointer over everything that reacts to Ctrl+click: dates, times and anchors.',
+        )),
+
+        createBlock(section('🎨', 'Formatting')),
+
+        card('Color, Highlight and Anchor', 'rgba(255,107,107,0.1)', [
+            ...words(`Switch on a mode (${shortcutText('color')}, ${shortcutText('highlight')} or ${shortcutText('anchor')}) and the choice stays open until you pick something. Pick a color, a gradient or an anchor note with the mouse or with`),
+            key(shortcutText('colorPick')),
+            ...words('and the marked words, or the word with the cursor in it, change at once.'),
+        ]),
+
+        card('Anchors', 'rgba(177,151,252,0.1)', words(
+            'A word linked to an anchor note has a dashed underline in the color of the accent, no bold anymore. Ctrl+click on it opens the note.',
+        )),
+
+        card('Holding Keys', 'rgba(105,219,124,0.1)', words(
+            'Holding a shortcut no longer switches a mode on and off again and again, and the number keys of the color pick never write a character.',
+        )),
+
+        createBlock(section('☰', 'Lists')),
+
+        card('Bullets', 'rgba(105,219,124,0.1)', lines([
+            item(words('The bullet is a small hollow circle by default')),
+            item(words('The style menu of a block (right-click, or press and hold) shows the bullet that is in use')),
+            item(words('List options are only offered when the block already has a list')),
+        ])),
+
+        createBlock(section('📱', 'Phone and Tablet')),
+
+        card('Sidebar', 'rgba(116,192,252,0.1)', words(
+            'On a phone the sidebar slides in over everything, with an X to close it. Collapsed, a narrow rail stays at the left edge with the toggle, the save dot (yellow while a note is not saved, green when it is), a line and the settings button. The page runs under the rail on a phone, on a desktop it sits beside it.',
+        )),
+
+        card('Taps', 'rgba(255,169,77,0.1)', lines([
+            item(words('One tap on a note opens it, one tap on a block puts the cursor where you tapped')),
+            item(words('Press and hold on a block opens its customizer in the middle of the screen')),
+            item(words('Press and hold on text works like a right-click')),
+            item(words('The block buttons and the handle are stacked next to the block, over the rail')),
+        ])),
+
+        card('Keyboard', 'rgba(255,212,59,0.1)', words(
+            'While you type, the toolbar is moved above the keyboard of the phone, next to the bar with the button that finishes the writing.',
+        )),
+
+        createBlock(section('🖱️', 'Blocks')),
+
+        card('Handle and Buttons', 'rgba(177,151,252,0.1)', words(
+            'On a desktop the handle to drag a block sits in the middle of its left side and is larger than before. The buttons of a block vanish again when the mouse leaves it.',
+        )),
+
+        createBlock(section('☁️', 'Saving')),
+
+        card('Faster Saving', 'rgba(105,219,124,0.1)', words(
+            'Changes are sent to the server in bulk requests and in a sliding window, so saving many notes takes a fraction of the time it did.',
+        )),
+    ];
+
+    return note;
+};
+
+const createTutorialNotes = (): iNote[] => [createTutorialNote(), createNewFeaturesNote()];
+
+export { NEW_FEATURES_TITLE, TUTORIAL_TITLE, createNewFeaturesNote, createTutorialNote, createTutorialNotes };

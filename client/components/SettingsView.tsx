@@ -574,9 +574,9 @@ export const SettingsView = ({
                         },
                         {
                             id: 'restore-tutorial',
-                            label: 'Tutorial note',
+                            label: 'Tutorial notes',
                             description:
-                                'Adds the tutorial note again, or resets it to the current version if it is still there.',
+                                'Adds the tutorial and the page of new features again, or resets them to the current version if they are still there.',
                             control: { type: 'button', label: 'Restore', onClick: onRestoreTutorial },
                         },
                         {

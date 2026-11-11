@@ -1,6 +1,16 @@
 /**
  * @license
  * Copyright (C) 2024-2026 Burak Günaydin
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  */
 
 // The calendar of a date in the text: shows the date, a click on another day picks it
@@ -29,7 +39,10 @@ const weeksOf = (year: number, month: number): Date[][] => {
     const first = new Date(year, month, 1);
     const start = new Date(year, month, 1 - ((first.getDay() + 6) % 7));
     return Array.from({ length: 6 }, (_, week) =>
-        Array.from({ length: 7 }, (_, day) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + week * 7 + day)),
+        Array.from(
+            { length: 7 },
+            (_, day) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + week * 7 + day),
+        ),
     );
 };
 
@@ -53,7 +66,10 @@ export const DatePicker = ({ x, y, date, onPick, onClose }: iDatePickerProps) =>
                         ‹
                     </button>
                     <span className='date-picker__title'>
-                        {new Date(view.year, view.month, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+                        {new Date(view.year, view.month, 1).toLocaleDateString(undefined, {
+                            month: 'long',
+                            year: 'numeric',
+                        })}
                     </span>
                     <button className='date-picker__nav' onClick={() => move(1)} title='Next month'>
                         ›

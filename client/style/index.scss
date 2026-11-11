@@ -40,6 +40,11 @@
         --gutter: 48px;
     }
 
+    // Collapsed on a desktop, the rail has a place of its own beside the page. Only a phone lets the page run under it.
+    &--rail:not(&--mobile) .tea-sidebar--collapsed {
+        width: var(--tea-sidebar-collapsed-width, 44px);
+    }
+
     // Only the main area of the app, the settings page has a main of its own
     > main {
         overflow: hidden;
