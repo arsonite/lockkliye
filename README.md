@@ -113,6 +113,12 @@ Sorted by priority.
 
 ### High
 
+- bug: default selected background color and border not marked
+- bug: when title exceeds content width, make min-width until title fits
+- make dates detected by 16. oktober 2026 format as well as 16.10.2026 (dont change data-style if date is changed) (optional in settings)
+- implement a workspace on right side (second taskbar), its basically, comments, notes, drafts and unfinished text blocks that can be dragged and dropped there or pushed and pulled via long press/double click
+- hotkey redo undo: ctrl+y and ctrl+z
+
 ### Low
 
 - Right click on global to change the settings there too
