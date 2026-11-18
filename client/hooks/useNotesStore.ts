@@ -16,6 +16,9 @@
 // React imports
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 
+// TeaType Sync
+import { usePersist } from '@teatype/sync';
+
 // Types
 import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyle, iAnchorStyle, iHistoryEntry, iListOptions, tBlockData, tBlockKind, tPaletteKind, tPin } from '@/types';
 
@@ -30,9 +33,8 @@ import { generateRandomFolderTree, generateRandomNote, randomizeDates } from '@/
 import { isLocked, sanitizeLockSetup, withoutText } from '@/tools/lock';
 import { createTutorialNote } from '@/tools/tutorialNote';
 import useSync from '@/sync/useSync';
-import type { iPersisted } from '@/tools/indexedDB';
+import { localStore, type iPersisted } from '@/tools/indexedDB';
 import useNoteLock from '@/hooks/useNoteLock';
-import usePersist from '@/hooks/usePersist';
 
 const MAX_HISTORY_SIZE = 100;
 // Edits of one kind within this time are one undo step: a typed sentence is not one step per keystroke
@@ -198,9 +200,8 @@ const useNotesStore = (persisted: iPersisted) => {
         }
     }, [state.sidebarExpanded]);
 
-    usePersist('data', savedState);
-    usePersist('history', savedHistory);
-    usePersist('redo', savedRedo);
+    // One transaction, so the sync meta never says more than the saved data
+    usePersist(localStore, { data: savedState, history: savedHistory, redo: savedRedo, sync: sync.meta });
 
     // Save state to history before modifications (per-note)
     // Edits with the same group within a short time are one step, the group tells a block from another

@@ -30,7 +30,7 @@ import { Sidebar } from '@/components/Sidebar';
 
 // Hooks
 import useHeldModifiers from '@/hooks/useHeldModifiers';
-import useIsMobile from '@/hooks/useIsMobile';
+import useIsMobile from '@teatype/hooks/useIsMobile';
 import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 import useNotesStore from '@/hooks/useNotesStore';
 

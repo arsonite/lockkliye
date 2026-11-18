@@ -34,7 +34,7 @@ import type {
 import { enabledOf } from '@/tools/palette';
 import { ChecklistBlock, TableBlock } from './BlockComponents';
 import { BULLETS, DEFAULT_LIST_OPTIONS, NUMBERINGS, convertListMarkers, currentListStyle, numberingLabel } from '@/tools/lists';
-import useIsMobile from '@/hooks/useIsMobile';
+import useIsMobile from '@teatype/hooks/useIsMobile';
 import useLongPress from '@/hooks/useLongPress';
 import { RichTextEditor } from './RichTextEditor';
 import { TeaModal, TeaPopover } from '@teatype/components';

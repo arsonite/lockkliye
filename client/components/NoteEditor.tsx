@@ -43,7 +43,7 @@ import { TextBlockComponent } from './TextBlockComponent';
 import type { iFolder, iNote, iTextBlock, iWord, tFormatMode, iHistoryEntry, iBlockStyle, iPalette, iListOptions, tBlockData, tBlockKind } from '@/types';
 
 // Utils
-import useIsMobile from '@/hooks/useIsMobile';
+import useIsMobile from '@teatype/hooks/useIsMobile';
 import useKeyboardTop from '@/hooks/useKeyboardTop';
 import useLongPress from '@/hooks/useLongPress';
 import { folderChain } from '@/tools/folderTree';

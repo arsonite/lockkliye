@@ -13,8 +13,8 @@
  * all copies or substantial portions of the Software.
  */
 
-// TeaType API
-import type { HSDBBaseAPI, HSDBEntity } from '@teatype/api';
+// TeaType Sync
+import type { iCollection, tRow, tServerRow } from '@teatype/sync';
 
 // Sync
 import {
@@ -49,28 +49,6 @@ import { sanitizeLockSetup } from '@/tools/lock';
 import { sanitizeAnchorStyle } from '@/tools/anchorStyle';
 import { sanitizeBlockListOptions, sanitizeListOptions } from '@/tools/lists';
 import { sanitizePalette } from '@/tools/palette';
-
-type tRow = Record<string, string | number | boolean>;
-type tServerRow = HSDBEntity & { rev: number } & Record<string, unknown>;
-
-// Maps one local entity type to one HSDB model. The key identifies the entity in the browser only: the server
-// hands out its own entry ids, the sync keeps track of which key belongs to which id (see engine.ts).
-// toRow() must produce the same key order every time: its JSON decides whether an entity changed since the last
-// sync, so it contains neither the id nor the rev. Relation fields hold the key of the related entity, the sync
-// swaps keys and server ids at the boundary.
-interface iCollection<L extends object> {
-    api: typeof HSDBBaseAPI;
-    name: string;
-    relations?: Record<string, string>; // Relation field -> name of the collection it points to
-    listFields?: string[];
-
-    fromRow: (row: tServerRow, key: string) => L;
-    key: (item: L) => string;
-    // For models where the content decides which row is which (the single settings row, presets by position):
-    // a server row without a known key is matched to the local entity with this key. Needs the fields it reads.
-    slot?: (row: tServerRow) => string;
-    toRow: (item: L) => tRow;
-}
 
 // The text of a note is a tree of server entries: Note <- Block <- Word
 interface iBlockItem {
@@ -361,7 +339,7 @@ const historyCollection: iCollection<iHistoryEntry> = {
     relations: { note: 'notes' },
 };
 
-export type { iBlockItem, iCollection, iPresetItem, iSettingsItem, iWordItem, tRow, tServerRow };
+export type { iBlockItem, iPresetItem, iSettingsItem, iWordItem };
 export {
     blockCollection,
     folderCollection,
