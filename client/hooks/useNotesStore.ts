@@ -14,7 +14,7 @@
  */
 
 // React imports
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 // TeaType Sync
 import { usePersist } from '@teatype/sync';
@@ -30,7 +30,7 @@ import { DEFAULT_ANCHOR_STYLE, sanitizeAnchorStyle } from '@/tools/anchorStyle';
 import { DEFAULT_LIST_OPTIONS, sanitizeListOptions } from '@/tools/lists';
 import { MAX_ENABLED, catalogOf, defaultPalette, sanitizePalette } from '@/tools/palette';
 import { generateRandomFolderTree, generateRandomNote, randomizeDates } from '@/tools/randomGenerator';
-import { isLocked, sanitizeLockSetup, withoutText } from '@/tools/lock';
+import { isLocked, sanitizeLockSetup } from '@/tools/lock';
 import { createTutorialNote } from '@/tools/tutorialNote';
 import useSync from '@/sync/useSync';
 import { localStore, type iPersisted } from '@/tools/indexedDB';
@@ -56,8 +56,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
         // Older versions saved less
         return {
             ...stored,
-            // Nothing readable of a locked note comes back from storage
-            notes: stored.notes.map(withoutText),
+            notes: stored.notes,
             lockSetup: sanitizeLockSetup(stored.lockSetup),
             sidebarExpanded: readSidebarExpanded(),
             lightMode: stored.lightMode ?? false,
@@ -164,27 +163,12 @@ const useNotesStore = (persisted: iPersisted) => {
     const isUndoing = useRef(false);
     const lastChange = useRef<{ noteId: string; group: string; time: number } | null>(null);
 
-    const lock = useNoteLock({ state, setState, setHistory, setRedoStack });
+    const lock = useNoteLock({ state, setState });
     const resetLock = lock.reset;
-
-    // What is saved and synced of locked notes is sealed: no blocks, no history, the text only inside their lock
-    const lockedIds = useMemo(() => new Set(state.notes.filter(isLocked).map((note) => note.id)), [state.notes]);
-    const savedState = useMemo(
-        () => (lockedIds.size > 0 ? { ...state, notes: state.notes.map(withoutText) } : state),
-        [state, lockedIds],
-    );
-    const savedHistory = useMemo(
-        () => (lockedIds.size > 0 ? history.filter((entry) => !lockedIds.has(entry.noteId)) : history),
-        [history, lockedIds],
-    );
-    const savedRedo = useMemo(
-        () => (lockedIds.size > 0 ? redoStack.filter((entry) => !lockedIds.has(entry.noteId)) : redoStack),
-        [redoStack, lockedIds],
-    );
 
     const sync = useSync({
         state,
-        history: savedHistory,
+        history,
         historyLimit: MAX_HISTORY_SIZE,
         freshInstall,
         storedMeta: persisted.sync,
@@ -201,7 +185,7 @@ const useNotesStore = (persisted: iPersisted) => {
     }, [state.sidebarExpanded]);
 
     // One transaction, so the sync meta never says more than the saved data
-    usePersist(localStore, { data: savedState, history: savedHistory, redo: savedRedo, sync: sync.meta });
+    usePersist(localStore, { data: state, history, redo: redoStack, sync: sync.meta });
 
     // Save state to history before modifications (per-note)
     // Edits with the same group within a short time are one step, the group tells a block from another
@@ -770,11 +754,11 @@ const useNotesStore = (persisted: iPersisted) => {
 
     // Export functions
     const exportAsText = useCallback(() => {
-        return exportNotesAsText(state.notes.filter((note) => !isLocked(note)));
-    }, [state.notes]);
+        return exportNotesAsText(state.notes.filter((note) => !isLocked(note) || lock.unlocked));
+    }, [state.notes, lock.unlocked]);
 
     const exportAsJson = useCallback(() => {
-        return exportNotesAsJson(state.notes.map(withoutText), state.folders);
+        return exportNotesAsJson(state.notes, state.folders);
     }, [state.notes, state.folders]);
 
     const exportSettings = useCallback(() => {
@@ -807,7 +791,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 if (result.notes) {
                     // Merge notes by ID - skip if ID already exists, otherwise add
                     const existingIds = new Set(prev.notes.map(n => n.id));
-                    const newNotes = result.notes.filter((n: iNote) => !existingIds.has(n.id)).map(withoutText);
+                    const newNotes = result.notes.filter((n: iNote) => !existingIds.has(n.id));
                     newState.notes = [...newNotes, ...prev.notes];
                 }
                 if (result.folders) {
@@ -861,7 +845,7 @@ const useNotesStore = (persisted: iPersisted) => {
 
             if (result.notes) {
                 const existingIds = new Set(prev.notes.map(n => n.id));
-                const newNotes = result.notes.filter((n: iNote) => !existingIds.has(n.id)).map(withoutText);
+                const newNotes = result.notes.filter((n: iNote) => !existingIds.has(n.id));
                 newState.notes = [...newNotes, ...prev.notes];
             }
             if (result.folders) {
@@ -964,7 +948,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 type: 'lockkliye-backup',
                 version: 1,
                 exportedAt: Date.now(),
-                notes: state.notes.map(withoutText),
+                notes: state.notes,
                 folders: state.folders,
                 settings: {
                     lightMode: state.lightMode,
@@ -980,12 +964,12 @@ const useNotesStore = (persisted: iPersisted) => {
                     palette: state.palette,
                 },
                 blockPresets: state.blockPresets,
-                history: savedHistory,
+                history,
             },
             null,
             2,
         );
-    }, [state, savedHistory]);
+    }, [state, history]);
 
     // A backup replaces everything that is here, the next save makes the server match it
     const importBackup = useCallback((jsonString: string): boolean => {
@@ -995,7 +979,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 return false;
             }
             const settings = data.settings ?? {};
-            const references = withValidReferences(data.notes.map(withoutText), data.folders);
+            const references = withValidReferences(data.notes, data.folders);
             // Nothing is open after a restore, the password of the backup (or this one) opens the locked notes again
             resetLock();
             setState((prev: iNotesState) => ({

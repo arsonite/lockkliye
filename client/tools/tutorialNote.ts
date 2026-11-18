@@ -236,7 +236,7 @@ const createTutorialNote = (): iNote => {
 
         createBlock(
             words(
-                `Lock a note from its right-click menu in the sidebar. One password locks all of them, and opening one locked note opens all of them. They lock again after 10 minutes without input, with the padlock in the second bar next to the toolbar (shown on locked notes) or with ${shortcutText('lockAll')}. The text of a locked note is encrypted in this browser before it is saved or synced, only the title stays readable. The password cannot be reset, Settings > Security changes it.`,
+                `Lock a note from its right-click menu in the sidebar. One password locks all of them, and opening one locked note opens all of them. They lock again after 10 minutes without input, with the padlock in the second bar next to the toolbar (shown on locked notes) or with ${shortcutText('lockAll')}. A locked note is only hidden in the app, its text is not encrypted, so it is not protected from someone who can read the server or the browser storage. The password cannot be reset, Settings > Security changes it.`,
             ),
             { title: 'Locked Notes', borderStyle: 'solid', borderRadius: 8, backgroundColor: 'rgba(255,107,107,0.1)' },
         ),

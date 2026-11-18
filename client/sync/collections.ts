@@ -189,8 +189,8 @@ const noteCollection: iCollection<iNote> = {
         // Only sent when there is something to say, so the notes that have neither keep their hash
         ...(note.pinned ? { pin_scope: note.pinned } : {}),
         ...(note.order === undefined ? {} : { sort_order: note.order }),
-        // The text of a locked note is only sent encrypted, a lock that was taken off sends empty values to clear the server's
-        ...(note.lock ? { lock_data: note.lock.data, lock_iv: note.lock.iv } : {}),
+        // Only once the note was locked, the others keep their hash. A lock that was taken off sends false
+        ...(note.locked === undefined ? {} : { locked: note.locked }),
     }),
     fromRow: (row, key) => ({
         id: key,
@@ -200,7 +200,7 @@ const noteCollection: iCollection<iNote> = {
         isAnchor: row.is_anchor === true,
         pinned: row.pinned ? (row.pin_scope === 'global' ? 'global' : 'folder') : undefined,
         order: typeof row.sort_order === 'number' ? row.sort_order : undefined,
-        lock: row.lock_data ? { data: text(row.lock_data), iv: text(row.lock_iv) } : undefined,
+        locked: typeof row.locked === 'boolean' ? row.locked : undefined,
         createdAt: row.created_ms as number,
         updatedAt: row.updated_ms as number,
     }),

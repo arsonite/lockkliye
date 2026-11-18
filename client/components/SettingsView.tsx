@@ -382,7 +382,7 @@ export const SettingsView = ({
             label: 'Security',
             icon: <LockIcon />,
             description:
-                'One password locks the notes you choose. Their text is encrypted in this browser before it is saved or synced, titles stay readable. Opening one locked note opens all of them, and they lock again after 10 minutes without input.',
+                'One password locks the notes you choose. A locked note is hidden in the app until the password is entered, its text is not encrypted. Opening one locked note opens all of them, and they lock again after 10 minutes without input.',
             groups: [
                 {
                     id: 'lock-password',
@@ -392,8 +392,8 @@ export const SettingsView = ({
                             id: 'lock-set',
                             label: hasPassword ? 'Change password' : 'Set a password',
                             description: hasPassword
-                                ? 'Locked notes are encrypted again with the new one.'
-                                : 'Then lock a note with the lock next to its title.',
+                                ? 'The new password opens all locked notes.'
+                                : 'Then lock a note from its right-click menu in the sidebar.',
                             control: {
                                 type: 'button',
                                 label: hasPassword ? 'Change' : 'Set password',

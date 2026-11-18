@@ -148,20 +148,13 @@ interface iNote {
     pinned?: tPin;
     order?: number; // Position among the notes of a manually sorted folder
     isAnchor?: boolean; // Words of other notes can be anchored to this note
-    lock?: iSealed; // The text of a locked note, encrypted. Empty data: the lock was taken off, so the server forgets it too
-    open?: boolean; // Only in memory: the blocks of a locked note are readable, the password was entered
+    locked?: boolean; // Needs the password to be read. False: the lock was taken off (the server only changes what it is sent)
 }
 
-// Text that was encrypted with the key of the password (AES-GCM), both base64
-interface iSealed {
-    data: string;
-    iv: string;
-}
-
-// What tells a right password from a wrong one: a known text encrypted with the key, and the salt of the key
+// The salted hash of the password of the locked notes
 interface iLockSetup {
     salt: string;
-    check: iSealed;
+    hash: string;
 }
 
 // Folder for organizing notes
@@ -491,7 +484,6 @@ export type {
     iNotesState,
     iPalette,
     iPaletteSlot,
-    iSealed,
     iTextBlock,
     tPaletteKind,
     iWord,

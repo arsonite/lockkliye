@@ -84,7 +84,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
         const note = store.notes.find((n) => n.id === unlockRemoval);
         if (!note) {
             setUnlockRemoval(null);
-        } else if (note.open) {
+        } else if (store.unlocked) {
             store.removeLock(unlockRemoval);
             setUnlockRemoval(null);
         }
@@ -136,10 +136,8 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
         const note = store.notes.find((n) => n.id === noteId);
         if (!note) return;
         if (isLocked(note)) {
-            if (note.open) {
+            if (store.unlocked) {
                 store.removeLock(noteId);
-            } else if (store.unlocked) {
-                setUnlockRemoval(noteId);
             } else {
                 setUnlockRemoval(noteId);
                 setPasswordMode('unlock');
@@ -328,6 +326,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                 }}
                 onSetPin={store.setNotePin}
                 onToggleLock={handleToggleLock}
+                locksOpen={store.unlocked}
                 onOrderNotes={store.orderNotes}
             />
 
@@ -382,12 +381,10 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         onClose={() => setShowSettings(false)}
                         toast={toast}
                     />
-                ) : store.activeNote && isLocked(store.activeNote) && !store.activeNote.open ? (
+                ) : store.activeNote && isLocked(store.activeNote) && !store.unlocked ? (
                     <LockedNote
                         key={store.activeNote.id}
                         hasPassword={store.hasPassword}
-                        unlocked={store.unlocked}
-                        unreadable={store.unreadable.includes(store.activeNote.lock?.data ?? '')}
                         onUnlock={store.unlock}
                     />
                 ) : store.activeNote ? (

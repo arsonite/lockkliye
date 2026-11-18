@@ -22,7 +22,7 @@ import { TeaSidebar, TeaModal } from '@teatype/components';
 
 // Utility
 import { descendantIds, folderPath } from '@/tools/folderTree';
-import { isLocked, isOpen } from '@/tools/lock';
+import { isLocked } from '@/tools/lock';
 import { DEFAULT_SORT, SORT_MODES, arrangeNotes } from '@/tools/sorting';
 
 // Hooks
@@ -62,6 +62,7 @@ interface iSidebarProps {
     onOpenSettings: () => void;
     onSetPin: (noteId: string, pin: tPin | undefined) => void;
     onToggleLock: (noteId: string) => void;
+    locksOpen: boolean; // Locked notes are readable right now
     onOrderNotes: (folderId: string | null, ids: string[]) => void; // The order the notes were dragged into
 }
 
@@ -121,6 +122,7 @@ export const Sidebar = ({
     onOpenSettings,
     onSetPin,
     onToggleLock,
+    locksOpen,
     onOrderNotes,
 }: iSidebarProps) => {
     const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
@@ -205,8 +207,8 @@ export const Sidebar = ({
     const isNoteEmpty = (note: iNote): boolean => {
         return (
             !isLocked(note) &&
-            note.blocks.length === 0 ||
-            (note.blocks.length === 1 && note.blocks[0].words.length <= 1 && !note.blocks[0].words[0]?.text.trim())
+            (note.blocks.length === 0 ||
+                (note.blocks.length === 1 && note.blocks[0].words.length <= 1 && !note.blocks[0].words[0]?.text.trim()))
         );
     };
 
@@ -464,8 +466,8 @@ export const Sidebar = ({
                             </span>
                         )}
                         {isLocked(note) && (
-                            <span className='sidebar-row__anchor' title={isOpen(note) ? 'Locked note, open' : 'Locked'}>
-                                {isOpen(note) ? <UnlockIcon /> : <LockIcon />}
+                            <span className='sidebar-row__anchor' title={locksOpen ? 'Locked note, open' : 'Locked'}>
+                                {locksOpen ? <UnlockIcon /> : <LockIcon />}
                             </span>
                         )}
                         {note.isAnchor && (

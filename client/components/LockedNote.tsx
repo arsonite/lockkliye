@@ -27,13 +27,11 @@ import { supported } from '@/tools/lock';
 
 interface iLockedNoteProps {
     hasPassword: boolean;
-    unlocked: boolean; // The password was entered, the text is being opened
-    unreadable: boolean; // The note was locked with another password
     onUnlock: (password: string) => Promise<boolean>;
 }
 
 // Shown instead of a locked note: unlocking one note opens all of them
-const LockedNote: React.FC<iLockedNoteProps> = ({ hasPassword, unlocked, unreadable, onUnlock }) => {
+const LockedNote: React.FC<iLockedNoteProps> = ({ hasPassword, onUnlock }) => {
     const [password, setPassword] = useState('');
     const [wrong, setWrong] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -49,11 +47,7 @@ const LockedNote: React.FC<iLockedNoteProps> = ({ hasPassword, unlocked, unreada
     };
 
     let body: React.ReactNode;
-    if (unreadable) {
-        body = <p className='locked-note__text'>This note was locked with another password, so it cannot be opened here.</p>;
-    } else if (unlocked) {
-        body = <p className='locked-note__text'>Opening…</p>;
-    } else if (!hasPassword) {
+    if (!hasPassword) {
         body = (
             <p className='locked-note__text'>
                 The password of this note is not known here yet. Sync with the server to get it (Ctrl+S).
