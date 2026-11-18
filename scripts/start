@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+
+# Copyright (C) 2024-2026 Burak Günaydin
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+
+# System imports
+import os
+import shlex
+import sys
+
+# Third-party imports
+from teatype.cli import BaseStartCLI
+from teatype.io import shell, softkill
+from teatype.logging import *
+
+class Start(BaseStartCLI):
+    """
+    Starts the HSDB server, the vite client or both: "start all|client|server [--detached]".
+    What of lockkliye still runs from an earlier start is stopped first, so a restart never ends up with a stale process.
+    """
+    def modified_meta(self):
+        return {
+            'commands': [
+                {
+                    'name': 'all',
+                    'shorthand': 'a',
+                    'help': 'Server in the background, client in the foreground (both in the background with --detached)'
+                },
+                {
+                    'name': 'client',
+                    'shorthand': 'c',
+                    'help': 'The vite dev server'
+                },
+                {
+                    'name': 'server',
+                    'shorthand': 's',
+                    'help': 'The HSDB server'
+                }
+            ]
+        }
+
+    ###########
+    # Helpers #
+    ###########
+
+    def _stop_running(self, *targets:str):
+        """
+        Stops the processes of this checkout, matched by the paths in their command line, so other projects
+        (e.g. tickfit) that run their own vite or HSDB server are left alone.
+        """
+        names = {
+            'client': [os.path.join(self._root, 'node_modules', '.bin', '..', 'vite', 'bin', 'vite.js'),
+                       os.path.join(self._root, 'node_modules', '.pnpm', 'vite@')],
+            'server': [os.path.join(self._root, 'lockkliye_server.py')]
+        }
+        for target in targets:
+            stopped = softkill(names[target], silent=True)
+            if stopped:
+                log(f'Stopped the running {target} ({stopped} process{"es" if stopped > 1 else ""})')
+
+    #########
+    # Hooks #
+    #########
+
+    def implemented_trap(self):
+        # Only what this script started in the foreground session, detached runs are stopped by the next start
+        if self.get_flag('detached'):
+            return
+        self._stop_running(*getattr(self, '_foreground', []))
+
+    def pre_execute(self):
+        self._root = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'))
+        # The processes run from the repository root, where their .env is
+        self.parent_path = self._root
+        # The base class would only look for a "stop" script, the stopping is done here
+        self.set_flag('ignore-running', True)
+
+        target = self.get_command()
+        if target == 'all':
+            self._stop_running('server', 'client')
+            log('Starting the server in the background')
+            command = f'{shlex.quote(sys.executable)} {shlex.quote(os.path.realpath(__file__))} server --detached --silent'
+            if shell(command) not in (0, None):
+                err('The server could not be started', exit=True)
+            self._foreground = ['server', 'client']
+            target = 'client'
+        else:
+            self._stop_running(target)
+            self._foreground = [target]
+
+        self.process_name = f'lockkliye_{target}'
+        if target == 'client':
+            self.start_command = 'pnpm start'
+        else:
+            # The HSDB unit needs fastapi and uvicorn, which the teatype venv provides, the one this script runs in
+            self.start_command = f'{shlex.quote(sys.executable)} {shlex.quote(os.path.join(self._root, "lockkliye_server.py"))}'
+
+if __name__ == '__main__':
+    Start()

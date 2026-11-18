@@ -18,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEATYPE_ROOT="$(cd "$SCRIPT_DIR/../../teatype" && pwd)"
 # The pnpm workspace root lives in teatype/ts, installing from here would not resolve workspace:* deps
 WORKSPACE_ROOT="$TEATYPE_ROOT/ts"
-# The backend (lockkliye_server.py, scripts/launch-server) runs in the teatype venv
+# The backend (lockkliye_server.py, scripts/start) runs in the teatype venv
 VENV="$TEATYPE_ROOT/teatype-venv"
 PYTHON="${PYTHON:-python3.13}"
 ENV_FILE="$SCRIPT_DIR/../.env"
