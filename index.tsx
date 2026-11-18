@@ -20,10 +20,16 @@ import ReactDOM from 'react-dom/client';
 // Components
 import NotesApp from './client/NotesApp';
 
+// Utility
+import { lockGestures } from '@teatype/toolkit/gestures';
+
 // Style
 import '@teatype/style/globstyle.scss';
 import '@teatype/style/globvars.scss';
 import '@/style/index.scss';
+
+// A phone page is an app: no zoom, no swipe back
+lockGestures();
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <React.StrictMode>
