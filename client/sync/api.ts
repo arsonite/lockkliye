@@ -18,7 +18,7 @@ import { HSDBBaseAPI } from '@teatype/api';
 
 // The server (lockkliye_server.py) serves the HSDB unit under /hsdb/<Model>. The vite dev server proxies
 // <base>/hsdb to it, so the browser only needs its own origin (works on http://localhost:8101/lockkliye/ and
-// https://homepie.net/lockkliye/ alike)
+// https://lockkliye.homepie.net alike)
 HSDBBaseAPI.configure({
     baseUrl: window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, ''),
     
