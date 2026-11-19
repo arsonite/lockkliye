@@ -87,3 +87,10 @@ body {
     color: var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
 }
+
+// Under the status bar on an iPhone (see `fillScreen`): the transform makes the body the container of the fixed
+// elements (sidebar rail, toolbars), so they reach the bottom of the screen too
+html.fill-screen body {
+    height: var(--app-height);
+    transform: translateZ(0);
+}

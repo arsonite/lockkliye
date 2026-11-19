@@ -21,7 +21,7 @@ import ReactDOM from 'react-dom/client';
 import NotesApp from './client/NotesApp';
 
 // Utility
-import { lockGestures, pinViewport } from '@teatype/toolkit/gestures';
+import { fillScreen, lockGestures, pinViewport } from '@teatype/toolkit/gestures';
 
 // Style
 import '@teatype/style/globstyle.scss';
@@ -31,6 +31,8 @@ import '@/style/index.scss';
 // A phone page is an app: no zoom, no swipe back
 lockGestures();
 pinViewport();
+// With the page under the status bar, the body is as high as the screen
+fillScreen();
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <React.StrictMode>
