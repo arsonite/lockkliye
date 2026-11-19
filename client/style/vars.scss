@@ -56,12 +56,15 @@ body {
     background-color: var(--bg-primary);
 }
 
+// The gradient is on the page itself too, so it reaches under the status bar and the home indicator
+html {
+    background-image: var(--bg-gradient);
+    background-attachment: fixed;
+}
+
 html:has(body.light-mode),
 body.light-mode {
     background-color: #f5f5f7;
-}
-
-body.light-mode {
     background-image: none;
 }
 
