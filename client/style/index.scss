@@ -46,6 +46,14 @@
         width: var(--tea-sidebar-collapsed-width, 44px);
     }
 
+    // No rail: the page has the whole width, the sidebar is a sheet that a swipe from the left edge brings in
+    &--hidden {
+        .tea-rail,
+        .tea-rail-background {
+            display: none;
+        }
+    }
+
     // Only the main area of the app, the settings page has a main of its own
     > main {
         overflow: hidden;

@@ -15,6 +15,7 @@
 # System imports
 import os
 import shlex
+import shutil
 import sys
 
 # Third-party imports
@@ -25,6 +26,8 @@ from teatype.logging import *
 class Start(BaseStartCLI):
     """
     Starts the HSDB server, the vite client or both: "start all|client|server [--detached]".
+    "start build" makes the production build instead, which nginx then serves in place of the vite dev server; starting
+    the client (or all) removes that build again.
     What of lockkliye still runs from an earlier start is stopped first, so a restart never ends up with a stale process.
     """
     def modified_meta(self):
@@ -34,6 +37,11 @@ class Start(BaseStartCLI):
                     'name': 'all',
                     'shorthand': 'a',
                     'help': 'Server in the background, client in the foreground (both in the background with --detached)'
+                },
+                {
+                    'name': 'build',
+                    'shorthand': 'b',
+                    'help': 'Production build into dist/ (served by nginx), stops the vite dev server'
                 },
                 {
                     'name': 'client',
@@ -67,6 +75,42 @@ class Start(BaseStartCLI):
             if stopped:
                 log(f'Stopped the running {target} ({stopped} process{"es" if stopped > 1 else ""})')
 
+    def _build(self):
+        """
+        The production build: dist/ is what nginx serves instead of the dev server (homepie nginx/snippets/homepie-app.conf).
+        Built next to it and swapped in at the end, so a failed build changes nothing and the gap is a rename.
+        """
+        out, old = os.path.join(self._root, 'dist.new'), os.path.join(self._root, 'dist.old')
+        dist = os.path.join(self._root, 'dist')
+        shutil.rmtree(out, ignore_errors=True)
+        log('Building ...')
+        # Not "pnpm build": its tsc -b step type checks teatype/ts as well
+        if shell(f'cd {shlex.quote(self._root)} && pnpm exec vite build --outDir dist.new --emptyOutDir') not in (0, None) \
+           or not os.path.isfile(os.path.join(out, 'index.html')):
+            shutil.rmtree(out, ignore_errors=True)
+            err('The build failed, nothing was changed', exit=True)
+        shutil.rmtree(old, ignore_errors=True)
+        if os.path.isdir(dist):
+            os.rename(dist, old)
+        os.rename(out, dist)
+        shutil.rmtree(old, ignore_errors=True)
+        self._stop_running('client')
+        # The build talks to the HSDB server directly, so that has to be there
+        if shell(f'pgrep -f {shlex.quote(os.path.join(self._root, "[l]ockkliye_server.py"))} > /dev/null') != 0:
+            log('Starting the server in the background')
+            command = f'{shlex.quote(sys.executable)} {shlex.quote(os.path.realpath(__file__))} server --detached --silent'
+            if shell(command) not in (0, None):
+                err('The server could not be started', exit=True)
+        success('Production build is live: dist/ is served, the dev server is stopped. "start client" brings dev mode back.')
+        sys.exit(0)
+
+    def _remove_build(self):
+        # Without dist/ nginx goes back to the dev server
+        dist = os.path.join(self._root, 'dist')
+        if os.path.isdir(dist):
+            shutil.rmtree(dist)
+            log('Removed dist/, nginx serves the dev server again')
+
     #########
     # Hooks #
     #########
@@ -85,6 +129,10 @@ class Start(BaseStartCLI):
         self.set_flag('ignore-running', True)
 
         target = self.get_command()
+        if target == 'build':
+            self._build()
+        if target in ('all', 'client'):
+            self._remove_build()
         if target == 'all':
             self._stop_running('server', 'client')
             log('Starting the server in the background')

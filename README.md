@@ -88,7 +88,8 @@ The data is stored by an HSDB server from the teatype library, the UI uses the t
     ```sh
     ./scripts/start all       # server (background) + client (foreground)
     ./scripts/start server    # only the HSDB server
-    ./scripts/start client    # only the vite client
+    ./scripts/start client    # only the vite client (dev mode)
+    ./scripts/start build     # production build, see Usage
     ```
 
     Run it from the teatype venv, the command comes first (`./scripts/start all --detached`). A start first stops the earlier server/client of this checkout (matched by path), so restarting never leaves a stale process behind.
@@ -99,7 +100,7 @@ The data is stored by an HSDB server from the teatype library, the UI uses the t
 
 ## Usage
 
-Run the production build with `pnpm build` and preview it with `pnpm preview`. Notes are stored in `LOCKKLIYE_DATA_PATH` (`/var/lib/lockkliye` by default), back that folder up to keep your notes.
+Behind homepie, `./scripts/start build` builds into `dist/`, stops the vite dev server and makes sure the HSDB server runs: nginx serves `dist/` as long as it has an `index.html` and sends `/hsdb/` straight to the HSDB server. `./scripts/start client` (or `all`) deletes `dist/` again and nginx goes back to the dev server, nothing to reload. Notes are stored in `LOCKKLIYE_DATA_PATH` (`/var/lib/lockkliye` by default), back that folder up to keep your notes.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

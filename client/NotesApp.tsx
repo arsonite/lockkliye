@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react';
 // TeaType
 import { TeaToastContainer, useTeaToast } from '@teatype/components';
 import { NoteIcon } from '@teatype/icons';
+import { edgeSwipe } from '@teatype/toolkit/gestures';
 
 // Components
 import ModeCursor from '@/components/ModeCursor';
@@ -30,6 +31,7 @@ import { Sidebar } from '@/components/Sidebar';
 
 // Hooks
 import useHeldModifiers from '@/hooks/useHeldModifiers';
+import useHideSidebar from '@/hooks/useHideSidebar';
 import useIsMobile from '@teatype/hooks/useIsMobile';
 import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 import useNotesStore from '@/hooks/useNotesStore';
@@ -67,6 +69,10 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
     const sidebarExpanded = mobile ? sheetOpen : store.sidebarExpanded;
     const toggleSidebar = mobile ? () => setSheetOpen((open) => !open) : store.toggleSidebar;
     const closeSheet = () => setSheetOpen(false);
+    const [hideSidebar, setHideSidebar] = useHideSidebar();
+    // Hidden, the sidebar comes in by a swipe from the left edge. Hiding it is for phones only.
+    const hidden = mobile && hideSidebar;
+    useEffect(() => (hidden ? edgeSwipe(() => setSheetOpen(true)) : undefined), [hidden]);
 
     // The password dialog, with the note that is to be locked once it is through
     const [passwordMode, setPasswordMode] = useState<tPasswordMode | null>(null);
@@ -93,6 +99,8 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
     // The toast is rendered in the body, so its light mode comes from the body
     useEffect(() => {
         document.body.classList.toggle('light-mode', store.lightMode);
+        // The color of the browser bar on Android and the desktop
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', store.lightMode ? '#f5f5f7' : '#0a0a0b');
     }, [store.lightMode]);
 
     // The accent color is on the page, so the toast and the modals in the body get it too
@@ -287,7 +295,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
 
     return (
         <div
-            className={`notes-app ${sidebarExpanded && !mobile ? '' : 'notes-app--rail'} ${mobile ? 'notes-app--mobile' : ''} ${
+            className={`notes-app ${sidebarExpanded && !mobile ? '' : 'notes-app--rail'} ${mobile ? 'notes-app--mobile' : ''} ${hidden ? 'notes-app--hidden' : ''} ${
                 held.startsWith('ctrl') ? 'notes-app--ctrl' : ''
             } ${store.lightMode ? 'light-mode' : ''}`}
         >
@@ -343,6 +351,8 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         use24HourTime={store.use24HourTime}
                         palette={store.palette}
                         onToggleLightMode={store.toggleLightMode}
+                        hideSidebar={hideSidebar}
+                        onHideSidebarChange={setHideSidebar}
                         onAccentColorChange={store.setAccentColor}
                         onListOptionsChange={store.setListOptions}
                         anchorStyle={store.anchorStyle}

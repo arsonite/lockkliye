@@ -50,6 +50,21 @@
     --text-muted: var(--text-secondary);
 }
 
+// A color under the gradient: iOS paints what the page does not cover (the safe areas) with it, a gradient alone counts as none (white)
+html,
+body {
+    background-color: var(--bg-primary);
+}
+
+html:has(body.light-mode),
+body.light-mode {
+    background-color: #f5f5f7;
+}
+
+body.light-mode {
+    background-image: none;
+}
+
 html,
 body,
 #root {
@@ -60,9 +75,12 @@ body,
 }
 
 body {
+    // Fixed, so Safari has no document to scroll up
+    position: fixed;
+    inset: 0;
     overflow: hidden;
 
-    background: var(--bg-gradient);
+    background-image: var(--bg-gradient);
     color: var(--text-primary);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
 }

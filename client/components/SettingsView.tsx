@@ -44,6 +44,7 @@ interface iSettingsViewProps {
     showBlockBorders: boolean;
     showStyleButton: boolean;
     use24HourTime: boolean;
+    hideSidebar: boolean;
     palette: iPalette;
     toast: iUseTeaToastReturn;
 
@@ -57,6 +58,7 @@ interface iSettingsViewProps {
     onShowBlockBordersChange: (value: boolean) => void;
     onShowStyleButtonChange: (value: boolean) => void;
     onUse24HourTimeChange: (value: boolean) => void;
+    onHideSidebarChange: (value: boolean) => void;
     hasPassword: boolean;
     locksOpen: boolean;
     onSetPassword: () => void;
@@ -121,6 +123,7 @@ export const SettingsView = ({
     showBlockBorders,
     showStyleButton,
     use24HourTime,
+    hideSidebar,
     palette,
     toast,
 
@@ -134,6 +137,7 @@ export const SettingsView = ({
     onShowBlockBordersChange,
     onShowStyleButtonChange,
     onUse24HourTimeChange,
+    onHideSidebarChange,
     hasPassword,
     locksOpen,
     onSetPassword,
@@ -252,6 +256,18 @@ export const SettingsView = ({
                                 unit: '%',
                                 onChange: onEditorWidthChange,
                             },
+                        },
+                    ],
+                },
+                {
+                    id: 'sidebar',
+                    items: [
+                        {
+                            id: 'hide-sidebar',
+                            label: 'Hide the sidebar',
+                            description:
+                                'On a phone: no sidebar or rail, swipe from the left edge to the right to open it and from the right to the left to close it. The desktop ignores this.',
+                            control: { type: 'toggle', value: hideSidebar, onChange: onHideSidebarChange },
                         },
                     ],
                 },

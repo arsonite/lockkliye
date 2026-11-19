@@ -23,13 +23,13 @@ all copies or substantial portions of the Software.
         <meta charset="UTF-8" />
 
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="Lockkliye" />
         <meta name="browsermode" content="application" />
         <meta name="full-screen" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-navbutton-color" content="#0a0a0b" />
-        <meta name="theme-color" content="#0a0a0b" />
+        <meta name="msapplication-navbutton-color" content="#f5f5f7" />
+        <meta name="theme-color" content="#f5f5f7" />
         <meta
             name="viewport"
             content="width=device-width,
@@ -51,6 +51,10 @@ all copies or substantial portions of the Software.
     </head>
 
     <body>
+        <script>
+            // Light unless the app was set to dark, before the page is drawn so it does not flash
+            if (localStorage.getItem('lockkliye-light-mode') !== 'false') document.body.classList.add('light-mode');
+        </script>
         <div id="root"></div>
         <script type="module" src="/index.tsx"></script>
     </body>

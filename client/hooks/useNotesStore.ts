@@ -51,6 +51,17 @@ const readSidebarExpanded = (): boolean => {
     }
 };
 
+// Light is the default look. A browser that saved the old dark default is switched once, a choice made after that is kept
+const LIGHT_DEFAULT_KEY = 'lockkliye-light-default';
+const LIGHT_MODE_KEY = 'lockkliye-light-mode'; // Read by index.html before the page is drawn
+const readLightMode = (stored: boolean | undefined): boolean => {
+    try {
+        return localStorage.getItem(LIGHT_DEFAULT_KEY) === 'done' ? (stored ?? true) : true;
+    } catch {
+        return stored ?? true;
+    }
+};
+
 const getInitialState = (stored?: iNotesState): iNotesState => {
     if (stored) {
         // Older versions saved less
@@ -59,7 +70,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
             notes: stored.notes,
             lockSetup: sanitizeLockSetup(stored.lockSetup),
             sidebarExpanded: readSidebarExpanded(),
-            lightMode: stored.lightMode ?? false,
+            lightMode: readLightMode(stored.lightMode),
             selectedSize: stored.selectedSize ?? 'normal',
             selectedAnchorId: stored.selectedAnchorId ?? null,
             editorWidth: stored.editorWidth ?? 70,
@@ -86,7 +97,7 @@ const getInitialState = (stored?: iNotesState): iNotesState => {
         selectedColor: FORMAT_COLORS[0],
         selectedSize: 'normal',
         selectedAnchorId: null,
-        lightMode: false,
+        lightMode: true,
         editorWidth: 70,
         confirmDeletions: true,
         showBlockBorders: true,
@@ -183,6 +194,15 @@ const useNotesStore = (persisted: iPersisted) => {
             // Private mode or a full storage: the sidebar just starts expanded next time
         }
     }, [state.sidebarExpanded]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(LIGHT_DEFAULT_KEY, 'done');
+            localStorage.setItem(LIGHT_MODE_KEY, String(state.lightMode));
+        } catch {
+            // Private mode or a full storage: the page is drawn light first and switches to dark once it is loaded
+        }
+    }, [state.lightMode]);
 
     // One transaction, so the sync meta never says more than the saved data
     usePersist(localStore, { data: state, history, redo: redoStack, sync: sync.meta });

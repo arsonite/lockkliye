@@ -153,6 +153,8 @@ lerna-debug.log*
 *node_modules
 dist
 dist-ssr
+dist.new
+dist.old
 *.local
 
 # Editor directories and files

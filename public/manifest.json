@@ -1,5 +1,5 @@
 {
-    "background_color": "#0a0a0b",
+    "background_color": "#f5f5f7",
     "description": "Rich text notes that work offline and sync to your own server",
     "display": "standalone",
     "icons": [
@@ -28,5 +28,5 @@
     "scope": "./",
     "short_name": "Lockkliye",
     "start_url": "./",
-    "theme_color": "#0a0a0b"
+    "theme_color": "#f5f5f7"
 }
