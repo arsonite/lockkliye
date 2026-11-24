@@ -148,6 +148,7 @@ interface iNote {
     pinned?: tPin;
     order?: number; // Position among the notes of a manually sorted folder
     isAnchor?: boolean; // Words of other notes can be anchored to this note
+    isTemplate?: boolean; // Listed in the templates, apart from the notes. False: it was one and is a note again (see locked)
     workspace?: iTextBlock[]; // Blocks set aside in the workspace beside the note: comments, drafts, unfinished text
     locked?: boolean; // Needs the password to be read. False: the lock was taken off (the server only changes what it is sent)
 }
@@ -257,6 +258,15 @@ const createBlock = (words: iWord[] = [], style: iBlockStyle = {}): iTextBlock =
     words,
     style,
 });
+
+// A copy of a block that shares no id with it: the ids of blocks and words are keys of the saved data
+const cloneBlock = (block: iTextBlock): iTextBlock => {
+    const copy: iTextBlock = structuredClone(block);
+    copy.id = crypto.randomUUID();
+    copy.words.forEach((word) => (word.id = crypto.randomUUID()));
+    if (copy.data && 'items' in copy.data) copy.data.items.forEach((item) => (item.id = crypto.randomUUID()));
+    return copy;
+};
 
 // The block of a component, with its first content
 const createBlockOfKind = (kind: tBlockKind, style: iBlockStyle = {}): iTextBlock => {
@@ -498,6 +508,7 @@ export {
 
     blockText,
     createBlock,
+    cloneBlock,
     createBlockOfKind,
     createFolder,
     createNote,

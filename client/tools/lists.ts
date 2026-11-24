@@ -19,7 +19,7 @@ import type { iBlockListOptions, iListOptions, iWord, tNumbering } from '@/types
 const DEFAULT_LIST_OPTIONS: iListOptions = { bullet: '◦', numbering: '1.' };
 
 // The bullets offered, nothing else is accepted
-const BULLETS = ['◦', '•', '–', '○', '-', '⋄', '>'];
+const BULLETS = ['◦', '•', '–', '○', '-', '⋄', '❖', '>'];
 
 // The marker of a number is its number between these
 const NUMBERINGS: Record<tNumbering, [string, string]> = {

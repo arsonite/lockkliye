@@ -154,6 +154,9 @@
     animation: sidebar-menu-in 120ms ease-out;
 
     &__item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
         padding: 8px 12px;
         background: transparent;
         border: none;
@@ -171,6 +174,81 @@
         &--danger {
             color: var(--error, #ff453a);
         }
+    }
+
+    &__icon {
+        display: flex;
+        flex-shrink: 0;
+        font-size: 15px;
+        opacity: 0.75;
+    }
+}
+
+// Notes and templates are listed apart, one tab each
+.sidebar-spaces {
+    display: flex;
+    gap: 4px;
+    padding: 2px 8px 6px;
+
+    &__tab {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 6px 8px;
+        font-family: inherit;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all var(--transition);
+
+        &:hover {
+            background: var(--bg-hover, var(--surface-elevated));
+        }
+
+        &--active {
+            color: var(--accent);
+            border-color: var(--accent);
+            background: var(--accent-glow);
+        }
+    }
+}
+
+// The notes a new note can be made from
+.template-options {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    &__option {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px 12px;
+        font-family: inherit;
+        color: var(--text-primary);
+        text-align: left;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        cursor: pointer;
+
+        &:hover {
+            border-color: var(--accent);
+            background: var(--bg-hover, var(--surface-elevated));
+        }
+    }
+
+    &__preview {
+        overflow: hidden;
+        font-size: 0.75rem;
+        color: var(--text-tertiary);
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 }
 

@@ -191,6 +191,8 @@ const noteCollection: iCollection<iNote> = {
         ...(note.order === undefined ? {} : { sort_order: note.order }),
         // Only once the note was locked, the others keep their hash. A lock that was taken off sends false
         ...(note.locked === undefined ? {} : { locked: note.locked }),
+        // The same for the template flag: a note that was never one keeps its hash
+        ...(note.isTemplate === undefined ? {} : { is_template: note.isTemplate }),
     }),
     fromRow: (row, key) => ({
         id: key,
@@ -201,6 +203,7 @@ const noteCollection: iCollection<iNote> = {
         pinned: row.pinned ? (row.pin_scope === 'global' ? 'global' : 'folder') : undefined,
         order: typeof row.sort_order === 'number' ? row.sort_order : undefined,
         locked: typeof row.locked === 'boolean' ? row.locked : undefined,
+        isTemplate: typeof row.is_template === 'boolean' ? row.is_template : undefined,
         createdAt: row.created_ms as number,
         updatedAt: row.updated_ms as number,
     }),

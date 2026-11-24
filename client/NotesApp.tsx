@@ -247,6 +247,25 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
         }
     };
 
+    const handleCreateTemplate = () => {
+        setShowSettings(false);
+        store.createNewTemplate();
+        closeSheet();
+    };
+
+    // The text of a locked template is only copied while the notes are open
+    const handleCreateFromTemplate = (templateId: string, folderId?: string | null) => {
+        const template = store.notes.find((n) => n.id === templateId);
+        if (template && isLocked(template) && !store.unlocked) {
+            toast.warning('Unlock the notes to create a note from this locked template');
+            return;
+        }
+        if (store.createNoteFromTemplate(templateId, folderId)) {
+            setShowSettings(false);
+            closeSheet();
+        }
+    };
+
     const handleBlockToWorkspace = (blockId: string, index?: number) => {
         if (store.activeNoteId) {
             store.moveToWorkspace(store.activeNoteId, blockId, index);
@@ -355,6 +374,9 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                     store.createNewNote(folderId);
                     closeSheet();
                 }}
+                onCreateTemplate={handleCreateTemplate}
+                onCreateFromTemplate={handleCreateFromTemplate}
+                onSetTemplate={store.setNoteTemplate}
                 onDeleteNote={store.deleteNote}
                 onMoveNote={store.moveNote}
                 onCreateFolder={store.createNewFolder}
@@ -435,7 +457,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                     <NoteEditor
                         note={store.activeNote}
                         folders={store.folders}
-                        anchorNotes={store.notes.filter((note) => note.isAnchor)}
+                        anchorNotes={store.notes.filter((note) => note.isAnchor && !note.isTemplate)}
                         anchorUsage={store.anchorUsageCount(store.activeNote.id)}
                         formatMode={store.formatMode}
                         selectedColor={store.selectedColor}
@@ -455,6 +477,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         blockPresets={store.blockPresets}
                         locksOpen={store.unlocked}
                         onLockAll={store.lockAll}
+                        onCreateFromTemplate={() => handleCreateFromTemplate(store.activeNote!.id)}
                         workspaceOpen={workspaceOpen}
                         onWorkspaceToggle={() => setWorkspaceOpen(!workspaceOpen)}
                         onBlockToWorkspace={handleBlockToWorkspace}

@@ -17,7 +17,22 @@
 import { useState, useRef, useEffect } from 'react';
 
 // TeaType
-import { BookmarkIcon, ChevronIcon, FolderIcon, LockIcon, PinIcon, SettingsIcon, UnlockIcon, XIcon } from '@teatype/icons';
+import {
+    BookmarkIcon,
+    ChevronIcon,
+    FolderIcon,
+    LockIcon,
+    NoteIcon,
+    PencilIcon,
+    PinIcon,
+    PlusIcon,
+    SettingsIcon,
+    TemplateIcon,
+    TransferIcon,
+    TrashIcon,
+    UnlockIcon,
+    XIcon,
+} from '@teatype/icons';
 import { TeaSidebar, TeaModal } from '@teatype/components';
 
 // Utility
@@ -54,6 +69,9 @@ interface iSidebarProps {
     onSave: () => void;
     onNoteSelect: (noteId: string) => void;
     onCreateNote: (folderId?: string | null) => void;
+    onCreateTemplate: () => void;
+    onCreateFromTemplate: (templateId: string, folderId?: string | null) => void;
+    onSetTemplate: (noteId: string, isTemplate: boolean) => void;
     onDeleteNote: (noteId: string) => void;
     onMoveNote: (noteId: string, folderId: string | null) => void;
     onCreateFolder: (name: string, parentId: string | null) => void;
@@ -79,9 +97,13 @@ interface iFolderForm {
     parentId: string | null;
 }
 
+// Notes and the templates new notes are made from are listed apart
+type tSpace = 'notes' | 'templates';
+
 // An entry of the right-click menu
 interface iMenuItem {
     label: string;
+    icon: React.ReactNode;
     danger?: boolean;
 
     onClick: () => void;
@@ -98,7 +120,7 @@ const loadCollapsed = (): Set<string> => {
 };
 
 export const Sidebar = ({
-    notes,
+    notes: allNotes,
     folders,
     activeNoteId,
     expanded,
@@ -114,6 +136,9 @@ export const Sidebar = ({
     onSave,
     onNoteSelect,
     onCreateNote,
+    onCreateTemplate,
+    onCreateFromTemplate,
+    onSetTemplate,
     onDeleteNote,
     onMoveNote,
     onCreateFolder,
@@ -125,6 +150,12 @@ export const Sidebar = ({
     locksOpen,
     onOrderNotes,
 }: iSidebarProps) => {
+    const notes = allNotes.filter((note) => !note.isTemplate);
+    const templates = arrangeNotes(allNotes.filter((note) => note.isTemplate), 'title');
+    const activeNote = allNotes.find((note) => note.id === activeNoteId);
+    const [space, setSpace] = useState<tSpace>(activeNote?.isTemplate ? 'templates' : 'notes');
+    // The template a new note is made from is chosen in a dialog, the new note goes in this folder
+    const [templateFolder, setTemplateFolder] = useState<{ folderId: string | null } | null>(null);
     const [deleteNoteId, setDeleteNoteId] = useState<string | null>(null);
     const [deleteFolderId, setDeleteFolderId] = useState<string | null>(null);
     const [folderForm, setFolderForm] = useState<iFolderForm | null>(null);
@@ -143,6 +174,12 @@ export const Sidebar = ({
     const [dropTarget, setDropTarget] = useState<string | null>(null);
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; items: iMenuItem[] } | null>(null);
     const dragged = useRef<iDragged | null>(null);
+
+    // Opening a note or a template shows the space it is in, also when it was converted
+    const activeIsTemplate = activeNote ? !!activeNote.isTemplate : null;
+    useEffect(() => {
+        if (activeIsTemplate !== null) setSpace(activeIsTemplate ? 'templates' : 'notes');
+    }, [activeNoteId, activeIsTemplate]);
 
     // Whether a folder is open is a matter of this browser, so it is not part of the synced data
     useEffect(() => {
@@ -276,14 +313,24 @@ export const Sidebar = ({
     // No right-click on a touch screen: holding a row (or the empty list) opens the same menu
     const longPress = useLongPress(({ x, y }) => {
         const row = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-note-id], [data-folder-id]');
-        const note = notes.find((candidate) => candidate.id === row?.dataset.noteId);
+        const note = allNotes.find((candidate) => candidate.id === row?.dataset.noteId);
         const folder = folders.find((candidate) => candidate.id === row?.dataset.folderId);
-        setContextMenu({ x, y, items: note ? noteMenu(note) : folder ? folderMenu(folder) : listMenu() });
+        setContextMenu({
+            x,
+            y,
+            items: note ? noteMenu(note) : folder ? folderMenu(folder) : listMenu(),
+        });
     });
+
+    const fromTemplateItem = (folderId: string | null): iMenuItem[] =>
+        templates.length > 0
+            ? [{ label: 'New note from template…', icon: <TemplateIcon />, onClick: () => setTemplateFolder({ folderId }) }]
+            : [];
 
     const folderMenu = (folder: iFolder): iMenuItem[] => [
         {
             label: 'New note here',
+            icon: <PlusIcon />,
             onClick: () => {
                 onCreateNote(folder.id);
                 setCollapsed((previous) => {
@@ -293,44 +340,75 @@ export const Sidebar = ({
                 });
             },
         },
+        ...fromTemplateItem(folder.id),
         {
             label: 'New subfolder',
+            icon: <FolderIcon />,
             onClick: () => setFolderForm({ id: null, name: '', parentId: folder.id }),
         },
         {
             label: 'Edit folder',
+            icon: <PencilIcon />,
             onClick: () =>
                 setFolderForm({ id: folder.id, name: folder.name, parentId: parentOf(folder) }),
         },
-        { label: 'Sort notes…', onClick: () => setSortTarget(folder.id) },
-        { label: 'Delete folder', danger: true, onClick: () => handleFolderDelete(folder) },
+        { label: 'Sort notes…', icon: <TransferIcon />, onClick: () => setSortTarget(folder.id) },
+        { label: 'Delete folder', icon: <TrashIcon />, danger: true, onClick: () => handleFolderDelete(folder) },
     ];
 
-    const noteMenu = (note: iNote): iMenuItem[] => [
-        ...(folders.length > 0
+    const lockItem = (note: iNote): iMenuItem => ({
+        label: isLocked(note) ? 'Remove lock' : 'Lock note',
+        icon: isLocked(note) ? <UnlockIcon /> : <LockIcon />,
+        onClick: () => onToggleLock(note.id),
+    });
+
+    const noteMenu = (note: iNote): iMenuItem[] =>
+        note.isTemplate
             ? [
                   {
-                      label: 'Move to folder',
-                      onClick: () => {
-                          setMoveNoteId(note.id);
-                          setMoveTarget(note.folderId ?? '');
-                      },
+                      label: 'New note from template',
+                      icon: <PlusIcon />,
+                      onClick: () => onCreateFromTemplate(note.id, null),
                   },
+                  { label: 'Convert to note', icon: <NoteIcon />, onClick: () => onSetTemplate(note.id, false) },
+                  lockItem(note),
+                  { label: 'Delete template', icon: <TrashIcon />, danger: true, onClick: () => handleNoteDelete(note) },
               ]
-            : []),
-        ...(note.pinned === 'folder' ? [] : [{ label: 'Pin in folder', onClick: () => onSetPin(note.id, 'folder') }]),
-        ...(note.pinned === 'global' ? [] : [{ label: 'Pin globally', onClick: () => onSetPin(note.id, 'global') }]),
-        ...(note.pinned ? [{ label: 'Unpin', onClick: () => onSetPin(note.id, undefined) }] : []),
-        { label: isLocked(note) ? 'Remove lock' : 'Lock note', onClick: () => onToggleLock(note.id) },
-        { label: 'Delete note', danger: true, onClick: () => handleNoteDelete(note) },
-    ];
+            : [
+                  ...(folders.length > 0
+                      ? [
+                            {
+                                label: 'Move to folder',
+                                icon: <FolderIcon />,
+                                onClick: () => {
+                                    setMoveNoteId(note.id);
+                                    setMoveTarget(note.folderId ?? '');
+                                },
+                            },
+                        ]
+                      : []),
+                  ...(note.pinned === 'folder'
+                      ? []
+                      : [{ label: 'Pin in folder', icon: <PinIcon />, onClick: () => onSetPin(note.id, 'folder') }]),
+                  ...(note.pinned === 'global'
+                      ? []
+                      : [{ label: 'Pin globally', icon: <PinIcon />, onClick: () => onSetPin(note.id, 'global') }]),
+                  ...(note.pinned ? [{ label: 'Unpin', icon: <XIcon />, onClick: () => onSetPin(note.id, undefined) }] : []),
+                  lockItem(note),
+                  { label: 'Convert to template', icon: <TemplateIcon />, onClick: () => onSetTemplate(note.id, true) },
+                  { label: 'Delete note', icon: <TrashIcon />, danger: true, onClick: () => handleNoteDelete(note) },
+              ];
 
     // The free space of the list
-    const listMenu = (): iMenuItem[] => [
-        { label: 'New note', onClick: () => onCreateNote(null) },
-        { label: 'New folder', onClick: () => setFolderForm({ id: null, name: '', parentId: null }) },
-        { label: 'Sort notes…', onClick: () => setSortTarget('root') },
-    ];
+    const listMenu = (): iMenuItem[] =>
+        space === 'templates'
+            ? [{ label: 'New template', icon: <PlusIcon />, onClick: onCreateTemplate }]
+            : [
+                  { label: 'New note', icon: <PlusIcon />, onClick: () => onCreateNote(null) },
+                  ...fromTemplateItem(null),
+                  { label: 'New folder', icon: <FolderIcon />, onClick: () => setFolderForm({ id: null, name: '', parentId: null }) },
+                  { label: 'Sort notes…', icon: <TransferIcon />, onClick: () => setSortTarget('root') },
+              ];
 
     const chooseSort = (mode: tSortMode) => {
         if (sortTarget === 'root') {
@@ -435,7 +513,7 @@ export const Sidebar = ({
 
     const renderNote = (note: iNote, depth: number) => (
         <div
-            draggable={!mobile}
+            draggable={!mobile && !note.isTemplate}
             data-note-id={note.id}
             className={`tea-sidebar-item sidebar-row ${activeNoteId === note.id ? 'tea-sidebar-item--active' : ''} ${
                 dropTarget === `before:${note.id}` ? 'sidebar-row--drop-before' : ''
@@ -479,6 +557,18 @@ export const Sidebar = ({
                     </span>
 
                     <span className='sidebar-row__actions'>
+                        {note.isTemplate && (
+                            <button
+                                className='sidebar-action'
+                                title='New note from this template'
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    onCreateFromTemplate(note.id, null);
+                                }}
+                            >
+                                <PlusIcon />
+                            </button>
+                        )}
                         <button
                             className='sidebar-action sidebar-action--danger'
                             title='Delete'
@@ -549,6 +639,37 @@ export const Sidebar = ({
         );
     };
 
+    const spaces = (
+        <div className='sidebar-spaces'>
+            <button
+                className={`sidebar-spaces__tab ${space === 'notes' ? 'sidebar-spaces__tab--active' : ''}`}
+                onClick={() => setSpace('notes')}
+            >
+                <NoteIcon />
+                Notes
+            </button>
+            <button
+                className={`sidebar-spaces__tab ${space === 'templates' ? 'sidebar-spaces__tab--active' : ''}`}
+                onClick={() => setSpace('templates')}
+            >
+                <TemplateIcon />
+                Templates
+            </button>
+        </div>
+    );
+
+    const templateList =
+        templates.length === 0 ? (
+            <div id='sidebar-empty'>
+                No templates yet. Click + to create one, or right-click a note and convert it to a template.
+            </div>
+        ) : (
+            <>
+                {templates.filter(noteMatches).map((note) => renderNote(note, 0))}
+                {needle && !templates.some(noteMatches) && <div id='sidebar-empty'>Nothing found.</div>}
+            </>
+        );
+
     const tree = (
         <div
             className={`folder-tree ${dropTarget === 'root' ? 'folder-tree--drop' : ''}`}
@@ -558,7 +679,10 @@ export const Sidebar = ({
             onDrop={(event) => dropOn(event, null)}
             onContextMenu={(event) => !(event.target as HTMLElement).closest('.sidebar-row') && openMenu(event, listMenu())}
         >
-            {notes.length === 0 && folders.length === 0 ? (
+            {spaces}
+            {space === 'templates' ? (
+                templateList
+            ) : notes.length === 0 && folders.length === 0 ? (
                 <div id='sidebar-empty'>No notes yet. Click + to create one.</div>
             ) : (
                 <>
@@ -650,23 +774,36 @@ export const Sidebar = ({
                 rail={rail}
                 toggleKey={heldModifiers === shortcutBase('toggleSidebar').toLowerCase() ? shortcutKey('toggleSidebar') : undefined}
                 footer={footer}
-                headerActions={[
-                    {
-                        id: 'new-folder',
-                        label: 'New Folder',
-                        icon: <span className='sidebar-header-icon'>
-                                <FolderIcon />
-                            </span>,
-                        onClick: () => setFolderForm({ id: null, name: '', parentId: null }),
-                        variant: 'secondary',
-                    },
-                    {
-                        id: 'new-note',
-                        label: 'New Note',
-                        onClick: () => onCreateNote(null),
-                        variant: 'primary',
-                    },
-                ]}
+                headerActions={
+                    space === 'templates'
+                        ? [
+                              {
+                                  id: 'new-template',
+                                  label: 'New Template',
+                                  onClick: onCreateTemplate,
+                                  variant: 'primary',
+                              },
+                          ]
+                        : [
+                              {
+                                  id: 'new-folder',
+                                  label: 'New Folder',
+                                  icon: (
+                                      <span className='sidebar-header-icon'>
+                                          <FolderIcon />
+                                      </span>
+                                  ),
+                                  onClick: () => setFolderForm({ id: null, name: '', parentId: null }),
+                                  variant: 'secondary',
+                              },
+                              {
+                                  id: 'new-note',
+                                  label: 'New Note',
+                                  onClick: () => onCreateNote(null),
+                                  variant: 'primary',
+                              },
+                          ]
+                }
                 title={
                     <div className='sidebar-search'>
                         <input
@@ -701,6 +838,7 @@ export const Sidebar = ({
                                 item.onClick();
                             }}
                         >
+                            <span className='sidebar-menu__icon'>{item.icon}</span>
                             {item.label}
                         </button>
                     ))}
@@ -805,6 +943,30 @@ export const Sidebar = ({
                 </div>
             </TeaModal>
 
+            {/* The template a new note is made from */}
+            <TeaModal
+                isOpen={templateFolder !== null}
+                size='sm'
+                title='New note from template'
+                onClose={() => setTemplateFolder(null)}
+            >
+                <div className='template-options'>
+                    {templates.map((template) => (
+                        <button
+                            key={template.id}
+                            className='template-options__option'
+                            onClick={() => {
+                                onCreateFromTemplate(template.id, templateFolder?.folderId);
+                                setTemplateFolder(null);
+                            }}
+                        >
+                            <span>{template.title}</span>
+                            <span className='template-options__preview'>{getNotePreview(template)}</span>
+                        </button>
+                    ))}
+                </div>
+            </TeaModal>
+
             {/* How the notes of a folder are ordered */}
             <TeaModal
                 isOpen={sortTarget !== null}
@@ -891,11 +1053,11 @@ export const Sidebar = ({
                 }
                 isOpen={deleteNoteId !== null}
                 size='sm'
-                title='Delete Note'
+                title={allNotes.find((n) => n.id === deleteNoteId)?.isTemplate ? 'Delete Template' : 'Delete Note'}
                 onClose={() => setDeleteNoteId(null)}
             >
                 <p>
-                    Are you sure you want to delete "{notes.find((n) => n.id === deleteNoteId)?.title || 'this note'}"?
+                    Are you sure you want to delete "{allNotes.find((n) => n.id === deleteNoteId)?.title || 'this note'}"?
                 </p>
             </TeaModal>
         </>

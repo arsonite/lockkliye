@@ -23,7 +23,7 @@ import { usePersist } from '@teatype/sync';
 import { iNote, iFolder, tFormatMode, iNotesState, iWord, iTextBlock, iBlockStyle, iAnchorStyle, iHistoryEntry, iListOptions, tBlockData, tBlockKind, tPaletteKind, tPin } from '@/types';
 
 // Util
-import { createNote, createFolder, createBlock, createBlockOfKind, createWord, FORMAT_COLORS, exportNotesAsText, exportNotesAsJson, exportSettingsAsJson, importFromJson as parseImportJson } from '@/types';
+import { createNote, createFolder, createBlock, cloneBlock, createBlockOfKind, createWord, FORMAT_COLORS, exportNotesAsText, exportNotesAsJson, exportSettingsAsJson, importFromJson as parseImportJson } from '@/types';
 import { descendantIds, repairFolders } from '@/tools/folderTree';
 import { DEFAULT_ACCENT, sanitizeAccent } from '@/tools/accent';
 import { DEFAULT_ANCHOR_STYLE, sanitizeAnchorStyle } from '@/tools/anchorStyle';
@@ -355,6 +355,37 @@ const useNotesStore = (persisted: iPersisted) => {
         return note;
     }, []);
 
+    // A template is made like a note, it is only listed in the templates
+    const createNewTemplate = useCallback(() => {
+        const template = { ...createNote('Untitled template'), isTemplate: true };
+        setState((prev: iNotesState) => ({ ...prev, notes: [template, ...prev.notes], activeNoteId: template.id }));
+        return template;
+    }, []);
+
+    // A new note with the title and a copy of the blocks of the template (the workspace stays with the template)
+    const createNoteFromTemplate = useCallback((templateId: string, folderId?: string | null) => {
+        const template = state.notes.find((n: iNote) => n.id === templateId && n.isTemplate);
+        if (!template) return null;
+        const note: iNote = {
+            ...createNote(template.title, folderId ?? null),
+            blocks: template.blocks.map(cloneBlock),
+            ...(template.locked ? { locked: true } : {}),
+        };
+        setState((prev: iNotesState) => ({ ...prev, notes: [note, ...prev.notes], activeNoteId: note.id }));
+        return note;
+    }, [state.notes]);
+
+    // A note becomes a template and the other way round. A template is in no folder and not pinned. Like moving a note,
+    // this is no edit of its text, so it stays out of the undo history.
+    const setNoteTemplate = useCallback((noteId: string, isTemplate: boolean) => {
+        setState((prev: iNotesState) => ({
+            ...prev,
+            notes: prev.notes.map((n: iNote) =>
+                n.id === noteId ? { ...n, isTemplate, ...(isTemplate ? { folderId: null, pinned: undefined } : {}) } : n,
+            ),
+        }));
+    }, []);
+
     const updateNote = useCallback((noteId: string, updates: Partial<iNote>) => {
         saveToHistory(noteId, 'Update note');
         setState((prev: iNotesState) => ({
@@ -373,12 +404,15 @@ const useNotesStore = (persisted: iPersisted) => {
                 prev.notes.filter((n: iNote) => n.id !== noteId),
                 (anchorId) => anchorId === noteId,
             );
+            // The next note is one of the same kind, the sidebar shows templates apart from the notes
+            const deletedIsTemplate = !!prev.notes.find((n: iNote) => n.id === noteId)?.isTemplate;
+            const next = newNotes.find((n: iNote) => !!n.isTemplate === deletedIsTemplate) ?? newNotes[0];
             return {
                 ...prev,
                 notes: newNotes,
                 selectedAnchorId: prev.selectedAnchorId === noteId ? null : prev.selectedAnchorId,
                 activeNoteId: prev.activeNoteId === noteId
-                    ? (newNotes[0]?.id || null)
+                    ? (next?.id || null)
                     : prev.activeNoteId,
             };
         });
@@ -437,7 +471,7 @@ const useNotesStore = (persisted: iPersisted) => {
                         prev.selectedAnchorId && goneNotes.has(prev.selectedAnchorId) ? null : prev.selectedAnchorId,
                     activeNoteId:
                         prev.activeNoteId && goneNotes.has(prev.activeNoteId)
-                            ? (notes[0]?.id ?? null)
+                            ? ((notes.find((n: iNote) => !n.isTemplate) ?? notes[0])?.id ?? null)
                             : prev.activeNoteId,
                     activeFolderId:
                         prev.activeFolderId && folderIds.has(prev.activeFolderId) ? null : prev.activeFolderId,
@@ -493,7 +527,7 @@ const useNotesStore = (persisted: iPersisted) => {
     // Anchor mode applies the chosen anchor note, so one is picked as soon as the mode starts
     const startMode = (prev: iNotesState, mode: tFormatMode): iNotesState => {
         if (mode !== 'anchor') return { ...prev, formatMode: mode };
-        const anchors = prev.notes.filter((note) => note.isAnchor);
+        const anchors = prev.notes.filter((note) => note.isAnchor && !note.isTemplate);
         const chosen = anchors.some((note) => note.id === prev.selectedAnchorId) ? prev.selectedAnchorId : anchors[0]?.id;
         return { ...prev, formatMode: mode, selectedAnchorId: chosen ?? null };
     };
@@ -1295,6 +1329,9 @@ const useNotesStore = (persisted: iPersisted) => {
 
         // Note actions
         createNewNote,
+        createNewTemplate,
+        createNoteFromTemplate,
+        setNoteTemplate,
         updateNote,
         deleteNote,
         setActiveNote,

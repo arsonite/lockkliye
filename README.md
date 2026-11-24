@@ -112,9 +112,7 @@ Sorted by priority.
 
 ### High
 
-- allow creation of "template notes"
-    - button for that is next to anchor
-    - when creating new note, you can create a new note from a template note too
+-
 
 ### Low
 

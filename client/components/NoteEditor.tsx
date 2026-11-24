@@ -29,6 +29,7 @@ import {
     PencilIcon,
     RedoIcon,
     TableIcon,
+    TemplateIcon,
     UndoIcon,
     XIcon,
 } from '@teatype/icons';
@@ -88,6 +89,7 @@ interface iNoteEditorProps {
 
     onTitleChange: (title: string) => void;
     onLockAll: () => void;
+    onCreateFromTemplate: () => void;
     onWorkspaceToggle: () => void;
     onBlockToWorkspace: (blockId: string, index?: number) => void;
     onWorkspaceReorder: (blockId: string, toIndex: number) => void;
@@ -151,6 +153,7 @@ export const NoteEditor = ({
     listOptions,
     onTitleChange,
     onLockAll,
+    onCreateFromTemplate,
     onWorkspaceToggle,
     onBlockToWorkspace,
     onWorkspaceReorder,
@@ -627,19 +630,21 @@ export const NoteEditor = ({
                         </div>
                     )}
                     <div className='note-editor__title-row'>
-                        <button
-                            className={`note-editor__anchor-btn ${
-                                note.isAnchor ? 'note-editor__anchor-btn--active' : ''
-                            }`}
-                            onClick={handleAnchorToggle}
-                            title={
-                                note.isAnchor
-                                    ? 'This note is an anchor. Click to stop it being one.'
-                                    : 'Make this note an anchor, so words in other notes can open it'
-                            }
-                        >
-                            <BookmarkIcon />
-                        </button>
+                        {!note.isTemplate && (
+                            <button
+                                className={`note-editor__anchor-btn ${
+                                    note.isAnchor ? 'note-editor__anchor-btn--active' : ''
+                                }`}
+                                onClick={handleAnchorToggle}
+                                title={
+                                    note.isAnchor
+                                        ? 'This note is an anchor. Click to stop it being one.'
+                                        : 'Make this note an anchor, so words in other notes can open it'
+                                }
+                            >
+                                <BookmarkIcon />
+                            </button>
+                        )}
                         {isEditingTitle ? (
                             <input
                                 className='note-editor__title-input'
@@ -662,6 +667,12 @@ export const NoteEditor = ({
                         )}
                     </div>
                     <p className='note-editor__date'>Last edited: {formatDate(note.updatedAt)}</p>
+                    {note.isTemplate && (
+                        <button className='note-editor__template-btn' onClick={onCreateFromTemplate}>
+                            <TemplateIcon />
+                            Create a note from this template
+                        </button>
+                    )}
                 </div>
 
                 <div className='note-editor__content' ref={contentRef}>
