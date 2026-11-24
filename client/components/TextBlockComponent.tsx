@@ -69,7 +69,8 @@ interface iTextBlockComponentProps {
     onClearFormatMode?: () => void;
     onSaveAsPreset?: (style: iBlockStyle) => void;
     handle?: React.ReactNode; // The drag handle, kept under the buttons of the block
-    workspaceAction?: { label: string; run: () => void }; // Sets the block aside in the workspace, or takes it back
+    workspaceAction?: { label: string; run: () => void }; // Sets the block aside in the workspace
+    inWorkspace?: boolean; // Only deleting and dragging: no style menu, no width, no buttons to add blocks
 }
 
 export const TextBlockComponent = ({
@@ -95,6 +96,7 @@ export const TextBlockComponent = ({
     onSaveAsPreset,
     handle,
     workspaceAction,
+    inWorkspace = false,
     confirmDeletions = true,
     showStyleButton = false,
 }: iTextBlockComponentProps & {
@@ -229,7 +231,7 @@ export const TextBlockComponent = ({
 
     // Detect when mouse is near right edge of block
     const handleMouseMoveOnBlock = (e: React.MouseEvent) => {
-        if (!blockRef.current) {
+        if (!blockRef.current || inWorkspace) {
             setIsNearEdge(false);
             return;
         }
@@ -461,7 +463,7 @@ export const TextBlockComponent = ({
                 onMouseMove={handleMouseMoveOnBlock}
                 onMouseLeave={handleMouseLeave}
                 onContextMenu={(e) => {
-                    if (styleMenuRef.current?.contains(e.target as Node)) return;
+                    if (inWorkspace || styleMenuRef.current?.contains(e.target as Node)) return;
                     e.preventDefault();
                     setMenuPoint({ x: e.clientX, y: e.clientY });
                     setShowStyleMenu(true);
@@ -469,7 +471,7 @@ export const TextBlockComponent = ({
                 {...menuPress.handlers}
                 onPointerDown={(e) => {
                     const target = e.target as HTMLElement;
-                    if (!styleMenuRef.current?.contains(target) && !target.closest('.text-block__controls, .text-block__resize-handle')) {
+                    if (!inWorkspace && !styleMenuRef.current?.contains(target) && !target.closest('.text-block__controls, .text-block__resize-handle')) {
                         menuPress.handlers.onPointerDown(e);
                     }
                 }}
@@ -493,7 +495,7 @@ export const TextBlockComponent = ({
                 )}
 
                 {/* Width resize handle */}
-                {(isNearEdge || isResizing) && (
+                {!inWorkspace && (isNearEdge || isResizing) && (
                     <div
                         className='text-block__resize-handle'
                         {...widthPress.handlers}
@@ -524,7 +526,7 @@ export const TextBlockComponent = ({
                 )}
 
                 <div className='text-block__controls'>
-                    {showStyleButton && (
+                    {showStyleButton && !inWorkspace && (
                         <button
                             className='text-block__style-btn'
                             onClick={() => {
@@ -536,28 +538,32 @@ export const TextBlockComponent = ({
                             <ContrastIcon />
                         </button>
                     )}
-                    <button
-                        className='text-block__add-above-btn'
-                        onClick={() => onAddBlockBefore(block.id)}
-                        title='Add block above'
-                    >
-                        <AddAboveIcon />
-                    </button>
-                    <button
-                        className='text-block__add-btn'
-                        onClick={() => onAddBlockAfter(block.id)}
-                        title='Add block below'
-                    >
-                        <AddBelowIcon />
-                    </button>
+                    {!inWorkspace && (
+                        <>
+                            <button
+                                className='text-block__add-above-btn'
+                                onClick={() => onAddBlockBefore(block.id)}
+                                title='Add block above'
+                            >
+                                <AddAboveIcon />
+                            </button>
+                            <button
+                                className='text-block__add-btn'
+                                onClick={() => onAddBlockAfter(block.id)}
+                                title='Add block below'
+                            >
+                                <AddBelowIcon />
+                            </button>
+                        </>
+                    )}
                     <button className='text-block__delete-btn' onClick={handleDelete} title='Delete block'>
                         <XIcon width='1em' height='1em' />
                     </button>
-                    {mobile && handle}
+                    {(mobile || inWorkspace) && handle}
                 </div>
 
                 {/* On a phone the handle is the last button of the column, on a desktop it sits in the middle of the block */}
-                {!mobile && <div className='text-block__handle'>{handle}</div>}
+                {!mobile && !inWorkspace && <div className='text-block__handle'>{handle}</div>}
 
                 {showStyleMenu && (
                     <div className='text-block__style-menu' ref={styleMenuRef}>

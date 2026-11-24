@@ -779,7 +779,7 @@ const useNotesStore = (persisted: iPersisted) => {
     // Setting a block aside takes it out of the note, a block in the workspace goes back into the note at an index
     // (the end if none is given). A new block in the workspace is for writing a comment or a draft.
     const moveToWorkspace = useCallback(
-        (noteId: string, blockId: string) => {
+        (noteId: string, blockId: string, index?: number) => {
             saveToHistory(noteId, 'Move to workspace');
             setState((prev: iNotesState) => ({
                 ...prev,
@@ -788,7 +788,28 @@ const useNotesStore = (persisted: iPersisted) => {
                     if (!block) return note;
                     const blocks = note.blocks.filter((b: iTextBlock) => b.id !== blockId);
                     if (blocks.length === 0) blocks.push(createBlock([createWord('')]));
-                    return { ...note, blocks, workspace: [...(note.workspace ?? []), block], updatedAt: Date.now() };
+                    const workspace = [...(note.workspace ?? [])];
+                    const at = index === undefined ? workspace.length : Math.min(Math.max(index, 0), workspace.length);
+                    workspace.splice(at, 0, block);
+                    return { ...note, blocks, workspace, updatedAt: Date.now() };
+                }),
+            }));
+        },
+        [saveToHistory],
+    );
+
+    const reorderWorkspace = useCallback(
+        (noteId: string, blockId: string, toIndex: number) => {
+            saveToHistory(noteId, 'Reorder workspace');
+            setState((prev: iNotesState) => ({
+                ...prev,
+                notes: prev.notes.map((note: iNote) => {
+                    const from = note.id === noteId ? note.workspace?.findIndex((b: iTextBlock) => b.id === blockId) : -1;
+                    if (!note.workspace || from === undefined || from < 0 || from === toIndex) return note;
+                    const workspace = [...note.workspace];
+                    const [moved] = workspace.splice(from, 1);
+                    workspace.splice(toIndex, 0, moved);
+                    return { ...note, workspace, updatedAt: Date.now() };
                 }),
             }));
         },
@@ -1326,6 +1347,7 @@ const useNotesStore = (persisted: iPersisted) => {
         setBlockData,
         moveSelectionToBlock,
         moveToWorkspace,
+        reorderWorkspace,
         moveFromWorkspace,
         addWorkspaceBlock,
 

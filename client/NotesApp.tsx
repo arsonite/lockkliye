@@ -72,7 +72,9 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
     const [hideSidebar, setHideSidebar] = useHideSidebar();
     // The workspace belongs to the note that is shown, it is closed when another one is opened
     const [workspaceOpen, setWorkspaceOpen] = useState(false);
-    useEffect(() => setWorkspaceOpen(false), [store.activeNoteId]);
+    useEffect(() => {
+        setWorkspaceOpen(false);
+    }, [store.activeNoteId]);
     // Hidden, the sidebar comes in by a swipe from the left edge. Hiding it is for phones only.
     const hidden = mobile && hideSidebar;
     useEffect(() => (hidden ? edgeSwipe(() => setSheetOpen(true)) : undefined), [hidden]);
@@ -245,10 +247,16 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
         }
     };
 
-    const handleBlockToWorkspace = (blockId: string) => {
+    const handleBlockToWorkspace = (blockId: string, index?: number) => {
         if (store.activeNoteId) {
-            store.moveToWorkspace(store.activeNoteId, blockId);
+            store.moveToWorkspace(store.activeNoteId, blockId, index);
             setWorkspaceOpen(true);
+        }
+    };
+
+    const handleWorkspaceReorder = (blockId: string, toIndex: number) => {
+        if (store.activeNoteId) {
+            store.reorderWorkspace(store.activeNoteId, blockId, toIndex);
         }
     };
 
@@ -450,6 +458,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         workspaceOpen={workspaceOpen}
                         onWorkspaceToggle={() => setWorkspaceOpen(!workspaceOpen)}
                         onBlockToWorkspace={handleBlockToWorkspace}
+                        onWorkspaceReorder={handleWorkspaceReorder}
                         onBlockFromWorkspace={handleBlockFromWorkspace}
                         onWorkspaceAdd={handleWorkspaceAdd}
                         onTitleChange={handleTitleChange}

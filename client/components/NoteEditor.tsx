@@ -89,7 +89,8 @@ interface iNoteEditorProps {
     onTitleChange: (title: string) => void;
     onLockAll: () => void;
     onWorkspaceToggle: () => void;
-    onBlockToWorkspace: (blockId: string) => void;
+    onBlockToWorkspace: (blockId: string, index?: number) => void;
+    onWorkspaceReorder: (blockId: string, toIndex: number) => void;
     onBlockFromWorkspace: (blockId: string, index?: number) => void;
     onWorkspaceAdd: () => void;
     onToggleAnchor: (isAnchor: boolean) => void;
@@ -152,6 +153,7 @@ export const NoteEditor = ({
     onLockAll,
     onWorkspaceToggle,
     onBlockToWorkspace,
+    onWorkspaceReorder,
     onBlockFromWorkspace,
     onWorkspaceAdd,
     onToggleAnchor,
@@ -237,8 +239,10 @@ export const NoteEditor = ({
     // The block that was touched last keeps its buttons on a touch screen, which has no hover to show them
     const [touchedBlockId, setTouchedBlockId] = useState<string | null>(null);
     const pointerType = useRef('mouse');
-    // A block of the note is dragged over the workspace
-    const [overWorkspace, setOverWorkspace] = useState(false);
+    // Where a block of the note would land in the workspace while it is dragged over it
+    const [workspaceDropIndex, setWorkspaceDropIndex] = useState<number | null>(null);
+    // Where a block of the workspace would land in the note while it is dragged over it
+    const [noteDrop, setNoteDrop] = useState<{ index: number; height: number; widthPercent?: number } | null>(null);
     const lastHandleTap = useRef<{ index: number; time: number } | null>(null);
     // The box of the text block that is dragged, its width is a share of the note and its margins are part of the layout
     const [draggedBlockRect, setDraggedBlockRect] = useState<{
@@ -319,21 +323,21 @@ export const NoteEditor = ({
             mouseRef.current = { x: e.clientX, y: e.clientY };
             moveGhost();
             const over = !!document.elementFromPoint(e.clientX, e.clientY)?.closest('.workspace');
-            setOverWorkspace(over);
+            setWorkspaceDropIndex(over ? workspaceIndexAt(e.clientY) : null);
             if (!over) reorder(e.clientY);
         };
 
         const handleMouseUp = (e: PointerEvent) => {
             if (document.elementFromPoint(e.clientX, e.clientY)?.closest('.workspace')) {
-                onBlockToWorkspace(note.blocks[draggedBlockIndex].id);
+                onBlockToWorkspace(note.blocks[draggedBlockIndex].id, workspaceIndexAt(e.clientY));
                 setDraggedBlockIndex(null);
                 setPreviewOrder(null);
                 setIsDragging(false);
                 setDraggedBlockRect(null);
-                setOverWorkspace(false);
+                setWorkspaceDropIndex(null);
                 return;
             }
-            setOverWorkspace(false);
+            setWorkspaceDropIndex(null);
             const finalIndex = orderRef.current.indexOf(draggedBlockIndex);
             if (finalIndex !== draggedBlockIndex) {
                 onBlockReorder(draggedBlockIndex, finalIndex);
@@ -495,6 +499,25 @@ export const NoteEditor = ({
         return index;
     };
 
+    // After the last item of the workspace that starts above the point
+    const workspaceIndexAt = (y: number) => {
+        let index = 0;
+        document.querySelectorAll<HTMLElement>('.workspace__item:not(.workspace__item--dragged)').forEach((item, position) => {
+            const rect = item.getBoundingClientRect();
+            if (rect.top + rect.height / 2 < y) index = position + 1;
+        });
+        return index;
+    };
+
+    const renderNoteDrop = (drop: { height: number; widthPercent?: number }) => (
+        <div key='workspace-drop' className='note-editor__block-wrapper'>
+            <div
+                className='note-editor__block-placeholder'
+                style={{ height: drop.height, marginBottom: 7, width: drop.widthPercent ? `${drop.widthPercent}%` : undefined }}
+            />
+        </div>
+    );
+
     const openInsertMenu = (x: number, y: number) => setInsertMenu({ x, y, index: indexAt(y) });
 
     const handleEmptySpaceMenu = (event: React.MouseEvent) => {
@@ -538,12 +561,12 @@ export const NoteEditor = ({
                     listOptions={listOptions}
                     onStyleChange={onBlockStyleChange}
                     onDelete={onBlockDelete}
-                    onAddBlockAfter={onWorkspaceAdd}
-                    onAddBlockBefore={onWorkspaceAdd}
+                    onAddBlockAfter={() => undefined}
+                    onAddBlockBefore={() => undefined}
                     autoFocus={block.id === focusBlockId}
                     onAutoFocused={onFocusHandled}
                     onClearFormatMode={onClearFormatMode}
-                    workspaceAction={{ label: 'Move back into the note', run: () => onBlockFromWorkspace(block.id) }}
+                    inWorkspace
                     handle={handle}
                 />
             </div>
@@ -648,11 +671,13 @@ export const NoteEditor = ({
                             .join('-')}
                         spring={{ stiffness: 500, damping: 40 }}
                     >
-                        {getVisualBlocks().map((block) => {
+                        {getVisualBlocks().flatMap((block, position) => {
                             const originalIndex = note.blocks.findIndex((b) => b.id === block.id);
                             const isBeingDragged = originalIndex === draggedBlockIndex;
 
-                            return (
+                            return [
+                                noteDrop?.index === position ? renderNoteDrop(noteDrop) : null,
+                                (
                                 <Flipped key={block.id} flipId={block.id} translate>
                                     <div
                                         ref={(el) => {
@@ -731,8 +756,10 @@ export const NoteEditor = ({
                                         )}
                                     </div>
                                 </Flipped>
-                            );
+                                ),
+                            ];
                         })}
+                        {noteDrop && noteDrop.index >= note.blocks.length && renderNoteDrop(noteDrop)}
                     </Flipper>
 
                     {/* Floating ghost block that follows the cursor - exact copy of dragged block */}
@@ -1056,11 +1083,21 @@ export const NoteEditor = ({
             {workspaceOpen && (
                 <Workspace
                     blocks={note.workspace ?? []}
-                    receiving={overWorkspace}
+                    dropIndex={workspaceDropIndex}
+                    dropHeight={draggedBlockRect?.height}
                     renderBlock={renderWorkspaceBlock}
                     onAdd={onWorkspaceAdd}
                     onPull={(blockId) => onBlockFromWorkspace(blockId)}
-                    onDragOut={(blockId, _x, y) => onBlockFromWorkspace(blockId, indexAt(y))}
+                    onReorder={onWorkspaceReorder}
+                    onDragOver={(blockId, y, height) => {
+                        const widthPercent = note.workspace?.find((b) => b.id === blockId)?.style.widthPercent;
+                        setNoteDrop({ index: indexAt(y), height, widthPercent });
+                    }}
+                    onDragLeave={() => setNoteDrop(null)}
+                    onDragOut={(blockId, _x, y) => {
+                        setNoteDrop(null);
+                        onBlockFromWorkspace(blockId, indexAt(y));
+                    }}
                     onClose={onWorkspaceToggle}
                 />
             )}

@@ -34,20 +34,11 @@ interface iMiscToolbarProps {
 const MiscToolbar: React.FC<iMiscToolbarProps> = ({ locked = true, unlocked, onLockAll, workspaceOpen, onWorkspaceToggle }) => {
     const heldModifiers = useHeldModifiers();
     const hinted = heldModifiers === shortcutBase('lockAll').toLowerCase();
+    const workspaceHinted = heldModifiers === shortcutBase('toggleWorkspace').toLowerCase();
 
     return (
         <div className='floating-toolbar floating-toolbar--misc'>
             <div className='floating-toolbar__inner'>
-                {onWorkspaceToggle && (
-                    <button
-                        className={`floating-toolbar__btn ${workspaceOpen ? 'floating-toolbar__btn--open' : ''}`}
-                        onClick={onWorkspaceToggle}
-                        onMouseDown={(e) => e.preventDefault()}
-                        title={workspaceOpen ? 'Close the workspace' : 'Open the workspace for comments, drafts and unfinished text'}
-                    >
-                        <WorkspaceIcon />
-                    </button>
-                )}
                 {locked && (
                     <button
                         className={`floating-toolbar__btn ${unlocked ? 'floating-toolbar__btn--open' : ''} ${
@@ -64,6 +55,19 @@ const MiscToolbar: React.FC<iMiscToolbarProps> = ({ locked = true, unlocked, onL
                     >
                         {unlocked ? <UnlockIcon /> : <LockIcon />}
                         {hinted && <span className='floating-toolbar__key'>{shortcutKey('lockAll')}</span>}
+                    </button>
+                )}
+                {onWorkspaceToggle && (
+                    <button
+                        className={`floating-toolbar__btn ${workspaceOpen ? 'floating-toolbar__btn--open' : ''} ${
+                            workspaceHinted ? 'floating-toolbar__btn--hint' : ''
+                        }`}
+                        onClick={onWorkspaceToggle}
+                        onMouseDown={(e) => e.preventDefault()}
+                        title={`${workspaceOpen ? 'Close' : 'Open'} the workspace for comments, drafts and unfinished text (${shortcutText('toggleWorkspace')})`}
+                    >
+                        <WorkspaceIcon />
+                        {workspaceHinted && <span className='floating-toolbar__key'>{shortcutKey('toggleWorkspace')}</span>}
                     </button>
                 )}
             </div>
