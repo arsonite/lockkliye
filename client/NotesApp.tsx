@@ -70,6 +70,9 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
     const toggleSidebar = mobile ? () => setSheetOpen((open) => !open) : store.toggleSidebar;
     const closeSheet = () => setSheetOpen(false);
     const [hideSidebar, setHideSidebar] = useHideSidebar();
+    // The workspace belongs to the note that is shown, it is closed when another one is opened
+    const [workspaceOpen, setWorkspaceOpen] = useState(false);
+    useEffect(() => setWorkspaceOpen(false), [store.activeNoteId]);
     // Hidden, the sidebar comes in by a swipe from the left edge. Hiding it is for phones only.
     const hidden = mobile && hideSidebar;
     useEffect(() => (hidden ? edgeSwipe(() => setSheetOpen(true)) : undefined), [hidden]);
@@ -188,6 +191,9 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
         onFormatToggle: store.toggleFormatMode,
         onToggleSidebar: toggleSidebar,
         onLockAll: store.lockAll,
+        onToggleWorkspace: () => {
+            if (store.activeNote && !showSettings && (!isLocked(store.activeNote) || store.unlocked)) setWorkspaceOpen((open) => !open);
+        },
         onColorIndex: (index) => {
             const color = enabledOf('text', store.palette)[index];
             if ((store.formatMode !== 'color' && store.formatMode !== 'highlight') || !color) {
@@ -236,6 +242,25 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
     ) => {
         if (store.activeNoteId) {
             store.moveSelectionToBlock(store.activeNoteId, blockId, remaining, selected, position, focusNew);
+        }
+    };
+
+    const handleBlockToWorkspace = (blockId: string) => {
+        if (store.activeNoteId) {
+            store.moveToWorkspace(store.activeNoteId, blockId);
+            setWorkspaceOpen(true);
+        }
+    };
+
+    const handleBlockFromWorkspace = (blockId: string, index?: number) => {
+        if (store.activeNoteId) {
+            store.moveFromWorkspace(store.activeNoteId, blockId, index);
+        }
+    };
+
+    const handleWorkspaceAdd = () => {
+        if (store.activeNoteId) {
+            store.addWorkspaceBlock(store.activeNoteId);
         }
     };
 
@@ -395,6 +420,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                     <LockedNote
                         key={store.activeNote.id}
                         hasPassword={store.hasPassword}
+                        onSync={handleSave}
                         onUnlock={store.unlock}
                     />
                 ) : store.activeNote ? (
@@ -421,6 +447,11 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
                         blockPresets={store.blockPresets}
                         locksOpen={store.unlocked}
                         onLockAll={store.lockAll}
+                        workspaceOpen={workspaceOpen}
+                        onWorkspaceToggle={() => setWorkspaceOpen(!workspaceOpen)}
+                        onBlockToWorkspace={handleBlockToWorkspace}
+                        onBlockFromWorkspace={handleBlockFromWorkspace}
+                        onWorkspaceAdd={handleWorkspaceAdd}
                         onTitleChange={handleTitleChange}
                         onToggleAnchor={handleToggleAnchor}
                         onAnchorChange={store.setSelectedAnchor}

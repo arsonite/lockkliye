@@ -163,6 +163,15 @@ const withValidReferences = (notes: iNote[], folders: iFolder[]): { notes: iNote
     };
 };
 
+// A change to one block, whether it is in the note or set aside in its workspace
+const inBothLists = (note: iNote, change: (block: iTextBlock) => iTextBlock) => ({
+    blocks: note.blocks.map(change),
+    ...(note.workspace ? { workspace: note.workspace.map(change) } : {}),
+});
+
+const findBlock = (note: iNote | undefined, blockId: string): iTextBlock | undefined =>
+    note?.blocks.find((block: iTextBlock) => block.id === blockId) ?? note?.workspace?.find((block: iTextBlock) => block.id === blockId);
+
 const useNotesStore = (persisted: iPersisted) => {
     // Nothing saved yet means the state is the generated welcome content
     const [freshInstall] = useState(() => persisted.data === undefined);
@@ -569,7 +578,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 return {
                     ...note,
                     updatedAt: Date.now(),
-                    blocks: note.blocks.map((block: iTextBlock) => {
+                    ...inBothLists(note, (block: iTextBlock) => {
                         if (block.id !== blockId) return block;
                         return {
                             ...block,
@@ -634,16 +643,14 @@ const useNotesStore = (persisted: iPersisted) => {
                 return {
                     ...note,
                     updatedAt: Date.now(),
-                    blocks: note.blocks.map((block: iTextBlock) =>
-                        block.id === blockId ? { ...block, ...updates } : block
-                    ),
+                    ...inBothLists(note, (block: iTextBlock) => (block.id === blockId ? { ...block, ...updates } : block)),
                 };
             }),
         }));
     }, [saveToHistory]);
 
     const updateBlockStyle = useCallback((noteId: string, blockId: string, style: Partial<iBlockStyle>) => {
-        const current = state.notes.find((n: iNote) => n.id === noteId)?.blocks.find((b: iTextBlock) => b.id === blockId);
+        const current = findBlock(state.notes.find((n: iNote) => n.id === noteId), blockId);
         if (current && Object.entries(style).every(([key, value]) => current.style[key as keyof iBlockStyle] === value)) return;
         saveToHistory(noteId, 'Update block style', `Update block style ${blockId}`);
         setState((prev: iNotesState) => ({
@@ -653,10 +660,8 @@ const useNotesStore = (persisted: iPersisted) => {
                 return {
                     ...note,
                     updatedAt: Date.now(),
-                    blocks: note.blocks.map((block: iTextBlock) =>
-                        block.id === blockId
-                            ? { ...block, style: { ...block.style, ...style } }
-                            : block
+                    ...inBothLists(note, (block: iTextBlock) =>
+                        block.id === blockId ? { ...block, style: { ...block.style, ...style } } : block,
                     ),
                 };
             }),
@@ -674,7 +679,8 @@ const useNotesStore = (persisted: iPersisted) => {
                 if (newBlocks.length === 0) {
                     newBlocks.push(createBlock([createWord('')]));
                 }
-                return { ...note, blocks: newBlocks, updatedAt: Date.now() };
+                const workspace = note.workspace?.filter((b: iTextBlock) => b.id !== blockId);
+                return { ...note, blocks: newBlocks, workspace: workspace?.length ? workspace : undefined, updatedAt: Date.now() };
             }),
         }));
     }, [saveToHistory]);
@@ -697,7 +703,7 @@ const useNotesStore = (persisted: iPersisted) => {
     // Update words in a block (for typing)
     const setBlockWords = useCallback((noteId: string, blockId: string, words: iWord[]) => {
         // Clicking around a note reports its text again, that is no edit and no undo step
-        const current = state.notes.find((n: iNote) => n.id === noteId)?.blocks.find((b: iTextBlock) => b.id === blockId);
+        const current = findBlock(state.notes.find((n: iNote) => n.id === noteId), blockId);
         if (current && sameWords(current.words, words)) return;
         saveToHistory(noteId, 'Edit text', `Edit text ${blockId}`);
         setState((prev: iNotesState) => ({
@@ -707,9 +713,7 @@ const useNotesStore = (persisted: iPersisted) => {
                 return {
                     ...note,
                     updatedAt: Date.now(),
-                    blocks: note.blocks.map((block: iTextBlock) =>
-                        block.id === blockId ? { ...block, words } : block
-                    ),
+                    ...inBothLists(note, (block: iTextBlock) => (block.id === blockId ? { ...block, words } : block)),
                 };
             }),
         }));
@@ -742,7 +746,7 @@ const useNotesStore = (persisted: iPersisted) => {
                     : {
                           ...note,
                           updatedAt: Date.now(),
-                          blocks: note.blocks.map((block: iTextBlock) => (block.id === blockId ? { ...block, data } : block)),
+                          ...inBothLists(note, (block: iTextBlock) => (block.id === blockId ? { ...block, data } : block)),
                       },
             ),
         }));
@@ -768,6 +772,64 @@ const useNotesStore = (persisted: iPersisted) => {
                 }),
             }));
             setFocusBlockId(focusNew ? newBlock.id : blockId);
+        },
+        [saveToHistory],
+    );
+
+    // Setting a block aside takes it out of the note, a block in the workspace goes back into the note at an index
+    // (the end if none is given). A new block in the workspace is for writing a comment or a draft.
+    const moveToWorkspace = useCallback(
+        (noteId: string, blockId: string) => {
+            saveToHistory(noteId, 'Move to workspace');
+            setState((prev: iNotesState) => ({
+                ...prev,
+                notes: prev.notes.map((note: iNote) => {
+                    const block = note.id === noteId ? note.blocks.find((b: iTextBlock) => b.id === blockId) : undefined;
+                    if (!block) return note;
+                    const blocks = note.blocks.filter((b: iTextBlock) => b.id !== blockId);
+                    if (blocks.length === 0) blocks.push(createBlock([createWord('')]));
+                    return { ...note, blocks, workspace: [...(note.workspace ?? []), block], updatedAt: Date.now() };
+                }),
+            }));
+        },
+        [saveToHistory],
+    );
+
+    const moveFromWorkspace = useCallback(
+        (noteId: string, blockId: string, index?: number) => {
+            saveToHistory(noteId, 'Move from workspace');
+            setState((prev: iNotesState) => ({
+                ...prev,
+                notes: prev.notes.map((note: iNote) => {
+                    const block = note.id === noteId ? note.workspace?.find((b: iTextBlock) => b.id === blockId) : undefined;
+                    if (!block) return note;
+                    const workspace = note.workspace?.filter((b: iTextBlock) => b.id !== blockId);
+                    const blocks = [...note.blocks];
+                    // The empty block of a note that had nothing is not worth keeping
+                    const empty = blocks.length === 1 && blocks[0].words.every((word: iWord) => !word.text) && !blocks[0].kind;
+                    if (empty) blocks.length = 0;
+                    const at = index === undefined ? blocks.length : Math.min(Math.max(index, 0), blocks.length);
+                    blocks.splice(at, 0, block);
+                    return { ...note, blocks, workspace: workspace?.length ? workspace : undefined, updatedAt: Date.now() };
+                }),
+            }));
+        },
+        [saveToHistory],
+    );
+
+    const addWorkspaceBlock = useCallback(
+        (noteId: string, kind?: tBlockKind) => {
+            saveToHistory(noteId, 'Add to workspace');
+            const newBlock = kind && kind !== 'text' ? createBlockOfKind(kind) : createBlock([createWord('')]);
+            setState((prev: iNotesState) => ({
+                ...prev,
+                notes: prev.notes.map((note: iNote) =>
+                    note.id === noteId
+                        ? { ...note, workspace: [...(note.workspace ?? []), newBlock], updatedAt: Date.now() }
+                        : note,
+                ),
+            }));
+            setFocusBlockId(newBlock.id);
         },
         [saveToHistory],
     );
@@ -1263,6 +1325,9 @@ const useNotesStore = (persisted: iPersisted) => {
         insertBlock,
         setBlockData,
         moveSelectionToBlock,
+        moveToWorkspace,
+        moveFromWorkspace,
+        addWorkspaceBlock,
 
         // History
         undo,

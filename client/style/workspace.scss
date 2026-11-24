@@ -1,0 +1,122 @@
+// The workspace beside a note: a second, darker and indented sidebar on the right for comments, drafts and unfinished text
+.note-editor--workspace {
+    --workspace-width: 340px;
+}
+
+.note-editor--workspace:not(.note-editor--mobile) {
+    padding-right: var(--workspace-width);
+
+    .note-editor__toolbar-overlay {
+        right: var(--workspace-width);
+    }
+}
+
+.workspace {
+    --gutter: 46px;
+
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 150;
+
+    display: flex;
+    flex-direction: column;
+    width: var(--workspace-width);
+
+    background: color-mix(in srgb, var(--bg-primary) 86%, #000);
+    border-left: 1px solid var(--border);
+    box-shadow: inset 10px 0 18px -12px rgba(0, 0, 0, 0.45);
+    transition:
+        box-shadow var(--transition),
+        background var(--transition);
+
+    .note-editor--mobile & {
+        width: min(92vw, 380px);
+        box-shadow: -12px 0 30px rgba(0, 0, 0, 0.45);
+    }
+
+    &--receiving {
+        background: color-mix(in srgb, var(--accent) 14%, color-mix(in srgb, var(--bg-primary) 86%, #000));
+        box-shadow: inset 0 0 0 2px var(--accent);
+    }
+
+    &__header {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: calc(14px + env(safe-area-inset-top)) 12px 10px 16px;
+    }
+
+    &__title {
+        flex: 1;
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+    }
+
+    &__btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        font-size: 14px;
+        color: var(--text-secondary);
+        background: transparent;
+        border: none;
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+
+        &:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+    }
+
+    &__list {
+        flex: 1;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 4px 12px calc(24px + env(safe-area-inset-bottom)) var(--gutter);
+    }
+
+    &__empty {
+        margin: 8px 4px 0 -30px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--text-tertiary);
+    }
+
+    &__item {
+        &--dragged {
+            opacity: 0.35;
+        }
+    }
+
+    &__ghost {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 9999;
+        max-width: 240px;
+        padding: 8px 12px;
+        overflow: hidden;
+        font-size: 13px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        pointer-events: none;
+        color: var(--text-primary);
+        background: var(--bg-tertiary);
+        border-radius: var(--radius-md);
+        box-shadow:
+            0 12px 40px rgba(0, 0, 0, 0.35),
+            0 0 0 2px var(--accent);
+        will-change: translate;
+    }
+}

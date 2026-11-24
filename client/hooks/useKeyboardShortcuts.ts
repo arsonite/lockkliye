@@ -27,6 +27,7 @@ interface iUseKeyboardShortcutsProps {
     onFormatToggle: (mode: tFormatMode) => void;
     onToggleSidebar?: () => void;
     onLockAll?: () => void;
+    onToggleWorkspace?: () => void;
     onColorIndex?: (index: number) => boolean; // Returns whether a color was picked
     onSave?: () => void;
     onUndo?: () => void;
@@ -66,6 +67,12 @@ const useKeyboardShortcuts: React.FC<iUseKeyboardShortcutsProps> = (props) => {
             return;
         }
 
+        if (id === 'toggleWorkspace' && props.onToggleWorkspace) {
+            e.preventDefault();
+            props.onToggleWorkspace();
+            return;
+        }
+
         if (id === 'redo' && props.onRedo) {
             e.preventDefault();
             props.onRedo();
@@ -94,7 +101,7 @@ const useKeyboardShortcuts: React.FC<iUseKeyboardShortcutsProps> = (props) => {
             // Holding the keys repeats them, which would switch the mode on and off again
             if (!e.repeat) props.onFormatToggle(mode);
         }
-    }, [props.onFormatToggle, props.onColorIndex, props.onEscape, props.onSave, props.onUndo, props.onRedo, props.onToggleSidebar, props.onLockAll]);
+    }, [props.onFormatToggle, props.onColorIndex, props.onEscape, props.onSave, props.onUndo, props.onRedo, props.onToggleSidebar, props.onLockAll, props.onToggleWorkspace]);
 
     useEffect(() => {
         window.addEventListener('keydown', handleKeyDown);

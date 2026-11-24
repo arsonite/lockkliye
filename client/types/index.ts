@@ -148,6 +148,7 @@ interface iNote {
     pinned?: tPin;
     order?: number; // Position among the notes of a manually sorted folder
     isAnchor?: boolean; // Words of other notes can be anchored to this note
+    workspace?: iTextBlock[]; // Blocks set aside in the workspace beside the note: comments, drafts, unfinished text
     locked?: boolean; // Needs the password to be read. False: the lock was taken off (the server only changes what it is sent)
 }
 

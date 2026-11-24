@@ -27,11 +27,12 @@ import { supported } from '@/tools/lock';
 
 interface iLockedNoteProps {
     hasPassword: boolean;
+    onSync: () => void;
     onUnlock: (password: string) => Promise<boolean>;
 }
 
 // Shown instead of a locked note: unlocking one note opens all of them
-const LockedNote: React.FC<iLockedNoteProps> = ({ hasPassword, onUnlock }) => {
+const LockedNote: React.FC<iLockedNoteProps> = ({ hasPassword, onSync, onUnlock }) => {
     const [password, setPassword] = useState('');
     const [wrong, setWrong] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -49,9 +50,14 @@ const LockedNote: React.FC<iLockedNoteProps> = ({ hasPassword, onUnlock }) => {
     let body: React.ReactNode;
     if (!hasPassword) {
         body = (
-            <p className='locked-note__text'>
-                The password of this note is not known here yet. Sync with the server to get it (Ctrl+S).
-            </p>
+            <>
+                <p className='locked-note__text'>
+                    The password of this note is not known here yet. Sync with the server to get it (Ctrl+S).
+                </p>
+                <button className='tea-modal-btn tea-modal-btn--primary' type='button' onClick={onSync}>
+                    Sync now
+                </button>
+            </>
         );
     } else {
         body = (
@@ -96,7 +102,7 @@ const LockedNote: React.FC<iLockedNoteProps> = ({ hasPassword, onUnlock }) => {
     return (
         <div className='locked-note'>
             <div className='note-editor__toolbar-overlay'>
-                <MiscToolbar unlocked={false} onLockAll={() => undefined} />
+                <MiscToolbar locked unlocked={false} onLockAll={() => undefined} />
             </div>
             <div className='locked-note__icon'>
                 <LockIcon />

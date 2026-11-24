@@ -63,6 +63,9 @@ const memo = <V>(cache: tMemo<V>, key: object, signature: string, make: () => V)
 };
 
 const sameItems = <T>(a: T[], b: T[]): boolean => a.length === b.length && a.every((item, index) => item === b[index]);
+// Blocks of the workspace are numbered from here, the blocks of a note never get this far
+const WORKSPACE_OFFSET = 1_000_000;
+
 const byPosition = <T extends { position: number }>(a: T, b: T): number => a.position - b.position;
 
 const group = <T>(items: T[], keyOf: (item: T) => string): Map<string, T[]> => {
@@ -86,7 +89,10 @@ const deriveItems = (
     const items: iSyncItems = { folders, notes, settings: [settings], blocks: [], words: [], presets: [], history };
 
     for (const note of notes) {
-        note.blocks.forEach((block, position) => {
+        // The workspace goes in the same collection, after a gap in the positions, so no server field is needed
+        const all = [...note.blocks, ...(note.workspace ?? [])];
+        all.forEach((block, index) => {
+            const position = index < note.blocks.length ? index : WORKSPACE_OFFSET + index - note.blocks.length;
             items.blocks.push(
                 memo(blockItems, block, `${note.id}:${position}`, () => ({
                     id: block.id,
@@ -128,15 +134,21 @@ const assemble = (
     const blocksByNote = group(result.blocks, (item) => item.noteId);
 
     const notes = result.notes.map((note) => {
-        const blocks = (blocksByNote.get(note.id) ?? []).sort(byPosition).map((item) => {
-            const words = (wordsByBlock.get(item.id) ?? []).sort(byPosition).map((entry) => entry.word);
-            const original = item.block;
-            const wordsOfBlock = words.length > 0 ? words : [createWord('')];
-            // Keep the local object if nothing changed, so React and the hash cache see no new value
-            return sameItems(original.words, wordsOfBlock) ? original : { ...original, words: wordsOfBlock };
-        });
+        const items = (blocksByNote.get(note.id) ?? []).sort(byPosition);
+        const build = (list: typeof items) =>
+            list.map((item) => {
+                const words = (wordsByBlock.get(item.id) ?? []).sort(byPosition).map((entry) => entry.word);
+                const original = item.block;
+                const wordsOfBlock = words.length > 0 ? words : [createWord('')];
+                // Keep the local object if nothing changed, so React and the hash cache see no new value
+                return sameItems(original.words, wordsOfBlock) ? original : { ...original, words: wordsOfBlock };
+            });
+        const blocks = build(items.filter((item) => item.position < WORKSPACE_OFFSET));
+        const workspace = build(items.filter((item) => item.position >= WORKSPACE_OFFSET));
         const noteBlocks = blocks.length > 0 ? blocks : [createBlock([createWord('')])];
-        return sameItems(note.blocks, noteBlocks) ? note : { ...note, blocks: noteBlocks };
+        const unchanged = sameItems(note.blocks, noteBlocks) && sameItems(note.workspace ?? [], workspace);
+        if (unchanged) return note;
+        return { ...note, blocks: noteBlocks, workspace: workspace.length > 0 ? workspace : undefined };
     });
 
     // A history entry pulled from the server keeps the note as it was, in the folder the note is in now

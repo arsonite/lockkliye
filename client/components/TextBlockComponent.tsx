@@ -16,7 +16,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 
 // TeaType icons
-import { AddAboveIcon, AddBelowIcon, ContrastIcon, SaveIcon, XIcon } from '@teatype/icons';
+import { AddAboveIcon, AddBelowIcon, ContrastIcon, SaveIcon, WorkspaceIcon, XIcon } from '@teatype/icons';
 import { DEFAULT_BORDER_GAP } from '@/types';
 import type {
     iChecklistData,
@@ -69,6 +69,7 @@ interface iTextBlockComponentProps {
     onClearFormatMode?: () => void;
     onSaveAsPreset?: (style: iBlockStyle) => void;
     handle?: React.ReactNode; // The drag handle, kept under the buttons of the block
+    workspaceAction?: { label: string; run: () => void }; // Sets the block aside in the workspace, or takes it back
 }
 
 export const TextBlockComponent = ({
@@ -93,6 +94,7 @@ export const TextBlockComponent = ({
     onClearFormatMode,
     onSaveAsPreset,
     handle,
+    workspaceAction,
     confirmDeletions = true,
     showStyleButton = false,
 }: iTextBlockComponentProps & {
@@ -350,6 +352,15 @@ export const TextBlockComponent = ({
     const bgColors = enabledOf('block', palette).map((entry) => entry.value);
     const gradients = enabledOf('gradient', palette).map((entry) => entry.value);
 
+    // A block that was never styled has no values at all, which is the "none" entry
+    const colorActive = (color: string) =>
+        !blockStyle.customColor &&
+        !blockStyle.customGradient &&
+        !blockStyle.backgroundGradient &&
+        (blockStyle.backgroundColor ?? '') === color;
+    const gradientActive = (grad: string) =>
+        !blockStyle.customColor && !blockStyle.customGradient && !!grad && blockStyle.backgroundGradient === grad;
+
     // Check if block is empty (no content or just empty words)
     const isBlockEmpty = () => {
         return block.words.length === 0 || (block.words.length === 1 && !block.words[0].text.trim());
@@ -475,6 +486,11 @@ export const TextBlockComponent = ({
                         {blockStyle.title}
                     </span>
                 )}
+                {blockStyle.title && (
+                    <span className='text-block__title text-block__title--sizer' aria-hidden='true'>
+                        {blockStyle.title}
+                    </span>
+                )}
 
                 {/* Width resize handle */}
                 {(isNearEdge || isResizing) && (
@@ -562,7 +578,7 @@ export const TextBlockComponent = ({
                                     <button
                                         key={style}
                                         className={`style-menu__option ${
-                                            blockStyle.borderStyle === style ? 'style-menu__option--active' : ''
+                                            (blockStyle.borderStyle ?? 'none') === style ? 'style-menu__option--active' : ''
                                         }`}
                                         onClick={() => onStyleChange(block.id, { borderStyle: style })}
                                     >
@@ -611,11 +627,7 @@ export const TextBlockComponent = ({
                                 {bgColors.map((color, i) => (
                                     <button
                                         key={i}
-                                        className={`style-menu__color ${
-                                            blockStyle.backgroundColor === color && !blockStyle.customColor
-                                                ? 'style-menu__color--active'
-                                                : ''
-                                        }`}
+                                        className={`style-menu__color ${colorActive(color) ? 'style-menu__color--active' : ''}`}
                                         style={{ backgroundColor: color || 'transparent' }}
                                         onClick={() =>
                                             onStyleChange(block.id, {
@@ -671,11 +683,7 @@ export const TextBlockComponent = ({
                                 {gradients.map((grad, i) => (
                                     <button
                                         key={i}
-                                        className={`style-menu__color style-menu__color--gradient ${
-                                            blockStyle.backgroundGradient === grad && !blockStyle.customGradient
-                                                ? 'style-menu__color--active'
-                                                : ''
-                                        }`}
+                                        className={`style-menu__color style-menu__color--gradient ${gradientActive(grad) ? 'style-menu__color--active' : ''}`}
                                         style={{ background: grad || 'transparent' }}
                                         onClick={() =>
                                             onStyleChange(block.id, {
@@ -767,6 +775,19 @@ export const TextBlockComponent = ({
                                     ))}
                             </div>
                         )}
+                        {workspaceAction && (
+                            <div className='style-menu__section'>
+                                <button
+                                    className='style-menu__save-preset'
+                                    onClick={() => {
+                                        setShowStyleMenu(false);
+                                        workspaceAction.run();
+                                    }}
+                                >
+                                    <WorkspaceIcon /> {workspaceAction.label}
+                                </button>
+                            </div>
+                        )}
                         {onSaveAsPreset && (
                             <div className='style-menu__section'>
                                 <button className='style-menu__save-preset' onClick={handleSaveAsPreset}>
@@ -815,30 +836,26 @@ export const TextBlockComponent = ({
                 )}
             </div>
 
-            {/* What to do with the selected text: move it into a new block, with or without following it */}
+            {/* What to do with the selected text: move it into a new block */}
             {selectionMenu && (
                 <TeaPopover x={selectionMenu.x} y={selectionMenu.y} onClose={() => setSelectionMenu(null)}>
                     {(
                         [
-                            [['Move above', 'above', false], ['Move below', 'below', false]],
-                            [['Above and focus', 'above', true], ['Below and focus', 'below', true]],
-                        ] as [string, 'above' | 'below', boolean][][]
-                    ).map((row) => (
-                        <div key={row[0][0]} className='tea-popover__row'>
-                            {row.map(([label, position, focusNew]) => (
-                                <button
-                                    key={label}
-                                    className='tea-popover__button'
-                                    onClick={() => {
-                                        const { selected, remaining } = selectionMenu.take();
-                                        onMoveSelection?.(block.id, remaining, selected, position, focusNew);
-                                        setSelectionMenu(null);
-                                    }}
-                                >
-                                    {label}
-                                </button>
-                            ))}
-                        </div>
+                            ['Create new block above', 'above'],
+                            ['Create new block below', 'below'],
+                        ] as [string, 'above' | 'below'][]
+                    ).map(([label, position]) => (
+                        <button
+                            key={label}
+                            className='tea-popover__button'
+                            onClick={() => {
+                                const { selected, remaining } = selectionMenu.take();
+                                onMoveSelection?.(block.id, remaining, selected, position, false);
+                                setSelectionMenu(null);
+                            }}
+                        >
+                            {label}
+                        </button>
                     ))}
                 </TeaPopover>
             )}

@@ -188,6 +188,8 @@ const useSync = ({ state, history, historyLimit, freshInstall, storedMeta, setSt
                     hashOf(settingsCollection, settingsOf(current)) === hashOf(settingsCollection, snapshotSettings)
                 ) {
                     Object.assign(next, syncedSettings);
+                    // A server row without the password (an older server model drops it) must not erase the known one
+                    next.lockSetup = syncedSettings.lockSetup ?? current.lockSetup;
                 }
                 if (current.blockPresets === snapshot.blockPresets) {
                     next.blockPresets = assembled.presets;

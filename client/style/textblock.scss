@@ -30,8 +30,10 @@
         outline-offset 0s;
     min-height: 48px;
 
+    // A block is never narrower than its title, the sizer below is the width the title needs
     &--has-title {
         margin-top: 20px;
+        min-width: min-content;
     }
 
     &__title {
@@ -48,6 +50,19 @@
         text-transform: uppercase;
         transform: translateY(-50%);
         z-index: 1;
+
+        // Invisible copy of the title in the flow of the block, only for its width
+        &--sizer {
+            position: static;
+            display: block;
+            height: 0;
+            padding-block: 0;
+            overflow: hidden;
+            visibility: hidden;
+            white-space: nowrap;
+            backdrop-filter: none;
+            transform: none;
+        }
     }
 
     @media (hover: hover) {

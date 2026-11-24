@@ -14,7 +14,7 @@
  */
 
 // TeaType icons
-import { LockIcon, UnlockIcon } from '@teatype/icons';
+import { LockIcon, UnlockIcon, WorkspaceIcon } from '@teatype/icons';
 
 // Hooks
 import useHeldModifiers from '@/hooks/useHeldModifiers';
@@ -23,34 +23,49 @@ import useHeldModifiers from '@/hooks/useHeldModifiers';
 import { shortcutBase, shortcutKey, shortcutText } from '@/tools/shortcuts';
 
 interface iMiscToolbarProps {
+    locked?: boolean; // The note has a lock, only then there is a button for it
     unlocked: boolean; // Locked notes are readable right now
     onLockAll: () => void;
+    workspaceOpen?: boolean;
+    onWorkspaceToggle?: () => void; // No button for the workspace where there is none to open
 }
 
-// The second bar, next to the one for formatting: things that are not about the text, like locking the notes
-const MiscToolbar: React.FC<iMiscToolbarProps> = ({ unlocked, onLockAll }) => {
+// The second bar, next to the one for formatting: things that are not about the text, like locking the notes or the workspace
+const MiscToolbar: React.FC<iMiscToolbarProps> = ({ locked = true, unlocked, onLockAll, workspaceOpen, onWorkspaceToggle }) => {
     const heldModifiers = useHeldModifiers();
     const hinted = heldModifiers === shortcutBase('lockAll').toLowerCase();
 
     return (
         <div className='floating-toolbar floating-toolbar--misc'>
             <div className='floating-toolbar__inner'>
-                <button
-                    className={`floating-toolbar__btn ${unlocked ? 'floating-toolbar__btn--open' : ''} ${
-                        hinted ? 'floating-toolbar__btn--hint' : ''
-                    }`}
-                    onClick={onLockAll}
-                    onMouseDown={(e) => e.preventDefault()}
-                    disabled={!unlocked}
-                    title={
-                        unlocked
-                            ? `Lock all notes (${shortcutText('lockAll')}), they also lock after 10 minutes without input`
-                            : 'All notes are locked'
-                    }
-                >
-                    {unlocked ? <UnlockIcon /> : <LockIcon />}
-                    {hinted && <span className='floating-toolbar__key'>{shortcutKey('lockAll')}</span>}
-                </button>
+                {onWorkspaceToggle && (
+                    <button
+                        className={`floating-toolbar__btn ${workspaceOpen ? 'floating-toolbar__btn--open' : ''}`}
+                        onClick={onWorkspaceToggle}
+                        onMouseDown={(e) => e.preventDefault()}
+                        title={workspaceOpen ? 'Close the workspace' : 'Open the workspace for comments, drafts and unfinished text'}
+                    >
+                        <WorkspaceIcon />
+                    </button>
+                )}
+                {locked && (
+                    <button
+                        className={`floating-toolbar__btn ${unlocked ? 'floating-toolbar__btn--open' : ''} ${
+                            hinted ? 'floating-toolbar__btn--hint' : ''
+                        }`}
+                        onClick={onLockAll}
+                        onMouseDown={(e) => e.preventDefault()}
+                        disabled={!unlocked}
+                        title={
+                            unlocked
+                                ? `Lock all notes (${shortcutText('lockAll')}), they also lock after 10 minutes without input`
+                                : 'All notes are locked'
+                        }
+                    >
+                        {unlocked ? <UnlockIcon /> : <LockIcon />}
+                        {hinted && <span className='floating-toolbar__key'>{shortcutKey('lockAll')}</span>}
+                    </button>
+                )}
             </div>
         </div>
     );

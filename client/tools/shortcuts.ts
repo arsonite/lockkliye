@@ -53,10 +53,11 @@ const SHORTCUT_KEYS = {
     anchor: 'Ctrl+Shift+A',
     save: 'Ctrl+S',
     undo: 'Ctrl+Z',
-    redo: 'Ctrl+Shift+Z',
+    redo: 'Ctrl+Y',
     escape: 'Escape',
     toggleSidebar: 'Ctrl+L',
     lockAll: 'Ctrl+Shift+L',
+    toggleWorkspace: 'Ctrl+Alt+W',
     newBlock: 'Shift+Enter',
 };
 
@@ -87,10 +88,11 @@ const SHORTCUTS = define({
 
     save: { group: 'General', keys: [SHORTCUT_KEYS.save], label: 'Save to the server' },
     undo: { group: 'General', keys: [SHORTCUT_KEYS.undo], label: 'Undo' },
-    redo: { group: 'General', keys: [SHORTCUT_KEYS.redo, 'Ctrl+Y'], label: 'Redo' },
+    redo: { group: 'General', keys: [SHORTCUT_KEYS.redo, 'Ctrl+Shift+Z'], label: 'Redo' },
     escape: { group: 'General', keys: [SHORTCUT_KEYS.escape], label: 'Leave formatting mode and close the settings' },
     toggleSidebar: { group: 'General', keys: [SHORTCUT_KEYS.toggleSidebar], label: 'Collapse or expand the sidebar' },
     lockAll: { group: 'General', keys: [SHORTCUT_KEYS.lockAll], label: 'Lock all notes' },
+    toggleWorkspace: { group: 'General', keys: [SHORTCUT_KEYS.toggleWorkspace], label: 'Open or close the workspace' },
 
     newBlock: { group: 'Blocks', keys: [SHORTCUT_KEYS.newBlock], label: 'New block below' },
 });
@@ -127,8 +129,12 @@ const comboOf = (event: tKeyEvent): string =>
         event.ctrlKey || event.metaKey ? 'ctrl' : '',
         event.shiftKey ? 'shift' : '',
         event.altKey ? 'alt' : '',
-        // Alt changes the key on some layouts, the digit row is read by its position
-        /^Digit\d$/.test(event.code) ? event.code.slice(5) : event.key.toLowerCase(),
+        // Alt changes the key on some layouts, the digit row and the letters with Alt are read by their position
+        /^Digit\d$/.test(event.code)
+            ? event.code.slice(5)
+            : event.altKey && /^Key[A-Z]$/.test(event.code)
+              ? event.code.slice(3).toLowerCase()
+              : event.key.toLowerCase(),
     ]
         .filter(Boolean)
         .join('+');

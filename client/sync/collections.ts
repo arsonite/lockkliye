@@ -311,6 +311,7 @@ const snapshotOf = (note: iNote): string =>
     JSON.stringify({
         title: note.title,
         blocks: note.blocks,
+        workspace: note.workspace,
         pinned: note.pinned,
         createdAt: note.createdAt,
         updatedAt: note.updatedAt,

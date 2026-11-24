@@ -37,6 +37,7 @@ import { TeaModal, TeaPopover } from '@teatype/components';
 // Components
 import FloatingToolbar from './FloatingToolbar';
 import MiscToolbar from './MiscToolbar';
+import Workspace from './Workspace';
 import { TextBlockComponent } from './TextBlockComponent';
 
 // Types
@@ -83,9 +84,14 @@ interface iNoteEditorProps {
     listOptions: iListOptions;
     focusBlockId?: string | null; // A block that was just added, its editor takes the focus
     locksOpen: boolean; // Locked notes are readable right now
+    workspaceOpen: boolean;
 
     onTitleChange: (title: string) => void;
     onLockAll: () => void;
+    onWorkspaceToggle: () => void;
+    onBlockToWorkspace: (blockId: string) => void;
+    onBlockFromWorkspace: (blockId: string, index?: number) => void;
+    onWorkspaceAdd: () => void;
     onToggleAnchor: (isAnchor: boolean) => void;
     onAnchorChange: (noteId: string) => void;
     onOpenNote: (noteId: string) => void;
@@ -144,6 +150,10 @@ export const NoteEditor = ({
     listOptions,
     onTitleChange,
     onLockAll,
+    onWorkspaceToggle,
+    onBlockToWorkspace,
+    onBlockFromWorkspace,
+    onWorkspaceAdd,
     onToggleAnchor,
     onAnchorChange,
     onOpenNote,
@@ -158,6 +168,7 @@ export const NoteEditor = ({
     onBlockAddBefore,
     focusBlockId,
     locksOpen,
+    workspaceOpen,
     onFocusHandled,
     onBlockAddWithPreset,
     onBlockReorder,
@@ -226,6 +237,9 @@ export const NoteEditor = ({
     // The block that was touched last keeps its buttons on a touch screen, which has no hover to show them
     const [touchedBlockId, setTouchedBlockId] = useState<string | null>(null);
     const pointerType = useRef('mouse');
+    // A block of the note is dragged over the workspace
+    const [overWorkspace, setOverWorkspace] = useState(false);
+    const lastHandleTap = useRef<{ index: number; time: number } | null>(null);
     // The box of the text block that is dragged, its width is a share of the note and its margins are part of the layout
     const [draggedBlockRect, setDraggedBlockRect] = useState<{
         width: number;
@@ -304,10 +318,22 @@ export const NoteEditor = ({
         const handleMouseMove = (e: PointerEvent) => {
             mouseRef.current = { x: e.clientX, y: e.clientY };
             moveGhost();
-            reorder(e.clientY);
+            const over = !!document.elementFromPoint(e.clientX, e.clientY)?.closest('.workspace');
+            setOverWorkspace(over);
+            if (!over) reorder(e.clientY);
         };
 
-        const handleMouseUp = () => {
+        const handleMouseUp = (e: PointerEvent) => {
+            if (document.elementFromPoint(e.clientX, e.clientY)?.closest('.workspace')) {
+                onBlockToWorkspace(note.blocks[draggedBlockIndex].id);
+                setDraggedBlockIndex(null);
+                setPreviewOrder(null);
+                setIsDragging(false);
+                setDraggedBlockRect(null);
+                setOverWorkspace(false);
+                return;
+            }
+            setOverWorkspace(false);
             const finalIndex = orderRef.current.indexOf(draggedBlockIndex);
             if (finalIndex !== draggedBlockIndex) {
                 onBlockReorder(draggedBlockIndex, finalIndex);
@@ -333,7 +359,7 @@ export const NoteEditor = ({
             document.removeEventListener('pointerup', handleMouseUp);
             document.removeEventListener('pointercancel', handleMouseUp);
         };
-    }, [isDragging, draggedBlockIndex, note.blocks, onBlockReorder]);
+    }, [isDragging, draggedBlockIndex, note.blocks, onBlockReorder, onBlockToWorkspace]);
 
     // Compute the visual order of blocks (with preview reordering)
     const getVisualBlocks = useCallback(() => {
@@ -362,6 +388,14 @@ export const NoteEditor = ({
     const handleDragStart = useCallback(
         (e: React.PointerEvent, index: number) => {
             e.preventDefault();
+            // A second tap on the handle sets the block aside in the workspace
+            const now = Date.now();
+            if (workspaceOpen && lastHandleTap.current?.index === index && now - lastHandleTap.current.time < 350) {
+                lastHandleTap.current = null;
+                onBlockToWorkspace(note.blocks[index].id);
+                return;
+            }
+            lastHandleTap.current = { index, time: now };
             const blockId = note.blocks[index]?.id;
             const blockElement = blockId ? blockRefs.current.get(blockId) : null;
 
@@ -383,7 +417,7 @@ export const NoteEditor = ({
             orderRef.current = note.blocks.map((_, i) => i);
             setPreviewOrder(orderRef.current);
         },
-        [note.blocks],
+        [note.blocks, workspaceOpen, onBlockToWorkspace],
     );
 
     // Close the component menu on outside click
@@ -451,15 +485,17 @@ export const NoteEditor = ({
     const EMPTY_SPACE_EXCLUDED =
         '.text-block, .note-editor__header, .note-editor__add-buttons, .note-editor__toolbar-overlay, .note-editor__history-overlay';
 
-    const openInsertMenu = (x: number, y: number) => {
-        // After the last block that starts above the point
+    // After the last block that starts above the point
+    const indexAt = (y: number) => {
         let index = 0;
         note.blocks.forEach((block, position) => {
             const rect = blockRefs.current.get(block.id)?.getBoundingClientRect();
             if (rect && rect.top + rect.height / 2 < y) index = position + 1;
         });
-        setInsertMenu({ x, y, index });
+        return index;
     };
+
+    const openInsertMenu = (x: number, y: number) => setInsertMenu({ x, y, index: indexAt(y) });
 
     const handleEmptySpaceMenu = (event: React.MouseEvent) => {
         if ((event.target as HTMLElement).closest(EMPTY_SPACE_EXCLUDED)) return;
@@ -474,9 +510,51 @@ export const NoteEditor = ({
         emptyPress.handlers.onPointerDown(event);
     };
 
+    const renderWorkspaceBlock = (block: iTextBlock, handle: React.ReactNode) => (
+        <div
+            className={`note-editor__block-wrapper ${block.id === touchedBlockId ? 'note-editor__block-wrapper--touched' : ''}`}
+            onMouseMove={followMouse}
+            onPointerDownCapture={(e) => {
+                pointerType.current = e.pointerType;
+                if (e.pointerType === 'mouse') setTouchedBlockId(null);
+            }}
+            onClickCapture={() => pointerType.current !== 'mouse' && setTouchedBlockId(block.id)}
+        >
+            <div className='note-editor__block-content'>
+                <TextBlockComponent
+                    block={block}
+                    formatMode={formatMode}
+                    selectedColor={selectedColor}
+                    palette={palette}
+                    showStyleButton={showStyleButton}
+                    selectedSize={selectedSize}
+                    selectedAnchorId={selectedAnchorId}
+                    formatPicks={formatPicks}
+                    onOpenAnchor={onOpenNote}
+                    confirmDeletions={confirmDeletions}
+                    onWordFormatChange={onWordFormatChange}
+                    onWordsChange={onWordsChange}
+                    onDataChange={onBlockDataChange}
+                    listOptions={listOptions}
+                    onStyleChange={onBlockStyleChange}
+                    onDelete={onBlockDelete}
+                    onAddBlockAfter={onWorkspaceAdd}
+                    onAddBlockBefore={onWorkspaceAdd}
+                    autoFocus={block.id === focusBlockId}
+                    onAutoFocused={onFocusHandled}
+                    onClearFormatMode={onClearFormatMode}
+                    workspaceAction={{ label: 'Move back into the note', run: () => onBlockFromWorkspace(block.id) }}
+                    handle={handle}
+                />
+            </div>
+        </div>
+    );
+
     return (
         <div
-            className={`note-editor ${showBlockBorders ? 'note-editor--block-borders' : ''}`}
+            className={`note-editor ${showBlockBorders ? 'note-editor--block-borders' : ''} ${
+                workspaceOpen ? 'note-editor--workspace' : ''
+            } ${mobile ? 'note-editor--mobile' : ''}`}
             onContextMenu={handleEmptySpaceMenu}
             {...emptyPress.handlers}
             onPointerDown={handleEmptySpacePress}
@@ -500,7 +578,13 @@ export const NoteEditor = ({
                     onColorChange={onColorChange}
                     onSizeChange={onSizeChange}
                 />
-                {isLocked(note) && <MiscToolbar unlocked={locksOpen} onLockAll={onLockAll} />}
+                <MiscToolbar
+                    locked={isLocked(note)}
+                    unlocked={locksOpen}
+                    onLockAll={onLockAll}
+                    workspaceOpen={workspaceOpen}
+                    onWorkspaceToggle={onWorkspaceToggle}
+                />
             </div>
 
             <div
@@ -627,6 +711,10 @@ export const NoteEditor = ({
                                                     onAutoFocused={onFocusHandled}
                                                     onClearFormatMode={onClearFormatMode}
                                                     onSaveAsPreset={onAddBlockPreset}
+                                                    workspaceAction={{
+                                                        label: 'Move to the workspace',
+                                                        run: () => onBlockToWorkspace(block.id),
+                                                    }}
                                                     handle={
                                                         <div
                                                             className='note-editor__drag-handle'
@@ -964,6 +1052,18 @@ export const NoteEditor = ({
                     </button>
                 </div>
             </div>
+
+            {workspaceOpen && (
+                <Workspace
+                    blocks={note.workspace ?? []}
+                    receiving={overWorkspace}
+                    renderBlock={renderWorkspaceBlock}
+                    onAdd={onWorkspaceAdd}
+                    onPull={(blockId) => onBlockFromWorkspace(blockId)}
+                    onDragOut={(blockId, _x, y) => onBlockFromWorkspace(blockId, indexAt(y))}
+                    onClose={onWorkspaceToggle}
+                />
+            )}
         </div>
     );
 };

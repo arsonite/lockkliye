@@ -13,8 +13,8 @@
  * all copies or substantial portions of the Software.
  */
 
-// Dates in the text: 2026-03-12, 12.03.2026 and 12/03/2026 (day first). A date is one word, punctuation around it
-// (like a comma behind it) stays where it is.
+// Dates in the text: 2026-03-12, 12.03.2026 and 12/03/2026 (day first). Punctuation around a date (like a comma behind
+// it) stays where it is.
 
 type tDateStyle = 'iso' | 'dot' | 'slash';
 
