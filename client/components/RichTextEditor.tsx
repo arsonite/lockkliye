@@ -34,6 +34,10 @@ const PICKED_MODES: tFormatMode[] = ['color', 'highlight', 'anchor'];
 
 // Marks the caret in a copy of the text, a character that is not typed
 const CARET_MARK = '\uE000';
+// Marks the ends of a selection in a copy of the editor
+const SELECTION_START = '\uE001';
+const SELECTION_END = '\uE002';
+const SELECTION_MARKS = /[\uE001\uE002]/g;
 
 interface iRichTextEditorProps {
     formatMode: tFormatMode;
@@ -514,45 +518,99 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
         }
     }, []);
 
-    // Get currently selected word IDs
-    const getSelectedWordIds = useCallback((): string[] => {
+    // The words the selection touches. A copy of the editor gets a mark at each end of the selection and is parsed like the
+    // editor is on input, because text that was typed has no word spans yet, so the spans cannot tell which words are selected.
+    const getSelectedWords = useCallback((): { words: iWord[]; indices: number[] } | null => {
+        const editor = editorRef.current;
         const selection = window.getSelection();
-        if (!selection || !selection.rangeCount || !editorRef.current) return [];
+        if (!editor || !selection || selection.rangeCount === 0 || selection.isCollapsed) return null;
+        const range = selection.getRangeAt(0);
+        if (!range.intersectsNode(editor)) return null;
 
-        const selectedIds: string[] = [];
-
-        // Find all spans within the selection
-        const spans = editorRef.current.querySelectorAll('span[data-word-id]');
-        spans.forEach((span) => {
-            if (selection.containsNode(span, true)) {
-                const id = span.getAttribute('data-word-id');
-                if (id) selectedIds.push(id);
+        const clone = editor.cloneNode(true) as HTMLElement;
+        const locate = (node: Node): Node => {
+            const path: number[] = [];
+            for (let current = node; current !== editor; current = current.parentNode as Node) {
+                path.unshift(Array.prototype.indexOf.call(current.parentNode?.childNodes, current));
             }
-        });
+            return path.reduce<Node>((found, index) => found.childNodes[index], clone);
+        };
+        const mark = (container: Node, offset: number, text: string) => {
+            const node = locate(container);
+            if (node.nodeType === Node.TEXT_NODE) (node as Text).insertData(offset, text);
+            else node.insertBefore(document.createTextNode(text), node.childNodes[offset] ?? null);
+        };
 
-        return selectedIds;
-    }, []);
+        const startsInside = editor.contains(range.startContainer);
+        // The end first, so the start keeps its offset
+        if (editor.contains(range.endContainer)) mark(range.endContainer, range.endOffset, SELECTION_END);
+        if (startsInside) mark(range.startContainer, range.startOffset, SELECTION_START);
+
+        const words: iWord[] = [];
+        const indices: number[] = [];
+        let selecting = !startsInside;
+        parseHTMLToWords(clone).forEach((word) => {
+            const clean = word.text.replace(SELECTION_MARKS, '');
+            const positionOf = (mark: string) => {
+                const at = word.text.indexOf(mark);
+                return at < 0 ? -1 : word.text.slice(0, at).replace(SELECTION_MARKS, '').length;
+            };
+            const start = positionOf(SELECTION_START);
+            const end = positionOf(SELECTION_END);
+            // A mark that stands alone is no word
+            if (!clean) {
+                if (start >= 0) selecting = true;
+                if (end >= 0) selecting = false;
+                return;
+            }
+            let selected = selecting;
+            if (start >= 0) {
+                selecting = true;
+                selected = start < clean.length;
+            }
+            if (end >= 0) {
+                selecting = false;
+                if (end === 0) selected = false;
+            }
+            if (selected && clean !== '\n') indices.push(words.length);
+            words.push({ ...word, text: clean });
+        });
+        return { words, indices };
+    }, [parseHTMLToWords]);
 
     // Apply formatting to selected words
     const applyFormattingToSelection = useCallback(() => {
-        if (!formatMode || !editorRef.current) return false;
+        const editor = editorRef.current;
+        if (!formatMode || !editor) return false;
 
-        const selectedIds = getSelectedWordIds();
-        if (selectedIds.length === 0) return false;
+        const found = getSelectedWords();
+        if (!found || found.indices.length === 0) return false;
 
-        const newWords = wordsRef.current.map((word) => {
-            if (selectedIds.includes(word.id)) {
-                const updates = applyFormatMode(word.format, formatMode, selectedColor, selectedAnchorId);
-                return { ...word, format: { ...word.format, ...updates } };
-            }
-            return word;
-        });
+        // The words the editor reported last keep their ids and every format, as long as they are still what is on screen
+        const base = wordsRef.current.length === found.words.length ? wordsRef.current : found.words;
+        const selected = new Set(found.indices);
+        const newWords = base.map((word, index) =>
+            selected.has(index)
+                ? { ...word, format: { ...word.format, ...applyFormatMode(word.format, formatMode, selectedColor, selectedAnchorId) } }
+                : word,
+        );
 
-        // Update state
         emit(newWords);
+        editor.innerHTML = renderWordsAsHTML(newWords);
 
-        // Update styles in-place to preserve cursor/selection
-        updateWordStylesInPlace(selectedIds, newWords);
+        // The formatted words stay selected, so another format can follow
+        if (isFocused) {
+            const first = editor.querySelector(`span[data-word-id="${newWords[found.indices[0]].id}"]`);
+            const last = editor.querySelector(`span[data-word-id="${newWords[found.indices[found.indices.length - 1]].id}"]`);
+            if (first && last) {
+                const range = document.createRange();
+                range.setStartBefore(first);
+                range.setEndAfter(last);
+                const selection = window.getSelection();
+                selection?.removeAllRanges();
+                selection?.addRange(range);
+            }
+        }
 
         // Only clear format mode if editor is focused (typing mode)
         // Keep format mode active for quick formatting in non-edit mode
@@ -565,9 +623,9 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
         formatMode,
         selectedColor,
         selectedAnchorId,
-        getSelectedWordIds,
+        getSelectedWords,
         emit,
-        updateWordStylesInPlace,
+        renderWordsAsHTML,
         onClearFormatMode,
         isFocused,
     ]);
@@ -599,29 +657,18 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
         [formatMode, selectedColor, selectedAnchorId, emit, updateWordStylesInPlace, onClearFormatMode, isFocused],
     );
 
-    // Track previous format mode to detect changes
-    const prevFormatModeRef = useRef<tFormatMode>(null);
+    // The latest callback, so the timer below does not depend on the identity of it
+    const applyToSelectionRef = useRef(applyFormattingToSelection);
+    applyToSelectionRef.current = applyFormattingToSelection;
 
     // Handle format mode changes - apply to selection when format mode is activated
     useEffect(() => {
-        // Only apply if format mode changed from null/different to a new mode
-        if (formatMode && prevFormatModeRef.current !== formatMode) {
-            // A color or an anchor still has to be chosen, its mode stays open until then
-            if (PICKED_MODES.includes(formatMode)) {
-                prevFormatModeRef.current = formatMode;
-                return;
-            }
-            // Small delay to let selection settle
-            const timer = setTimeout(() => {
-                applyFormattingToSelection();
-            }, 10);
-            prevFormatModeRef.current = formatMode;
-            return () => clearTimeout(timer);
-        }
-        if (!formatMode) {
-            prevFormatModeRef.current = null;
-        }
-    }, [formatMode, applyFormattingToSelection]);
+        // A color or an anchor still has to be chosen, its mode stays open until then
+        if (!formatMode || PICKED_MODES.includes(formatMode)) return;
+        // Small delay to let selection settle. It must not be cancelled by a re-render, the mode would never be applied then.
+        const timer = setTimeout(() => applyToSelectionRef.current(), 10);
+        return () => clearTimeout(timer);
+    }, [formatMode]);
 
     // A color or an anchor that is picked while text is selected goes onto the selection
     const lastPicks = useRef(formatPicks);

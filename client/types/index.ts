@@ -67,6 +67,9 @@ interface iWord {
 }
 
 // Block styles for text containers
+// How the lines of a block are aligned
+type tTextAlign = 'left' | 'center' | 'right' | 'justify';
+
 interface iBlockStyle {
     title?: string; // Optional title displayed as legend on block
     borderStyle?: 'solid' | 'dashed' | 'dotted' | 'double' | 'none';
@@ -77,6 +80,7 @@ interface iBlockStyle {
     customColor?: string; // Per-block custom color (last in row)
     customGradient?: string; // Per-block custom gradient (last in row)
     transparent?: boolean;
+    textAlign?: tTextAlign; // Left if not set
     borderGap?: number; // Space between the dashes, dots or lines of a dashed, dotted or double border, in px
     widthPercent?: number; // User-adjustable width as percentage (0-100)
     listOptions?: iBlockListOptions; // The list rules of this block, the settings apply to what it leaves out
@@ -482,6 +486,7 @@ export type {
     tAnchorLine,
     iListOptions,
     tNumbering,
+    tTextAlign,
     iTableData,
     tBlockData,
     tBlockKind,

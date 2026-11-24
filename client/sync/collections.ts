@@ -104,6 +104,7 @@ const styleRow = (style: iBlockStyle): tRow => ({
     custom_gradient: style.customGradient ?? '',
     // Only sent once the user has chosen, so the blocks that never did keep their hash
     ...(style.borderGap === undefined ? {} : { border_gap: style.borderGap }),
+    ...(style.textAlign ? { text_align: style.textAlign } : {}),
     title: style.title ?? '',
     transparent: style.transparent ?? false,
     width_percent: Math.round(style.widthPercent ?? -1),
@@ -119,6 +120,7 @@ const styleFromRow = (row: tServerRow): iBlockStyle => {
     if (row.custom_color) style.customColor = text(row.custom_color);
     if (row.custom_gradient) style.customGradient = text(row.custom_gradient);
     if (typeof row.border_gap === 'number' && row.border_gap >= 0) style.borderGap = row.border_gap;
+    if (row.text_align) style.textAlign = text(row.text_align) as iBlockStyle['textAlign'];
     if (row.title) style.title = text(row.title);
     if (row.transparent) style.transparent = true;
     if ((row.width_percent as number) >= 0) style.widthPercent = row.width_percent as number;

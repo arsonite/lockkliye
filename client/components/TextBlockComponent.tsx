@@ -16,7 +16,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 
 // TeaType icons
-import { AddAboveIcon, AddBelowIcon, ContrastIcon, SaveIcon, WorkspaceIcon, XIcon } from '@teatype/icons';
+import { AddAboveIcon, AddBelowIcon, ContrastIcon, SaveIcon, TextAlignIcon, WorkspaceIcon, XIcon } from '@teatype/icons';
 import { DEFAULT_BORDER_GAP } from '@/types';
 import type {
     iChecklistData,
@@ -29,6 +29,7 @@ import type {
     iBlockListOptions,
     iBlockStyle,
     tNumbering,
+    tTextAlign,
     iPalette,
 } from '@/types';
 import { enabledOf } from '@/tools/palette';
@@ -283,6 +284,10 @@ export const TextBlockComponent = ({
 
         if (blockStyle.widthPercent) {
             styles.width = `${blockStyle.widthPercent}%`;
+        }
+
+        if (blockStyle.textAlign) {
+            styles.textAlign = blockStyle.textAlign;
         }
 
         const effectiveBg = getEffectiveBackground();
@@ -749,6 +754,25 @@ export const TextBlockComponent = ({
                                 </div>
                             )}
                         </div>
+                        {(!block.kind || block.kind === 'text' || block.kind === 'code') && (
+                            <div className='style-menu__section'>
+                                <span className='style-menu__label'>Text Alignment</span>
+                                <div className='style-menu__options'>
+                                    {(['left', 'center', 'right', 'justify'] as tTextAlign[]).map((align) => (
+                                        <button
+                                            key={align}
+                                            className={`style-menu__option style-menu__option--icon ${
+                                                (blockStyle.textAlign ?? 'left') === align ? 'style-menu__option--active' : ''
+                                            }`}
+                                            title={align}
+                                            onClick={() => onStyleChange(block.id, { textAlign: align })}
+                                        >
+                                            <TextAlignIcon align={align} />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         {hasList && (
                             <div className='style-menu__section'>
                                 <span className='style-menu__label'>Lists</span>

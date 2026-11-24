@@ -24,6 +24,7 @@ class BlockStyleFields(HSDBModel):
     custom_color        = HSDBAttribute(str,  required=True)
     custom_gradient     = HSDBAttribute(str,  required=True)
     keep_whitespace     = HSDBAttribute(bool, description='Keep the spaces and new lines at the start and end of the text, optional')
+    text_align          = HSDBAttribute(str,  description='left, center, right or justify, optional')
     title               = HSDBAttribute(str,  required=True, description='Legend shown on the block, also the name of a preset')
     transparent         = HSDBAttribute(bool, required=True)
     width_percent       = HSDBAttribute(int,  required=True)
