@@ -22,7 +22,7 @@
     position: relative;
     gap: 14px;
     height: 100%;
-    padding: 24px;
+    padding: 24px 24px calc(24px + var(--keyboard-inset, 0px));
     color: var(--text-secondary);
     text-align: center;
 

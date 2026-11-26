@@ -32,6 +32,7 @@ import { Sidebar } from '@/components/Sidebar';
 // Hooks
 import useHeldModifiers from '@/hooks/useHeldModifiers';
 import useHideSidebar from '@/hooks/useHideSidebar';
+import useKeyboardFocus from '@/hooks/useKeyboardFocus';
 import useIsMobile from '@teatype/hooks/useIsMobile';
 import useKeyboardShortcuts from '@/hooks/useKeyboardShortcuts';
 import useNotesStore from '@/hooks/useNotesStore';
@@ -70,6 +71,7 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
     const toggleSidebar = mobile ? () => setSheetOpen((open) => !open) : store.toggleSidebar;
     const closeSheet = () => setSheetOpen(false);
     const [hideSidebar, setHideSidebar] = useHideSidebar();
+    useKeyboardFocus(mobile);
     // The workspace belongs to the note that is shown, it is closed when another one is opened
     const [workspaceOpen, setWorkspaceOpen] = useState(false);
     useEffect(() => {

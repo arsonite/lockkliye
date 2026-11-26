@@ -257,11 +257,6 @@ export const SettingsView = ({
                                 onChange: onEditorWidthChange,
                             },
                         },
-                    ],
-                },
-                {
-                    id: 'sidebar',
-                    items: [
                         {
                             id: 'hide-sidebar',
                             label: 'Hide the sidebar',

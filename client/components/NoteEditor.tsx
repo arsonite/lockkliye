@@ -359,7 +359,30 @@ export const NoteEditor = ({
         document.addEventListener('pointerup', handleMouseUp);
         document.addEventListener('pointercancel', handleMouseUp);
 
+        // The page scrolls by itself while the block is held near its top or bottom edge, there is no wheel or finger
+        // free to do it. The blocks move under the pointer, so the order is worked out again after each step.
+        let frame = 0;
+        const autoScroll = () => {
+            const scroller = contentRef.current?.closest<HTMLElement>('.note-editor__body');
+            const { x, y } = mouseRef.current;
+            if (scroller && !document.elementFromPoint(x, y)?.closest('.workspace')) {
+                const rect = scroller.getBoundingClientRect();
+                const zone = 96;
+                const top = rect.top + zone;
+                const bottom = rect.bottom - zone;
+                const speed = y < top ? -(top - y) : y > bottom ? y - bottom : 0;
+                if (speed !== 0) {
+                    const before = scroller.scrollTop;
+                    scroller.scrollTop += Math.sign(speed) * Math.min(Math.abs(speed) / 4 + 2, 22);
+                    if (scroller.scrollTop !== before) reorder(y);
+                }
+            }
+            frame = requestAnimationFrame(autoScroll);
+        };
+        frame = requestAnimationFrame(autoScroll);
+
         return () => {
+            cancelAnimationFrame(frame);
             document.body.style.cursor = '';
             document.removeEventListener('touchmove', blockTouch);
             document.removeEventListener('pointermove', handleMouseMove);
@@ -617,7 +640,13 @@ export const NoteEditor = ({
                 ref={editorRef}
                 className='note-editor__body'
                 onScroll={(e) => setScrolled(e.currentTarget.scrollTop > 8)}
-                style={{ maxWidth: mobile ? '100%' : `${editorWidth}%` }}>
+                style={{
+                    maxWidth: mobile ? '100%' : `${editorWidth}%`,
+                    // The end of the note can be scrolled above the keyboard and the toolbar on it
+                    ...(keyboardTop !== null && {
+                        paddingBottom: `calc(${window.innerHeight - keyboardTop}px + 120px)`,
+                    }),
+                }}>
                 <div className='note-editor__header'>
                     {breadcrumbs.length > 0 && (
                         <div className='note-editor__breadcrumbs'>

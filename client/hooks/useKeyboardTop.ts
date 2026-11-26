@@ -16,34 +16,20 @@
 // React imports
 import { useEffect, useState } from 'react';
 
-// Less than this is a browser bar that comes and goes, not a keyboard
-const KEYBOARD_MIN_HEIGHT = 120;
+// Local imports
+import { watchKeyboard } from '@/hooks/keyboard';
 
 // Where the on-screen keyboard starts, in the coordinates of the layout viewport, or null while there is none.
-// Safari on iOS keeps the layout viewport as it is and only shrinks the visual one, so what the page has to
-// follow is the visual viewport. Its height already leaves out the bar with the Done button above the keys.
+// The height of the visual viewport already leaves out the bar with the Done button above the keys.
 const useKeyboardTop = (enabled: boolean): number | null => {
     const [top, setTop] = useState<number | null>(null);
 
     useEffect(() => {
-        const viewport = window.visualViewport;
-        if (!enabled || !viewport) {
+        if (!enabled || !window.visualViewport) {
             setTop(null);
             return;
         }
-        const update = () => {
-            // A pinch zoom shrinks the visual viewport as well
-            const covered = window.innerHeight - viewport.height - viewport.offsetTop;
-            const open = viewport.scale <= 1.01 && covered > KEYBOARD_MIN_HEIGHT;
-            setTop(open ? Math.round(viewport.offsetTop + viewport.height) : null);
-        };
-        update();
-        viewport.addEventListener('resize', update);
-        viewport.addEventListener('scroll', update);
-        return () => {
-            viewport.removeEventListener('resize', update);
-            viewport.removeEventListener('scroll', update);
-        };
+        return watchKeyboard((covered, keyboardTop) => setTop(covered > 0 ? keyboardTop : null));
     }, [enabled]);
 
     return top;

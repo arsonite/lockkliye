@@ -45,9 +45,12 @@
             transition: opacity 250ms;
         }
 
-        // Scrolled: the bars fade, they are fully there when the mouse is over them, a shortcut is used or a mode is on
-        &--dim .floating-toolbar:not(:hover, :focus-within) {
-            opacity: 0.3;
+        // Scrolled: the bars fade, they are fully there when the mouse is over them, a shortcut is used or a mode is on.
+        // Only with a mouse: on a touch screen there is no hover to bring them back.
+        @media (hover: hover) and (pointer: fine) {
+            &--dim .floating-toolbar:not(:hover, :focus-within) {
+                opacity: 0.3;
+            }
         }
 
         // With the keyboard of a phone open the bar sits on top of it, the colour bar above the main one

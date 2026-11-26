@@ -230,7 +230,7 @@ const createTutorialNote = (): iNote => {
 
         createBlock(
             words(
-                'The toolbar fades while you scroll and is fully visible again when the mouse is over it or you use a shortcut. Undo and redo are faint at the bottom and only visible when there is something to undo or redo, with the number of changes between them. Hover them and the word changes folds out, then the list opens between the two buttons. Hold Ctrl to see their keys.',
+                'On a desktop the toolbar fades while you scroll and is fully visible again when the mouse is over it or you use a shortcut. Undo and redo are faint at the bottom and only visible when there is something to undo or redo, with the number of changes between them. Hover them and the word changes folds out, then the list opens between the two buttons. Hold Ctrl to see their keys.',
             ),
             { title: 'Toolbar and History', borderStyle: 'solid', borderRadius: 8, backgroundColor: 'rgba(105,219,124,0.1)' },
         ),
