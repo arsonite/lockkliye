@@ -1212,6 +1212,10 @@ const useNotesStore = (persisted: iPersisted) => {
         setState((prev: iNotesState) => ({ ...prev, showStyleButton: value }));
     }, []);
 
+    const setHideSidebar = useCallback((value: boolean) => {
+        setState((prev: iNotesState) => ({ ...prev, hideSidebar: value }));
+    }, []);
+
     const setAccentColor = useCallback((value: string) => {
         setState((prev: iNotesState) => ({ ...prev, accentColor: sanitizeAccent(value) }));
     }, []);
@@ -1410,6 +1414,7 @@ const useNotesStore = (persisted: iPersisted) => {
         setConfirmDeletions,
         setShowBlockBorders,
         setShowStyleButton,
+        setHideSidebar,
         setAccentColor,
         setListOptions,
         setAnchorStyle,

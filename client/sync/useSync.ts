@@ -79,6 +79,7 @@ const settingsOf = (state: iNotesState): iSettingsItem => ({
     confirmDeletions: state.confirmDeletions,
     showBlockBorders: state.showBlockBorders,
     showStyleButton: state.showStyleButton,
+    hideSidebar: state.hideSidebar,
     use24HourTime: state.use24HourTime,
     accentColor: state.accentColor,
     listOptions: state.listOptions,
@@ -108,7 +109,12 @@ const seedOf = (state: iNotesState): Record<string, tSeed> => {
     return seed;
 };
 
-// Syncs the notes by hand: the server is only asked, saving is Ctrl+S
+// Without a pause of this long in the editing nothing is sent, and at the latest after the maximum. Saving by hand (Ctrl+S, the
+// button of the sidebar) is still there. It asks the server first, so what was changed on another device is pulled as well
+const IDLE_BEFORE_SAVE = 3000;
+const LONGEST_WITHOUT_SAVE = 30_000;
+
+// Syncs the notes: by itself when the editing stopped, or by hand with Ctrl+S
 const useSync = ({ state, history, historyLimit, freshInstall, storedMeta, setState, setHistory }: iUseSyncProps) => {
     const latest = useRef({ state, history });
     latest.current = { state, history };
@@ -116,7 +122,7 @@ const useSync = ({ state, history, historyLimit, freshInstall, storedMeta, setSt
     const settings = useMemo(
         () => settingsOf(state),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [state.lightMode, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.use24HourTime, state.accentColor, state.listOptions, state.anchorStyle, state.lockSetup, state.palette],
+        [state.lightMode, state.editorWidth, state.confirmDeletions, state.showBlockBorders, state.showStyleButton, state.hideSidebar, state.use24HourTime, state.accentColor, state.listOptions, state.anchorStyle, state.lockSetup, state.palette],
     );
     const presets = useMemo(
         () => deriveItems([], [], state.blockPresets, settings, []).presets,
@@ -137,7 +143,14 @@ const useSync = ({ state, history, historyLimit, freshInstall, storedMeta, setSt
         snapshotHistory: iHistoryEntry[];
         snapshotSettings: iSettingsItem;
     }>({
-        mode: 'manual',
+        mode: 'auto',
+        auto: {
+            pushDelay: IDLE_BEFORE_SAVE,
+            maxPushDelay: LONGEST_WITHOUT_SAVE,
+            listing: 'server',
+            // Every word of every note would be listed again whenever the app is opened from the app switcher
+            refreshOnVisible: false,
+        },
         collections: COLLECTIONS,
         version: META_VERSION,
         storedMeta,

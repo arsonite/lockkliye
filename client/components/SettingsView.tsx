@@ -261,7 +261,7 @@ export const SettingsView = ({
                             id: 'hide-sidebar',
                             label: 'Hide the sidebar',
                             description:
-                                'On a phone: no sidebar or rail, swipe from the left edge to the right to open it and from the right to the left to close it. The desktop ignores this. Saved on this device only, every browser and installed app has its own.',
+                                'On a phone: no sidebar or rail, swipe from the left edge to the right to open it and from the right to the left to close it. The desktop ignores this.',
                             control: { type: 'toggle', value: hideSidebar, onChange: onHideSidebarChange },
                         },
                     ],

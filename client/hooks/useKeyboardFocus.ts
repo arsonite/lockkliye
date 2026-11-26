@@ -21,6 +21,8 @@ import { watchKeyboard } from '@/hooks/keyboard';
 
 // Space the toolbar takes above the keyboard while a note is edited
 const TOOLBAR_FALLBACK = 100;
+// How long nothing may move before the text that is edited is brought into view
+const SETTLE = 160;
 
 const isEditable = (el: Element | null): el is HTMLElement =>
     !!el && (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || (el as HTMLElement).isContentEditable);
@@ -49,15 +51,18 @@ const caretRect = (field: HTMLElement): DOMRect => {
 
 // Safari on iOS does not bring the word that is edited above the keyboard, and the keyboard hides the field of a
 // password. This scrolls what is edited into the part of the screen that is left. It is centred when the keyboard
-// comes up, after that it only moves as far as needed, so tapping from one text to another does not jump around.
+// comes up, after that it only moves as far as needed, and only once the tap, the scroll of Safari itself and the
+// switch between two texts have settled, so tapping from one text to another does not jump up and down.
 // It tells the layout how much the keyboard covers (--keyboard-inset) for what is centred on the screen.
 const useKeyboardFocus = (enabled: boolean): void => {
     useEffect(() => {
         const viewport = window.visualViewport;
         if (!enabled || !viewport) return;
-        let frame = 0;
+        let settle = 0;
         let timer = 0;
         let open = false;
+        let touching = false;
+        let lastMove = 0;
 
         const reveal = (center: boolean) => {
             const field = document.activeElement;
@@ -92,17 +97,39 @@ const useKeyboardFocus = (enabled: boolean): void => {
                 timer = window.setTimeout(() => reveal(true), 60);
             }
         });
-        const onSelection = () => {
-            cancelAnimationFrame(frame);
-            frame = requestAnimationFrame(() => reveal(false));
+        const schedule = () => {
+            clearTimeout(settle);
+            settle = window.setTimeout(() => {
+                if (touching || performance.now() - lastMove < SETTLE) schedule();
+                else reveal(false);
+            }, SETTLE);
+        };
+        const onMove = () => {
+            lastMove = performance.now();
+        };
+        const onTouch = (event: TouchEvent) => {
+            touching = event.touches.length > 0;
+            if (!touching) schedule();
         };
 
-        document.addEventListener('selectionchange', onSelection);
+        document.addEventListener('selectionchange', schedule);
+        document.addEventListener('scroll', onMove, true);
+        document.addEventListener('touchstart', onTouch, { passive: true });
+        document.addEventListener('touchend', onTouch, { passive: true });
+        document.addEventListener('touchcancel', onTouch, { passive: true });
+        viewport.addEventListener('scroll', onMove);
+        viewport.addEventListener('resize', onMove);
         return () => {
             stop();
-            cancelAnimationFrame(frame);
+            clearTimeout(settle);
             clearTimeout(timer);
-            document.removeEventListener('selectionchange', onSelection);
+            document.removeEventListener('selectionchange', schedule);
+            document.removeEventListener('scroll', onMove, true);
+            document.removeEventListener('touchstart', onTouch);
+            document.removeEventListener('touchend', onTouch);
+            document.removeEventListener('touchcancel', onTouch);
+            viewport.removeEventListener('scroll', onMove);
+            viewport.removeEventListener('resize', onMove);
             document.documentElement.style.removeProperty('--keyboard-inset');
         };
     }, [enabled]);

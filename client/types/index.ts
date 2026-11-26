@@ -172,6 +172,7 @@ interface iFolder {
     parentId?: string | null; // The folder this one sits in, none for a top-level folder
     sort?: tSortMode; // Edited if not set
     isTemplate?: boolean; // A folder of the templates, note folders and template folders are listed apart
+    collapsed?: boolean; // Closed in the sidebar, open if not set
 }
 
 // History entry for undo/redo functionality
@@ -214,6 +215,7 @@ interface iNotesState {
     confirmDeletions: boolean; // Show confirmation dialogs for deletions
     showBlockBorders: boolean; // Outline the block under the mouse
     showStyleButton: boolean; // Show the block style button next to a block, the style menu always opens with a right-click
+    hideSidebar?: boolean; // On a phone the sidebar only comes in by a swipe from the left edge
     use24HourTime: boolean; // Times are shown as 14:30 instead of 2:30 PM
     accentColor: string; // Hex color of the accents, orange by default
     listOptions: iListOptions;

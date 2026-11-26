@@ -49,7 +49,6 @@ import { shortcutBase, shortcutKey, shortcutText } from '@/tools/shortcuts';
 import type { iFolder, iNote, tPin, tSortMode } from '@/types';
 import type { tSyncStatus } from '@/sync/useSync';
 
-const COLLAPSED_KEY = 'lockkliye-folders-collapsed';
 const ROOT_SORT_KEY = 'lockkliye-root-sort';
 
 interface iSidebarProps {
@@ -111,14 +110,6 @@ interface iMenuItem {
 
 const byName = (a: iFolder, b: iFolder) => a.name.localeCompare(b.name);
 
-const loadCollapsed = (): Set<string> => {
-    try {
-        return new Set(JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '[]'));
-    } catch {
-        return new Set();
-    }
-};
-
 export const Sidebar = ({
     notes: allNotes,
     folders: allFolders,
@@ -164,7 +155,6 @@ export const Sidebar = ({
     const [folderForm, setFolderForm] = useState<iFolderForm | null>(null);
     const [moveNoteId, setMoveNoteId] = useState<string | null>(null);
     const [moveTarget, setMoveTarget] = useState('');
-    const [collapsed, setCollapsed] = useState<Set<string>>(loadCollapsed);
     const [query, setQuery] = useState('');
     // The order of the notes at the top level, the one of a folder belongs to the folder
     const [rootSort, setRootSort] = useState<tSortMode>(() => {
@@ -183,11 +173,6 @@ export const Sidebar = ({
     useEffect(() => {
         if (activeIsTemplate !== null) setSpace(activeIsTemplate ? 'templates' : 'notes');
     }, [activeNoteId, activeIsTemplate]);
-
-    // Whether a folder is open is a matter of this browser, so it is not part of the synced data
-    useEffect(() => {
-        localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...collapsed]));
-    }, [collapsed]);
 
     // The right-click menu closes on any other click, on Escape, and when the list scrolls or the window changes
     useEffect(() => {
@@ -277,14 +262,12 @@ export const Sidebar = ({
             .sort((a, b) => a.label.localeCompare(b.label));
     };
 
-    const toggleCollapsed = (folderId: string) =>
-        setCollapsed((previous) => {
-            const next = new Set(previous);
-            if (!next.delete(folderId)) {
-                next.add(folderId);
-            }
-            return next;
-        });
+    // Whether a folder is open is kept with the folder, so it is synced and every browser shows the same
+    const isCollapsed = (folderId: string) => !!allFolders.find((folder) => folder.id === folderId)?.collapsed;
+    const toggleCollapsed = (folderId: string) => onUpdateFolder(folderId, { collapsed: !isCollapsed(folderId) });
+    const openFolder = (folderId: string) => {
+        if (isCollapsed(folderId)) onUpdateFolder(folderId, { collapsed: false });
+    };
 
     const submitFolderForm = () => {
         if (!folderForm || !folderForm.name.trim()) {
@@ -296,13 +279,7 @@ export const Sidebar = ({
         } else {
             onCreateFolder(name, folderForm.parentId, space === 'templates');
             // Show the new folder, its parent may be closed
-            setCollapsed((previous) => {
-                const next = new Set(previous);
-                if (folderForm.parentId) {
-                    next.delete(folderForm.parentId);
-                }
-                return next;
-            });
+            if (folderForm.parentId) openFolder(folderForm.parentId);
         }
         setFolderForm(null);
     };
@@ -340,11 +317,7 @@ export const Sidebar = ({
                 } else {
                     onCreateNote(folder.id);
                 }
-                setCollapsed((previous) => {
-                    const next = new Set(previous);
-                    next.delete(folder.id);
-                    return next;
-                });
+                openFolder(folder.id);
             },
         },
         ...(space === 'templates' ? [] : fromTemplateItem(folder.id)),
@@ -612,7 +585,7 @@ export const Sidebar = ({
 
     const renderFolder = (folder: iFolder, depth: number, showAll = false): React.ReactNode => {
         // A search opens every folder it found something in, and shows all of a folder whose name it found
-        const open = needle ? true : !collapsed.has(folder.id);
+        const open = needle ? true : !folder.collapsed;
         const everything = showAll || folderNameMatches(folder);
 
         return (

@@ -15,6 +15,7 @@ from teatype.db.hsdb.core import HSDBAttribute, HSDBModel, HSDBRelation
 
 # A folder of notes
 class Folder(HSDBModel):
+    collapsed = HSDBAttribute(bool, description='The folder is closed in the sidebar')
     color     = HSDBAttribute(str, required=True)
     icon      = HSDBAttribute(str, required=True)
     name      = HSDBAttribute(str, required=True)

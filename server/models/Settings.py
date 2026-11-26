@@ -19,6 +19,7 @@ class Settings(HSDBModel):
     anchor_style       = HSDBAttribute(str,  description='JSON of the look of an anchored word: line (dashed, solid) and bold')
     confirm_deletions  = HSDBAttribute(bool, required=True)
     editor_width       = HSDBAttribute(int,  required=True)
+    hide_sidebar       = HSDBAttribute(bool, description='Keep the sidebar of a phone out of the way, it is opened from the menu button')
     light_mode         = HSDBAttribute(bool, required=True)
     list_options       = HSDBAttribute(str,  description='JSON of the list decorators: automatic lists, bullet, numbering style')
     lock_setup         = HSDBAttribute(str,  description='JSON of the password of locked notes: its salt and a salted PBKDF2 hash to check the password. The password itself is never saved')

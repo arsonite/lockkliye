@@ -78,6 +78,7 @@ interface iSettingsItem {
     confirmDeletions: boolean;
     showBlockBorders: boolean;
     showStyleButton: boolean;
+    hideSidebar?: boolean;
     use24HourTime: boolean;
     accentColor: string;
     listOptions: iListOptions;
@@ -165,6 +166,8 @@ const folderCollection: iCollection<iFolder> = {
         ...(folder.parentId ? { parent: folder.parentId } : {}),
         ...(folder.sort ? { sort_mode: folder.sort } : {}),
         ...(folder.isTemplate === undefined ? {} : { is_template: folder.isTemplate }),
+        // Only once a folder was closed, the others keep their hash
+        ...(folder.collapsed === undefined ? {} : { collapsed: folder.collapsed }),
     }),
     fromRow: (row, key) => ({
         id: key,
@@ -174,6 +177,7 @@ const folderCollection: iCollection<iFolder> = {
         parentId: (row.parent as string | undefined) ?? null,
         sort: (text(row.sort_mode) || undefined) as iFolder['sort'],
         isTemplate: typeof row.is_template === 'boolean' ? row.is_template : undefined,
+        collapsed: typeof row.collapsed === 'boolean' ? row.collapsed : undefined,
     }),
     relations: { parent: 'folders' },
 };
@@ -233,6 +237,8 @@ const settingsCollection: iCollection<iSettingsItem> = {
         show_block_borders: settings.showBlockBorders,
         show_style_button: settings.showStyleButton,
         use_24_hour_time: settings.use24HourTime,
+        // Only once chosen, so the settings that never were keep their hash. Switching it off sends false
+        ...(settings.hideSidebar === undefined ? {} : { hide_sidebar: settings.hideSidebar }),
         // Only once there is a password, the settings of everyone else keep their hash
         ...(settings.lockSetup ? { lock_setup: JSON.stringify(settings.lockSetup) } : {}),
     }),
@@ -242,6 +248,7 @@ const settingsCollection: iCollection<iSettingsItem> = {
         confirmDeletions: row.confirm_deletions as boolean,
         showBlockBorders: row.show_block_borders !== false,
         showStyleButton: row.show_style_button === true,
+        hideSidebar: typeof row.hide_sidebar === 'boolean' ? row.hide_sidebar : undefined,
         use24HourTime: row.use_24_hour_time !== false,
         accentColor: sanitizeAccent(row.accent_color),
         listOptions: sanitizeListOptions(row.list_options ? JSON.parse(text(row.list_options)) : undefined),
