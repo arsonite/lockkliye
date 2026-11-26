@@ -168,6 +168,7 @@ const createTutorialNote = (): iNote => {
             lines([
                 item(words('A line that starts with "-", "*" or "1." becomes a list, the bullet is a small hollow circle')),
                 item(words('Enter continues the list, Enter on an empty item ends it')),
+                item(words('Tab indents a line, its items use a second style that alternates with the first (a hollow circle, then a dot, then a hollow circle again), Tab on an empty item and Shift+Tab move it a level')),
                 item(words('Settings > Editor > Lists changes the bullet and the numbering for all blocks, the style menu of a block (right-click, or press and hold) sets its own and offers list options only in a block that has a list')),
             ]),
             { title: 'Lists', borderStyle: 'solid', borderRadius: 8, backgroundColor: 'rgba(105,219,124,0.1)' },

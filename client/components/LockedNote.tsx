@@ -24,6 +24,7 @@ import MiscToolbar from './MiscToolbar';
 
 // Utility
 import { supported } from '@/tools/lock';
+import { TeaButton } from '@teatype/components';
 
 interface iLockedNoteProps {
     hasPassword: boolean;
@@ -54,9 +55,9 @@ const LockedNote: React.FC<iLockedNoteProps> = ({ hasPassword, onSync, onUnlock 
                 <p className='locked-note__text'>
                     The password of this note is not known here yet. Sync with the server to get it (Ctrl+S).
                 </p>
-                <button className='tea-modal-btn tea-modal-btn--primary' type='button' onClick={onSync}>
+                <TeaButton theme='filled' onClick={onSync}>
                     Sync now
-                </button>
+                </TeaButton>
             </>
         );
     } else {
@@ -87,9 +88,9 @@ const LockedNote: React.FC<iLockedNoteProps> = ({ hasPassword, onSync, onUnlock 
                         autoComplete='current-password'
                         autoFocus
                     />
-                    <button className='tea-modal-btn tea-modal-btn--primary' type='submit' disabled={busy || !password}>
+                    <TeaButton theme='filled' type='submit' disabled={busy || !password}>
                         Unlock
-                    </button>
+                    </TeaButton>
                 </div>
                 {wrong && <p className='lock-form__error'>Wrong password.</p>}
                 {!supported() && (

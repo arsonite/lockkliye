@@ -31,7 +31,7 @@ import type { iAnchorStyle, iListOptions, iPalette, tNumbering, tPaletteKind } f
 // Utils
 import { DEFAULT_ACCENT } from '@/tools/accent';
 import { ANCHOR_LINES, sanitizeAnchorStyle } from '@/tools/anchorStyle';
-import { BULLETS, NUMBERINGS, numberingLabel, sanitizeListOptions } from '@/tools/lists';
+import { BULLETS, NUMBERINGS, bulletLabel, numberingLabel, sanitizeListOptions } from '@/tools/lists';
 import { SHORTCUT_GROUPS } from '@/tools/shortcuts';
 import { generateShortText, generateLongText, generateTitle, copyToClipboard } from '@/tools/randomGenerator';
 
@@ -266,7 +266,7 @@ export const SettingsView = ({
                             id: 'hide-sidebar',
                             label: 'Hide the sidebar',
                             description:
-                                'On a phone: no sidebar or rail, swipe from the left edge to the right to open it and from the right to the left to close it. The desktop ignores this.',
+                                'On a phone: no sidebar or rail, swipe from the left edge to the right to open it and from the right to the left to close it. The desktop ignores this. Saved on this device only, every browser and installed app has its own.',
                             control: { type: 'toggle', value: hideSidebar, onChange: onHideSidebarChange },
                         },
                     ],
@@ -307,7 +307,7 @@ export const SettingsView = ({
                 {
                     id: 'lists',
                     title: 'Lists',
-                    description: 'The default for all blocks. Text that starts a line with "-", "*" or "1." becomes a list, Enter continues it and an empty item ends it.',
+                    description: 'The default for all blocks. Text that starts a line with "-", "*" or "1." becomes a list, Enter continues it and an empty item ends it. Indented items alternate: the second style is shown behind the first one.',
                     items: [
                         {
                             id: 'list-bullet',
@@ -316,7 +316,7 @@ export const SettingsView = ({
                             control: {
                                 type: 'select',
                                 value: listOptions.bullet,
-                                options: BULLETS.map((bullet) => ({ value: bullet, label: bullet })),
+                                options: BULLETS.map((bullet) => ({ value: bullet, label: bulletLabel(bullet) })),
                                 onChange: (bullet: string) => onListOptionsChange({ ...listOptions, bullet }),
                             },
                         },
@@ -744,21 +744,20 @@ export const SettingsView = ({
                 size='sm'
                 footer={
                     <>
-                        <button
-                            className='tea-modal-btn tea-modal-btn--secondary'
+                        <TeaButton
                             onClick={() => setShowClearDataModal(false)}
                         >
                             Cancel
-                        </button>
-                        <button
-                            className='tea-modal-btn tea-modal-btn--danger'
+                        </TeaButton>
+                        <TeaButton
+                            theme='danger'
                             onClick={() => {
                                 onClearAllData();
                                 setShowClearDataModal(false);
                             }}
                         >
                             Clear All
-                        </button>
+                        </TeaButton>
                     </>
                 }
             >
@@ -772,14 +771,13 @@ export const SettingsView = ({
                 size='sm'
                 footer={
                     <>
-                        <button
-                            className='tea-modal-btn tea-modal-btn--secondary'
+                        <TeaButton
                             onClick={() => setShowRestoreModal(false)}
                         >
                             Cancel
-                        </button>
-                        <button
-                            className='tea-modal-btn tea-modal-btn--danger'
+                        </TeaButton>
+                        <TeaButton
+                            theme='danger'
                             onClick={() => {
                                 setShowRestoreModal(false);
                                 startImport({
@@ -790,7 +788,7 @@ export const SettingsView = ({
                             }}
                         >
                             Choose File
-                        </button>
+                        </TeaButton>
                     </>
                 }
             >
@@ -807,14 +805,13 @@ export const SettingsView = ({
                 size='sm'
                 footer={
                     <>
-                        <button
-                            className='tea-modal-btn tea-modal-btn--secondary'
+                        <TeaButton
                             onClick={() => setShowClearHistoryModal(false)}
                         >
                             Cancel
-                        </button>
-                        <button
-                            className='tea-modal-btn tea-modal-btn--danger'
+                        </TeaButton>
+                        <TeaButton
+                            theme='danger'
                             onClick={() => {
                                 onClearAllHistory();
                                 setShowClearHistoryModal(false);
@@ -822,7 +819,7 @@ export const SettingsView = ({
                             }}
                         >
                             Clear all
-                        </button>
+                        </TeaButton>
                     </>
                 }
             >

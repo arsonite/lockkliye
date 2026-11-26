@@ -356,8 +356,8 @@ const useNotesStore = (persisted: iPersisted) => {
     }, []);
 
     // A template is made like a note, it is only listed in the templates
-    const createNewTemplate = useCallback(() => {
-        const template = { ...createNote('Untitled template'), isTemplate: true };
+    const createNewTemplate = useCallback((folderId?: string | null) => {
+        const template = { ...createNote('Untitled template', folderId ?? null), isTemplate: true };
         setState((prev: iNotesState) => ({ ...prev, notes: [template, ...prev.notes], activeNoteId: template.id }));
         return template;
     }, []);
@@ -375,13 +375,14 @@ const useNotesStore = (persisted: iPersisted) => {
         return note;
     }, [state.notes]);
 
-    // A note becomes a template and the other way round. A template is in no folder and not pinned. Like moving a note,
-    // this is no edit of its text, so it stays out of the undo history.
+    // A note becomes a template and the other way round. It leaves its folder, the folders of the notes and of the templates
+    // are apart, and a template is not pinned. Like moving a note, this is no edit of its text, so it stays out of the undo
+    // history.
     const setNoteTemplate = useCallback((noteId: string, isTemplate: boolean) => {
         setState((prev: iNotesState) => ({
             ...prev,
             notes: prev.notes.map((n: iNote) =>
-                n.id === noteId ? { ...n, isTemplate, ...(isTemplate ? { folderId: null, pinned: undefined } : {}) } : n,
+                n.id === noteId ? { ...n, isTemplate, folderId: null, ...(isTemplate ? { pinned: undefined } : {}) } : n,
             ),
         }));
     }, []);
@@ -426,8 +427,8 @@ const useNotesStore = (persisted: iPersisted) => {
     }, []);
 
     // Folder actions
-    const createNewFolder = useCallback((name: string, parentId: string | null = null, color?: string) => {
-        const folder = { ...createFolder(name, parentId), ...(color ? { color } : {}) };
+    const createNewFolder = useCallback((name: string, parentId: string | null = null, isTemplate = false) => {
+        const folder = { ...createFolder(name, parentId), ...(isTemplate ? { isTemplate } : {}) };
         setState((prev: iNotesState) => ({
             ...prev,
             folders: [...prev.folders, folder],

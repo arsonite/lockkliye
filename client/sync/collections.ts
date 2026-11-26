@@ -164,6 +164,7 @@ const folderCollection: iCollection<iFolder> = {
         name: folder.name,
         ...(folder.parentId ? { parent: folder.parentId } : {}),
         ...(folder.sort ? { sort_mode: folder.sort } : {}),
+        ...(folder.isTemplate === undefined ? {} : { is_template: folder.isTemplate }),
     }),
     fromRow: (row, key) => ({
         id: key,
@@ -172,6 +173,7 @@ const folderCollection: iCollection<iFolder> = {
         color: text(row.color) || undefined,
         parentId: (row.parent as string | undefined) ?? null,
         sort: (text(row.sort_mode) || undefined) as iFolder['sort'],
+        isTemplate: typeof row.is_template === 'boolean' ? row.is_template : undefined,
     }),
     relations: { parent: 'folders' },
 };

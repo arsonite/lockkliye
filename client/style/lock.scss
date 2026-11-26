@@ -13,22 +13,6 @@
  * all copies or substantial portions of the Software.
  */
 
-// The second floating bar, for things that are not about the text
-.floating-toolbar--misc {
-    .floating-toolbar__btn--open {
-        color: var(--accent);
-    }
-
-    .floating-toolbar__btn:disabled {
-        cursor: default;
-        opacity: 0.4;
-
-        &:hover {
-            background: transparent;
-        }
-    }
-}
-
 // The screen of a note that is locked
 .locked-note {
     display: flex;

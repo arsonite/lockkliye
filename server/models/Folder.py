@@ -19,6 +19,7 @@ class Folder(HSDBModel):
     icon      = HSDBAttribute(str, required=True)
     name      = HSDBAttribute(str, required=True)
     sort_mode = HSDBAttribute(str, description='How the notes of the folder are ordered: edited, title, title-desc, created or manual')
+    is_template = HSDBAttribute(bool, description='A folder of the templates, the folders of the notes and of the templates are listed apart')
     rev       = HSDBAttribute(int, required=True, description='Save timestamp (ms), changes whenever the row is written by a client')
 
 # A folder can sit in another folder, assigned here because the class cannot name itself in its own body

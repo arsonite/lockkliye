@@ -112,7 +112,9 @@ Sorted by priority.
 
 ### High
 
--
+- use teatype components where possible (ongoing)
+    - [x] buttons
+    - [] selectors
 
 ### Low
 

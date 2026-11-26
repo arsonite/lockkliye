@@ -247,9 +247,9 @@ const NotesAppContent: React.FC<{ persisted: iPersisted }> = ({ persisted }) => 
         }
     };
 
-    const handleCreateTemplate = () => {
+    const handleCreateTemplate = (folderId?: string | null) => {
         setShowSettings(false);
-        store.createNewTemplate();
+        store.createNewTemplate(folderId);
         closeSheet();
     };
 

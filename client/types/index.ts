@@ -171,6 +171,7 @@ interface iFolder {
     color?: string;
     parentId?: string | null; // The folder this one sits in, none for a top-level folder
     sort?: tSortMode; // Edited if not set
+    isTemplate?: boolean; // A folder of the templates, note folders and template folders are listed apart
 }
 
 // History entry for undo/redo functionality

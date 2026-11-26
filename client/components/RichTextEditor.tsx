@@ -21,7 +21,7 @@ import { TeaDatePicker, TeaTimePicker } from '@teatype/components';
 import { applyFormatMode } from '@/components/WordComponent';
 import LinkModal from '@/components/LinkModal';
 import { findDate, formatDate, type iFoundDate } from '@/tools/dates';
-import { DEFAULT_LIST_OPTIONS, convertPastedLists, decoratorOf, nextMarker } from '@/tools/lists';
+import { DEFAULT_LIST_OPTIONS, convertPastedLists, decoratorOf, isIndent as isIndentWord, nextLineStart, shiftedItem } from '@/tools/lists';
 import useLongPress from '@/hooks/useLongPress';
 import { shortcutOf } from '@/tools/shortcuts';
 import { findTime, formatTime, type iFoundTime } from '@/tools/times';
@@ -684,14 +684,17 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
 
         const newWords = parseHTMLToWords(editorRef.current);
 
-        // A "-" or "*" at the start of a line followed by text is a bullet, shown with the chosen decorator
+        // A "-" or "*" at the start of a line (after its indentation) followed by text is a bullet, shown with the chosen
+        // decorator of its level
         const convertedWords = newWords.map((word, idx) => {
-            const isAtStart = idx === 0 || newWords[idx - 1].text === '\n';
+            if (!/^[-*]$/.test(word.text)) return word;
+            let start = idx;
+            while (start > 0 && isIndentWord(newWords[start - 1].text)) start--;
             const next = newWords[idx + 1];
-            if (isAtStart && /^[-*]$/.test(word.text) && next && next.text !== '\n') {
-                return { ...word, text: listOptions.bullet };
-            }
-            return word;
+            const atStart = start === 0 || newWords[start - 1].text === '\n';
+            if (!atStart || !next || next.text === '\n') return word;
+            const decorator = decoratorOf(newWords.slice(start, idx + 1), listOptions);
+            return decorator ? { ...word, text: decorator } : word;
         });
 
         emit(convertedWords);
@@ -740,29 +743,42 @@ export const RichTextEditor: React.FC<iRichTextEditorProps> = ({
             if (!e.ctrlKey && !e.metaKey && !e.altKey) {
                 if (e.key === ' ' && !e.shiftKey) {
                     const line = lineBeforeCaret();
-                    const decorator = line?.length === 1 ? decoratorOf(line[0].text, listOptions) : null;
+                    const decorator = line ? decoratorOf(line, listOptions) : null;
                     if (line && decorator) {
                         e.preventDefault();
-                        selectBackward(line[0].text.length);
+                        selectBackward(line[line.length - 1].text.length);
                         document.execCommand('insertText', false, `${decorator} `);
                         return;
                     }
                 }
                 if (e.key === 'Enter' && !e.shiftKey) {
                     const line = lineBeforeCaret();
-                    const marker = line?.length ? nextMarker(line[0].text, listOptions) : null;
-                    if (line && marker) {
+                    const next = line?.length ? nextLineStart(line, listOptions) : null;
+                    if (line && next) {
                         e.preventDefault();
-                        if (line.length === 1) {
-                            // An empty item ends the list
+                        // An empty item ends the list
+                        const empty = line.filter((word) => !isIndentWord(word.text)).length === 1;
+                        if (empty) {
                             window.getSelection()?.modify('extend', 'backward', 'lineboundary');
                             document.execCommand('delete');
                         } else {
                             document.execCommand('insertLineBreak');
-                            document.execCommand('insertText', false, `${marker} `);
+                            document.execCommand('insertText', false, `${next} `);
                         }
                         return;
                     }
+                }
+            }
+
+            // Tab and Shift+Tab on an empty list item move it a level in or out
+            if (e.key === 'Tab') {
+                const line = lineBeforeCaret();
+                const shifted = line?.length ? shiftedItem(line, listOptions, e.shiftKey ? -1 : 1) : null;
+                if (shifted) {
+                    e.preventDefault();
+                    window.getSelection()?.modify('extend', 'backward', 'lineboundary');
+                    document.execCommand('insertText', false, `${shifted} `);
+                    return;
                 }
             }
 

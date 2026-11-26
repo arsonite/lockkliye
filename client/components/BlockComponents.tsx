@@ -22,6 +22,7 @@ import { TeaCheckbox } from '@teatype/components';
 
 // Types
 import type { iChecklistData, iTableData } from '@/types';
+import { TeaButton } from '@teatype/components';
 
 // The components a block can hold besides text. Each edits the data of its block through onChange.
 interface iBlockContentProps<T> {
@@ -106,15 +107,30 @@ export const ChecklistBlock = ({ data, autoFocus, onAutoFocused, onChange }: iBl
                         }}
                     />
                     {items.length > 1 && (
-                        <button className='checklist__remove' title='Remove item' onClick={() => remove(index)}>
+                        <TeaButton
+                            variant='borderless'
+                            size='xs'
+                            disableRipple
+                            className='checklist__remove'
+                            title='Remove item'
+                            onClick={() => remove(index)}
+                        >
                             <XIcon width='1em' height='1em' />
-                        </button>
+                        </TeaButton>
                     )}
                 </div>
             ))}
-            <button className='checklist__add' onClick={() => addAfter(items.length - 1)}>
-                <PlusIcon /> Item
-            </button>
+            <div className='checklist__actions'>
+                <TeaButton
+                    variant='borderless'
+                    size='xs'
+                    disableRipple
+                    icon={<PlusIcon />}
+                    onClick={() => addAfter(items.length - 1)}
+                >
+                    Item
+                </TeaButton>
+            </div>
         </div>
     );
 };
@@ -172,17 +188,35 @@ export const TableBlock = ({ data, autoFocus, onAutoFocused, onChange }: iBlockC
                 </tbody>
             </table>
             <div className='table-block__actions'>
-                <button onClick={addRow}>+ Row</button>
-                <button onClick={() => onChange({ rows: rows.map((row) => [...row, '']) })}>+ Column</button>
-                <button disabled={rows.length === 1} onClick={() => onChange({ rows: rows.slice(0, -1) })}>
+                <TeaButton variant='borderless' size='xs' disableRipple onClick={addRow}>
+                    + Row
+                </TeaButton>
+                <TeaButton
+                    variant='borderless'
+                    size='xs'
+                    disableRipple
+                    onClick={() => onChange({ rows: rows.map((row) => [...row, '']) })}
+                >
+                    + Column
+                </TeaButton>
+                <TeaButton
+                    variant='borderless'
+                    size='xs'
+                    disableRipple
+                    disabled={rows.length === 1}
+                    onClick={() => onChange({ rows: rows.slice(0, -1) })}
+                >
                     - Row
-                </button>
-                <button
+                </TeaButton>
+                <TeaButton
+                    variant='borderless'
+                    size='xs'
+                    disableRipple
                     disabled={columns === 1}
                     onClick={() => onChange({ rows: rows.map((row) => row.slice(0, -1)) })}
                 >
                     - Column
-                </button>
+                </TeaButton>
             </div>
         </div>
     );

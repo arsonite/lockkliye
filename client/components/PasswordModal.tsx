@@ -17,7 +17,7 @@
 import { useEffect, useState } from 'react';
 
 // TeaType components
-import { TeaModal } from '@teatype/components';
+import { TeaButton, TeaModal } from '@teatype/components';
 
 // Utility
 import { supported } from '@/tools/lock';
@@ -88,12 +88,12 @@ const PasswordModal: React.FC<iPasswordModalProps> = ({ mode, onSubmit, onClose 
             size='sm'
             footer={
                 <>
-                    <button className='tea-modal-btn tea-modal-btn--secondary' onClick={onClose}>
+                    <TeaButton onClick={onClose}>
                         Cancel
-                    </button>
-                    <button className='tea-modal-btn tea-modal-btn--primary' type='submit' form={FORM_ID} disabled={busy}>
+                    </TeaButton>
+                    <TeaButton theme='filled' type='submit' form={FORM_ID} disabled={busy}>
                         {mode === 'unlock' ? 'Unlock' : mode === 'change' ? 'Change' : 'Set password'}
-                    </button>
+                    </TeaButton>
                 </>
             }
         >

@@ -13,7 +13,8 @@
  * all copies or substantial portions of the Software.
  */
 
-// TeaType icons
+// TeaType
+import { TeaButton } from '@teatype/components';
 import { LockIcon, UnlockIcon, WorkspaceIcon } from '@teatype/icons';
 
 // Hooks
@@ -40,10 +41,13 @@ const MiscToolbar: React.FC<iMiscToolbarProps> = ({ locked = true, unlocked, onL
         <div className='floating-toolbar floating-toolbar--misc'>
             <div className='floating-toolbar__inner'>
                 {locked && (
-                    <button
-                        className={`floating-toolbar__btn ${unlocked ? 'floating-toolbar__btn--open' : ''} ${
-                            hinted ? 'floating-toolbar__btn--hint' : ''
-                        }`}
+                    <TeaButton
+                        variant='borderless'
+                        size='xs'
+                        iconOnly
+                        disableRipple
+                        theme={unlocked ? 'filled' : 'default'}
+                        className={hinted ? 'floating-toolbar__btn--hint' : undefined}
                         onClick={onLockAll}
                         onMouseDown={(e) => e.preventDefault()}
                         disabled={!unlocked}
@@ -55,20 +59,23 @@ const MiscToolbar: React.FC<iMiscToolbarProps> = ({ locked = true, unlocked, onL
                     >
                         {unlocked ? <UnlockIcon /> : <LockIcon />}
                         {hinted && <span className='floating-toolbar__key'>{shortcutKey('lockAll')}</span>}
-                    </button>
+                    </TeaButton>
                 )}
                 {onWorkspaceToggle && (
-                    <button
-                        className={`floating-toolbar__btn ${workspaceOpen ? 'floating-toolbar__btn--open' : ''} ${
-                            workspaceHinted ? 'floating-toolbar__btn--hint' : ''
-                        }`}
+                    <TeaButton
+                        variant='borderless'
+                        size='xs'
+                        iconOnly
+                        disableRipple
+                        active={workspaceOpen}
+                        className={workspaceHinted ? 'floating-toolbar__btn--hint' : undefined}
                         onClick={onWorkspaceToggle}
                         onMouseDown={(e) => e.preventDefault()}
                         title={`${workspaceOpen ? 'Close' : 'Open'} the workspace for comments, drafts and unfinished text (${shortcutText('toggleWorkspace')})`}
                     >
                         <WorkspaceIcon />
                         {workspaceHinted && <span className='floating-toolbar__key'>{shortcutKey('toggleWorkspace')}</span>}
-                    </button>
+                    </TeaButton>
                 )}
             </div>
         </div>

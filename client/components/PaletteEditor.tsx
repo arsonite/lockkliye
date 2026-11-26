@@ -65,26 +65,32 @@ export const PaletteEditor = ({ kind, palette, onToggle, onAdd, onRemove }: iPal
                     const on = enabled.includes(entry.value);
                     return (
                         <div key={entry.value} className='palette-editor__cell'>
-                            <button
-                                type='button'
-                                className={`palette-editor__swatch ${on ? 'palette-editor__swatch--on' : ''} ${
+                            <TeaButton
+                                round
+                                size='small'
+                                iconOnly
+                                disableRipple
+                                active={on}
+                                className={`palette-editor__swatch ${
                                     isNone(kind, entry.value) ? 'palette-editor__swatch--none' : ''
                                 }`}
                                 style={swatchStyle(kind, entry.value)}
                                 disabled={!on && full}
-                                aria-pressed={on}
                                 title={`${entry.label}${on ? ' (on)' : full ? ' (8 are already on)' : ''}`}
                                 onClick={() => onToggle(kind, entry.value)}
                             />
                             {entry.custom && (
-                                <button
-                                    type='button'
+                                <TeaButton
+                                    round
+                                    size='xs'
+                                    iconOnly
+                                    disableRipple
                                     className='palette-editor__remove'
                                     title='Delete this custom color'
                                     onClick={() => onRemove(kind, entry.value)}
                                 >
                                     <XIcon width='1em' height='1em' />
-                                </button>
+                                </TeaButton>
                             )}
                         </div>
                     );

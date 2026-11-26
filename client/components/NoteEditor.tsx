@@ -33,7 +33,7 @@ import {
     UndoIcon,
     XIcon,
 } from '@teatype/icons';
-import { TeaModal, TeaPopover } from '@teatype/components';
+import { TeaButton, TeaModal, TeaPopover } from '@teatype/components';
 
 // Components
 import FloatingToolbar from './FloatingToolbar';
@@ -631,10 +631,11 @@ export const NoteEditor = ({
                     )}
                     <div className='note-editor__title-row'>
                         {!note.isTemplate && (
-                            <button
-                                className={`note-editor__anchor-btn ${
-                                    note.isAnchor ? 'note-editor__anchor-btn--active' : ''
-                                }`}
+                            <TeaButton
+                                variant='borderless'
+                                size='small'
+                                active={note.isAnchor}
+                                className='note-editor__anchor-btn'
                                 onClick={handleAnchorToggle}
                                 title={
                                     note.isAnchor
@@ -643,7 +644,7 @@ export const NoteEditor = ({
                                 }
                             >
                                 <BookmarkIcon />
-                            </button>
+                            </TeaButton>
                         )}
                         {isEditingTitle ? (
                             <input
@@ -668,10 +669,15 @@ export const NoteEditor = ({
                     </div>
                     <p className='note-editor__date'>Last edited: {formatDate(note.updatedAt)}</p>
                     {note.isTemplate && (
-                        <button className='note-editor__template-btn' onClick={onCreateFromTemplate}>
-                            <TemplateIcon />
+                        <TeaButton
+                            theme='filled'
+                            size='small'
+                            icon={<TemplateIcon />}
+                            className='note-editor__template-btn'
+                            onClick={onCreateFromTemplate}
+                        >
                             Create a note from this template
-                        </button>
+                        </TeaButton>
                     )}
                 </div>
 
@@ -747,10 +753,6 @@ export const NoteEditor = ({
                                                     onAutoFocused={onFocusHandled}
                                                     onClearFormatMode={onClearFormatMode}
                                                     onSaveAsPreset={onAddBlockPreset}
-                                                    workspaceAction={{
-                                                        label: 'Move to the workspace',
-                                                        run: () => onBlockToWorkspace(block.id),
-                                                    }}
                                                     handle={
                                                         <div
                                                             className='note-editor__drag-handle'
@@ -802,41 +804,56 @@ export const NoteEditor = ({
                     )}
 
                     <div className='note-editor__add-buttons'>
-                        <button className='note-editor__add-block' onClick={() => onBlockAdd()}>
+                        <TeaButton
+                            variant='borderless'
+                            size='large'
+                            fullWidth
+                            className='note-editor__add'
+                            onClick={() => onBlockAdd()}
+                        >
                             + Add block
-                        </button>
+                        </TeaButton>
                         <div className='note-editor__preset-container'>
-                            <button
-                                className='note-editor__add-component'
+                            <TeaButton
+                                variant='borderless'
+                                size='large'
+                                fullWidth
+                                className='note-editor__add'
                                 onClick={() => setShowComponentMenu(!showComponentMenu)}
                             >
                                 + Add component
-                            </button>
+                            </TeaButton>
                             {showComponentMenu && (
                                 <div className='note-editor__preset-menu note-editor__component-menu' ref={componentMenuRef}>
                                     {COMPONENTS.filter(([kind]) => kind !== 'text').map(([kind, label, icon]) => (
-                                        <button
+                                        <TeaButton
                                             key={kind}
-                                            className='tea-popover__item'
+                                            variant='borderless'
+                                            size='small'
+                                            fullWidth
+                                            align='start'
+                                            icon={icon}
                                             onClick={() => {
                                                 onBlockInsert(kind);
                                                 setShowComponentMenu(false);
                                             }}
                                         >
-                                            {icon}
                                             {label}
-                                        </button>
+                                        </TeaButton>
                                     ))}
                                 </div>
                             )}
                         </div>
                         <div className='note-editor__preset-container'>
-                            <button
-                                className='note-editor__add-preset'
+                            <TeaButton
+                                variant='borderless'
+                                size='large'
+                                fullWidth
+                                className='note-editor__add'
                                 onClick={() => setShowPresetMenu(!showPresetMenu)}
                             >
                                 + Add preset
-                            </button>
+                            </TeaButton>
                             {showPresetMenu && (
                                 <div className='note-editor__preset-menu' ref={presetMenuRef}>
                                     {blockPresets.length === 0 ? (
@@ -868,7 +885,10 @@ export const NoteEditor = ({
                                                         autoFocus
                                                     />
                                                 ) : (
-                                                    <button
+                                                    <TeaButton
+                                                        variant='borderless'
+                                                        fullWidth
+                                                        align='start'
                                                         className='note-editor__preset-item'
                                                         onClick={() => {
                                                             onBlockAddWithPreset(preset);
@@ -887,11 +907,12 @@ export const NoteEditor = ({
                                                         }}
                                                     >
                                                         {preset.title || `Preset ${index + 1}`}
-                                                    </button>
+                                                    </TeaButton>
                                                 )}
                                                 <div className='note-editor__preset-actions'>
-                                                    <button
-                                                        className='note-editor__preset-edit'
+                                                    <TeaButton
+                                                        variant='borderless'
+                                                        size='xs'
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setEditingPresetIndex(index);
@@ -902,9 +923,11 @@ export const NoteEditor = ({
                                                         title='Edit preset name'
                                                     >
                                                         <PencilIcon />
-                                                    </button>
-                                                    <button
-                                                        className='note-editor__preset-delete'
+                                                    </TeaButton>
+                                                    <TeaButton
+                                                        variant='borderless'
+                                                        theme='danger'
+                                                        size='xs'
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             if (confirmDeletions) {
@@ -916,7 +939,7 @@ export const NoteEditor = ({
                                                         title='Delete preset'
                                                     >
                                                         <XIcon width='1em' height='1em' />
-                                                    </button>
+                                                    </TeaButton>
                                                 </div>
                                             </div>
                                         ))
@@ -932,17 +955,20 @@ export const NoteEditor = ({
             {insertMenu && (
                 <TeaPopover x={insertMenu.x} y={insertMenu.y} onClose={() => setInsertMenu(null)}>
                     {COMPONENTS.map(([kind, label, icon]) => (
-                        <button
+                        <TeaButton
                             key={kind}
-                            className='tea-popover__item'
+                            variant='borderless'
+                            size='small'
+                            fullWidth
+                            align='start'
+                            icon={icon}
                             onClick={() => {
                                 onBlockInsert(kind, insertMenu.index);
                                 setInsertMenu(null);
                             }}
                         >
-                            {icon}
                             {label}
-                        </button>
+                        </TeaButton>
                     ))}
                 </TeaPopover>
             )}
@@ -955,21 +981,20 @@ export const NoteEditor = ({
                 size='sm'
                 footer={
                     <>
-                        <button
-                            className='tea-modal-btn tea-modal-btn--secondary'
+                        <TeaButton
                             onClick={() => setShowUnanchorModal(false)}
                         >
                             Cancel
-                        </button>
-                        <button
-                            className='tea-modal-btn tea-modal-btn--danger'
+                        </TeaButton>
+                        <TeaButton
+                            theme='danger'
                             onClick={() => {
                                 onToggleAnchor(false);
                                 setShowUnanchorModal(false);
                             }}
                         >
                             Remove Anchor
-                        </button>
+                        </TeaButton>
                     </>
                 }
             >
@@ -987,14 +1012,13 @@ export const NoteEditor = ({
                 size='sm'
                 footer={
                     <>
-                        <button
-                            className='tea-modal-btn tea-modal-btn--secondary'
+                        <TeaButton
                             onClick={() => setDeletePresetIndex(null)}
                         >
                             Cancel
-                        </button>
-                        <button
-                            className='tea-modal-btn tea-modal-btn--danger'
+                        </TeaButton>
+                        <TeaButton
+                            theme='danger'
                             onClick={() => {
                                 if (deletePresetIndex !== null) {
                                     onRemoveBlockPreset(deletePresetIndex);
@@ -1003,7 +1027,7 @@ export const NoteEditor = ({
                             }}
                         >
                             Delete
-                        </button>
+                        </TeaButton>
                     </>
                 }
             >
@@ -1013,17 +1037,18 @@ export const NoteEditor = ({
             {/* History indicator - fixed at bottom, faint until the mouse is over it, the list opens between undo and redo */}
             <div className='note-editor__history-overlay'>
                 <div className='note-editor__history-indicator'>
-                    <button
-                        className={`note-editor__undo-btn ${!canUndo ? 'note-editor__undo-btn--disabled' : ''} ${
-                            undoKeys ? 'note-editor__undo-btn--hint' : ''
-                        }`}
+                    <TeaButton
+                        size='small'
+                        iconOnly
+                        disableRipple
+                        className={`note-editor__step ${undoKeys ? 'note-editor__step--hint' : ''}`}
                         onClick={onUndo}
                         disabled={!canUndo}
                         title={`Undo (${shortcutText('undo')})`}
                     >
                         <UndoIcon />
                         {undoKeys && <span className='note-editor__history-key'>{undoKeys}</span>}
-                    </button>
+                    </TeaButton>
 
                     <div
                         ref={historyRef}
@@ -1036,8 +1061,9 @@ export const NoteEditor = ({
                         <div className='note-editor__history-panel'>
                             <div className='note-editor__history-header'>
                                 <span>History ({historyCount})</span>
-                                <button
-                                    className='note-editor__history-clear'
+                                <TeaButton
+                                    variant='borderless'
+                                    size='xs'
                                     title='Delete the history of this note, on the server with the next save'
                                     onClick={() => {
                                         onClearHistory();
@@ -1045,7 +1071,7 @@ export const NoteEditor = ({
                                     }}
                                 >
                                     Clear
-                                </button>
+                                </TeaButton>
                             </div>
                             <div className='note-editor__history-list'>
                                 {getHistory()
@@ -1066,7 +1092,11 @@ export const NoteEditor = ({
                                     ))}
                             </div>
                         </div>
-                        <button
+                        <TeaButton
+                            variant='borderless'
+                            size='small'
+                            fullWidth
+                            disableRipple
                             className='note-editor__history-btn'
                             onClick={() => setShowHistory(!showHistory)}
                             disabled={historyCount === 0}
@@ -1074,20 +1104,21 @@ export const NoteEditor = ({
                         >
                             <span className='note-editor__history-count'>{historyCount}</span>
                             <span className='note-editor__history-label'>change{historyCount !== 1 ? 's' : ''}</span>
-                        </button>
+                        </TeaButton>
                     </div>
 
-                    <button
-                        className={`note-editor__redo-btn ${!canRedo ? 'note-editor__redo-btn--disabled' : ''} ${
-                            redoKeys ? 'note-editor__redo-btn--hint' : ''
-                        }`}
+                    <TeaButton
+                        size='small'
+                        iconOnly
+                        disableRipple
+                        className={`note-editor__step ${redoKeys ? 'note-editor__step--hint' : ''}`}
                         onClick={onRedo}
                         disabled={!canRedo}
                         title={`Redo (${shortcutText('redo')})`}
                     >
                         <RedoIcon />
                         {redoKeys && <span className='note-editor__history-key'>{redoKeys}</span>}
-                    </button>
+                    </TeaButton>
                 </div>
             </div>
 

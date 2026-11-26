@@ -16,7 +16,7 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 
 // TeaType icons
-import { AddAboveIcon, AddBelowIcon, ContrastIcon, SaveIcon, TextAlignIcon, WorkspaceIcon, XIcon } from '@teatype/icons';
+import { AddAboveIcon, AddBelowIcon, ContrastIcon, SaveIcon, TextAlignIcon, XIcon } from '@teatype/icons';
 import { DEFAULT_BORDER_GAP } from '@/types';
 import type {
     iChecklistData,
@@ -34,11 +34,11 @@ import type {
 } from '@/types';
 import { enabledOf } from '@/tools/palette';
 import { ChecklistBlock, TableBlock } from './BlockComponents';
-import { BULLETS, DEFAULT_LIST_OPTIONS, NUMBERINGS, convertListMarkers, currentListStyle, numberingLabel } from '@/tools/lists';
+import { BULLETS, DEFAULT_LIST_OPTIONS, NUMBERINGS, bulletLabel, convertListMarkers, currentListStyle, numberingLabel } from '@/tools/lists';
 import useIsMobile from '@teatype/hooks/useIsMobile';
 import useLongPress from '@/hooks/useLongPress';
 import { RichTextEditor } from './RichTextEditor';
-import { TeaModal, TeaPopover } from '@teatype/components';
+import { TeaButton, TeaModal, TeaPopover } from '@teatype/components';
 
 interface iTextBlockComponentProps {
     block: iTextBlock;
@@ -70,7 +70,6 @@ interface iTextBlockComponentProps {
     onClearFormatMode?: () => void;
     onSaveAsPreset?: (style: iBlockStyle) => void;
     handle?: React.ReactNode; // The drag handle, kept under the buttons of the block
-    workspaceAction?: { label: string; run: () => void }; // Sets the block aside in the workspace
     inWorkspace?: boolean; // Only deleting and dragging: no style menu, no width, no buttons to add blocks
 }
 
@@ -96,7 +95,6 @@ export const TextBlockComponent = ({
     onClearFormatMode,
     onSaveAsPreset,
     handle,
-    workspaceAction,
     inWorkspace = false,
     confirmDeletions = true,
     showStyleButton = false,
@@ -359,12 +357,12 @@ export const TextBlockComponent = ({
     const bgColors = enabledOf('block', palette).map((entry) => entry.value);
     const gradients = enabledOf('gradient', palette).map((entry) => entry.value);
 
-    // A block that was never styled has no values at all, which is the "none" entry
+    // A block that was never styled has no values at all, which is the "none" entry ('transparent' is the same as unset)
     const colorActive = (color: string) =>
         !blockStyle.customColor &&
         !blockStyle.customGradient &&
         !blockStyle.backgroundGradient &&
-        (blockStyle.backgroundColor ?? '') === color;
+        (blockStyle.backgroundColor || 'transparent') === (color || 'transparent');
     const gradientActive = (grad: string) =>
         !blockStyle.customColor && !blockStyle.customGradient && !!grad && blockStyle.backgroundGradient === grad;
 
@@ -532,8 +530,9 @@ export const TextBlockComponent = ({
 
                 <div className='text-block__controls'>
                     {showStyleButton && !inWorkspace && (
-                        <button
-                            className='text-block__style-btn'
+                        <TeaButton
+                            size='small'
+                            disableRipple
                             onClick={() => {
                                 setMenuPoint(null);
                                 setShowStyleMenu(!showStyleMenu);
@@ -541,29 +540,31 @@ export const TextBlockComponent = ({
                             title='Block style'
                         >
                             <ContrastIcon />
-                        </button>
+                        </TeaButton>
                     )}
                     {!inWorkspace && (
                         <>
-                            <button
-                                className='text-block__add-above-btn'
+                            <TeaButton
+                                size='small'
+                                disableRipple
                                 onClick={() => onAddBlockBefore(block.id)}
                                 title='Add block above'
                             >
                                 <AddAboveIcon />
-                            </button>
-                            <button
-                                className='text-block__add-btn'
+                            </TeaButton>
+                            <TeaButton
+                                size='small'
+                                disableRipple
                                 onClick={() => onAddBlockAfter(block.id)}
                                 title='Add block below'
                             >
                                 <AddBelowIcon />
-                            </button>
+                            </TeaButton>
                         </>
                     )}
-                    <button className='text-block__delete-btn' onClick={handleDelete} title='Delete block'>
+                    <TeaButton theme='danger' size='small' disableRipple onClick={handleDelete} title='Delete block'>
                         <XIcon width='1em' height='1em' />
-                    </button>
+                    </TeaButton>
                     {(mobile || inWorkspace) && handle}
                 </div>
 
@@ -586,15 +587,15 @@ export const TextBlockComponent = ({
                             <span className='style-menu__label'>Border</span>
                             <div className='style-menu__options'>
                                 {borderStyles.map((style) => (
-                                    <button
+                                    <TeaButton
                                         key={style}
-                                        className={`style-menu__option ${
-                                            (blockStyle.borderStyle ?? 'none') === style ? 'style-menu__option--active' : ''
-                                        }`}
+                                        size='xs'
+                                        disableRipple
+                                        active={(blockStyle.borderStyle ?? 'none') === style}
                                         onClick={() => onStyleChange(block.id, { borderStyle: style })}
                                     >
                                         {style}
-                                    </button>
+                                    </TeaButton>
                                 ))}
                             </div>
                         </div>
@@ -636,10 +637,14 @@ export const TextBlockComponent = ({
                             <span className='style-menu__label'>Background</span>
                             <div className='style-menu__colors'>
                                 {bgColors.map((color, i) => (
-                                    <button
+                                    <TeaButton
                                         key={i}
-                                        className={`style-menu__color ${colorActive(color) ? 'style-menu__color--active' : ''}`}
-                                        style={{ backgroundColor: color || 'transparent' }}
+                                        size='xs'
+                                        iconOnly
+                                        disableRipple
+                                        active={colorActive(color)}
+                                        className='style-menu__color'
+                                        style={{ background: color || 'transparent' }}
                                         onClick={() =>
                                             onStyleChange(block.id, {
                                                 backgroundColor: color,
@@ -652,20 +657,27 @@ export const TextBlockComponent = ({
                                 ))}
                                 {/* Per-block custom color (last in row) */}
                                 {blockStyle.customColor ? (
-                                    <button
-                                        className='style-menu__color style-menu__color--custom style-menu__color--active'
+                                    <TeaButton
+                                        size='xs'
+                                        iconOnly
+                                        disableRipple
+                                        active
+                                        className='style-menu__color style-menu__color--custom'
                                         style={{ backgroundColor: blockStyle.customColor }}
                                         onClick={handleClearCustomColor}
                                         title='Click to remove custom color'
                                     />
                                 ) : (
-                                    <button
-                                        className='style-menu__color style-menu__color--add'
+                                    <TeaButton
+                                        size='xs'
+                                        iconOnly
+                                        disableRipple
+                                        className='style-menu__color'
                                         onClick={() => setShowCustomColorPicker(!showCustomColorPicker)}
                                         title='Add custom color for this block'
                                     >
                                         +
-                                    </button>
+                                    </TeaButton>
                                 )}
                             </div>
                             {showCustomColorPicker && (
@@ -684,7 +696,9 @@ export const TextBlockComponent = ({
                                         title='Opacity'
                                     />
                                     <span className='style-menu__alpha-label'>{customColorAlpha}%</span>
-                                    <button onClick={handleSetCustomColor}>Set</button>
+                                    <TeaButton theme='filled' size='xs' onClick={handleSetCustomColor}>
+                                        Set
+                                    </TeaButton>
                                 </div>
                             )}
                         </div>
@@ -692,9 +706,13 @@ export const TextBlockComponent = ({
                             <span className='style-menu__label'>Gradient</span>
                             <div className='style-menu__colors'>
                                 {gradients.map((grad, i) => (
-                                    <button
+                                    <TeaButton
                                         key={i}
-                                        className={`style-menu__color style-menu__color--gradient ${gradientActive(grad) ? 'style-menu__color--active' : ''}`}
+                                        size='xs'
+                                        iconOnly
+                                        disableRipple
+                                        active={gradientActive(grad)}
+                                        className='style-menu__color'
                                         style={{ background: grad || 'transparent' }}
                                         onClick={() =>
                                             onStyleChange(block.id, {
@@ -708,20 +726,27 @@ export const TextBlockComponent = ({
                                 ))}
                                 {/* Per-block custom gradient (last in row) */}
                                 {blockStyle.customGradient ? (
-                                    <button
-                                        className='style-menu__color style-menu__color--gradient style-menu__color--custom style-menu__color--active'
+                                    <TeaButton
+                                        size='xs'
+                                        iconOnly
+                                        disableRipple
+                                        active
+                                        className='style-menu__color style-menu__color--custom'
                                         style={{ background: blockStyle.customGradient }}
                                         onClick={handleClearCustomGradient}
                                         title='Click to remove custom gradient'
                                     />
                                 ) : (
-                                    <button
-                                        className='style-menu__color style-menu__color--add'
+                                    <TeaButton
+                                        size='xs'
+                                        iconOnly
+                                        disableRipple
+                                        className='style-menu__color'
                                         onClick={() => setShowCustomGradientPicker(!showCustomGradientPicker)}
                                         title='Add custom gradient for this block'
                                     >
                                         +
-                                    </button>
+                                    </TeaButton>
                                 )}
                             </div>
                             {showCustomGradientPicker && (
@@ -750,7 +775,9 @@ export const TextBlockComponent = ({
                                             background: `linear-gradient(135deg, ${customGradientFrom}, ${customGradientTo})`,
                                         }}
                                     />
-                                    <button onClick={handleSetCustomGradient}>Set</button>
+                                    <TeaButton theme='filled' size='xs' onClick={handleSetCustomGradient}>
+                                        Set
+                                    </TeaButton>
                                 </div>
                             )}
                         </div>
@@ -759,16 +786,16 @@ export const TextBlockComponent = ({
                                 <span className='style-menu__label'>Text Alignment</span>
                                 <div className='style-menu__options'>
                                     {(['left', 'center', 'right', 'justify'] as tTextAlign[]).map((align) => (
-                                        <button
+                                        <TeaButton
                                             key={align}
-                                            className={`style-menu__option style-menu__option--icon ${
-                                                (blockStyle.textAlign ?? 'left') === align ? 'style-menu__option--active' : ''
-                                            }`}
+                                            size='small'
+                                            disableRipple
+                                            active={(blockStyle.textAlign ?? 'left') === align}
                                             title={align}
                                             onClick={() => onStyleChange(block.id, { textAlign: align })}
                                         >
                                             <TextAlignIcon align={align} />
-                                        </button>
+                                        </TeaButton>
                                     ))}
                                 </div>
                             </div>
@@ -778,7 +805,7 @@ export const TextBlockComponent = ({
                                 <span className='style-menu__label'>Lists</span>
                                 {(
                                     [
-                                        ['bullet', 'Bullet', BULLETS.map((bullet) => [bullet, bullet])],
+                                        ['bullet', 'Bullet', BULLETS.map((bullet) => [bullet, bulletLabel(bullet)])],
                                         [
                                             'numbering',
                                             'Numbering',
@@ -805,24 +832,11 @@ export const TextBlockComponent = ({
                                     ))}
                             </div>
                         )}
-                        {workspaceAction && (
-                            <div className='style-menu__section'>
-                                <button
-                                    className='style-menu__save-preset'
-                                    onClick={() => {
-                                        setShowStyleMenu(false);
-                                        workspaceAction.run();
-                                    }}
-                                >
-                                    <WorkspaceIcon /> {workspaceAction.label}
-                                </button>
-                            </div>
-                        )}
                         {onSaveAsPreset && (
                             <div className='style-menu__section'>
-                                <button className='style-menu__save-preset' onClick={handleSaveAsPreset}>
-                                    <SaveIcon /> Save as Preset
-                                </button>
+                                <TeaButton fullWidth icon={<SaveIcon />} onClick={handleSaveAsPreset}>
+                                    Save as Preset
+                                </TeaButton>
                             </div>
                         )}
                     </div>
@@ -875,9 +889,12 @@ export const TextBlockComponent = ({
                             ['Create new block below', 'below'],
                         ] as [string, 'above' | 'below'][]
                     ).map(([label, position]) => (
-                        <button
+                        <TeaButton
                             key={label}
-                            className='tea-popover__button'
+                            variant='borderless'
+                            size='small'
+                            fullWidth
+                            align='start'
                             onClick={() => {
                                 const { selected, remaining } = selectionMenu.take();
                                 onMoveSelection?.(block.id, remaining, selected, position, false);
@@ -885,7 +902,7 @@ export const TextBlockComponent = ({
                             }}
                         >
                             {label}
-                        </button>
+                        </TeaButton>
                     ))}
                 </TeaPopover>
             )}
@@ -898,21 +915,20 @@ export const TextBlockComponent = ({
                 size='sm'
                 footer={
                     <>
-                        <button
-                            className='tea-modal-btn tea-modal-btn--secondary'
+                        <TeaButton
                             onClick={() => setShowDeleteModal(false)}
                         >
                             Cancel
-                        </button>
-                        <button
-                            className='tea-modal-btn tea-modal-btn--danger'
+                        </TeaButton>
+                        <TeaButton
+                            theme='danger'
                             onClick={() => {
                                 onDelete(block.id);
                                 setShowDeleteModal(false);
                             }}
                         >
                             Delete
-                        </button>
+                        </TeaButton>
                     </>
                 }
             >

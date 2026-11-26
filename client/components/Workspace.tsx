@@ -21,6 +21,7 @@ import { DragHandleIcon, PlusIcon, XIcon } from '@teatype/icons';
 
 // Types
 import type { iTextBlock } from '@/types';
+import { TeaButton } from '@teatype/components';
 
 const DOUBLE_TAP_MS = 350;
 const DRAG_DISTANCE = 6;
@@ -161,12 +162,12 @@ const Workspace: React.FC<iWorkspaceProps> = ({
         <aside ref={rootRef} className={`workspace ${dropIndex !== null ? 'workspace--receiving' : ''}`} aria-label='Workspace'>
             <div className='workspace__header'>
                 <h2 className='workspace__title'>Workspace</h2>
-                <button className='workspace__btn' onClick={onAdd} title='New block in the workspace'>
+                <TeaButton variant='borderless' size='small' onClick={onAdd} title='New block in the workspace'>
                     <PlusIcon />
-                </button>
-                <button className='workspace__btn' onClick={onClose} title='Close the workspace'>
+                </TeaButton>
+                <TeaButton variant='borderless' size='small' onClick={onClose} title='Close the workspace'>
                     <XIcon />
-                </button>
+                </TeaButton>
             </div>
             <div className='workspace__list'>
                 {blocks.length === 0 && (

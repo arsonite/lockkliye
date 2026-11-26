@@ -72,43 +72,21 @@ $block-edge: 15px;
         }
     }
 
-    &__remove {
-        display: flex;
-        padding: 2px;
-
-        background: transparent;
-        border: none;
-        color: var(--text-tertiary);
-        cursor: pointer;
+    // Shown while the mouse is over its item
+    &__remove.tea-button {
         opacity: 0;
-
-        &:hover {
-            color: var(--danger);
-        }
     }
 
     // On the bottom border of the block, like its title on the top one, so it takes no space of its own.
     // Only while the mouse is over the block or it has focus (always on touch screens)
-    &__add {
+    &__actions {
         @include block-action-chip;
 
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 2px 8px;
-
-        color: var(--text-secondary);
-        cursor: pointer;
-        font-size: 0.8125rem;
-
-        &:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-        }
+        padding: 2px;
     }
 
-    .text-block:hover &__add,
-    .text-block:focus-within &__add {
+    .text-block:hover &__actions,
+    .text-block:focus-within &__actions {
         opacity: 1;
         pointer-events: auto;
     }
@@ -160,27 +138,6 @@ $block-edge: 15px;
         display: flex;
         gap: 2px;
         padding: 2px;
-
-        button {
-            padding: 0 8px;
-
-            background: transparent;
-            border: none;
-            border-radius: var(--radius-sm);
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 0.8125rem;
-
-            &:hover:not(:disabled) {
-                background: var(--bg-hover);
-                color: var(--text-primary);
-            }
-
-            &:disabled {
-                opacity: 0.4;
-                cursor: default;
-            }
-        }
     }
 }
 

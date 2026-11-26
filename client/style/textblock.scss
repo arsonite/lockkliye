@@ -111,36 +111,6 @@
         z-index: 11;
     }
 
-    &__style-btn,
-    &__add-above-btn,
-    &__add-btn,
-    &__delete-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        background: var(--bg-tertiary);
-        border: none;
-        border-radius: var(--radius-sm);
-        color: var(--text-secondary);
-        cursor: pointer;
-        font-size: 17px;
-        transition: all var(--transition);
-
-        // opacity: 0.9;
-        // backdrop-filter: blur(0.25rem);
-
-        &:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-        }
-    }
-
-    &__delete-btn:hover {
-        color: #ff6b6b;
-    }
-
     // The dashed, dotted and double borders, drawn inside the border box with wider gaps than CSS has
     &__border {
         position: absolute;
@@ -448,33 +418,9 @@
         font-size: 12px;
     }
 
-    &__option {
-        padding: 6px 10px;
-        background: var(--bg-tertiary);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        color: var(--text-secondary);
-        cursor: pointer;
-        font-size: 11px;
+    // The border and alignment choices are TeaButtons
+    &__options .tea-button {
         text-transform: capitalize;
-        transition: all var(--transition);
-
-        &:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-        }
-
-        &--active {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: white;
-        }
-
-        &--icon {
-            display: flex;
-            padding: 6px 12px;
-            font-size: 16px;
-        }
     }
 
     &__colors {
@@ -483,54 +429,27 @@
         flex-wrap: wrap;
     }
 
-    &__color {
-        width: 28px;
-        height: 28px;
-        border: 2px solid var(--border);
+    // The swatches are TeaButtons of 28px, a star marks the own color of the block
+    &__color.tea-button.size-icon-only {
+        --tea-button-size: 28px;
+        border-width: 2px;
         border-radius: var(--radius-sm);
-        cursor: pointer;
-        transition: all var(--transition);
 
-        &:hover {
+        &:hover:not(:disabled) {
             transform: scale(1.1);
-            border-color: var(--text-secondary);
         }
 
-        &--active {
-            border-color: var(--accent);
+        &.active {
             box-shadow: 0 0 0 2px var(--bg-secondary);
         }
 
-        &--gradient {
-            background-size: 200% 200%;
-        }
-
-        &--custom {
-            position: relative;
-
-            &::after {
-                content: '★';
-                position: absolute;
-                top: -4px;
-                right: -4px;
-                font-size: 8px;
-                color: var(--accent);
-            }
-        }
-
-        &--add {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: var(--bg-tertiary);
-            color: var(--text-secondary);
-            font-size: 16px;
-            font-weight: bold;
-
-            &:hover {
-                background: var(--bg-hover);
-                color: var(--accent);
-            }
+        &.style-menu__color--custom::after {
+            content: '★';
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            font-size: 8px;
+            color: var(--accent);
         }
     }
 
@@ -585,21 +504,6 @@
         input[type='range'] {
             flex: 1;
             min-width: 60px;
-        }
-
-        button {
-            padding: 6px 12px;
-            background: var(--accent);
-            border: none;
-            border-radius: var(--radius-sm);
-            color: white;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all var(--transition);
-
-            &:hover {
-                filter: brightness(1.1);
-            }
         }
 
         &--gradient {
@@ -698,28 +602,6 @@
         }
     }
 
-    &__save-preset {
-        margin-top: 12px;
-        padding: 10px 16px;
-        width: 100%;
-        background: var(--bg-tertiary);
-        border: 1px dashed var(--accent);
-        border-radius: var(--radius-sm);
-        color: var(--accent);
-        cursor: pointer;
-        font-size: 13px;
-        font-weight: 500;
-        transition: all var(--transition);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-
-        &:hover {
-            background: color-mix(in srgb, var(--accent) 10%, transparent);
-            border-style: solid;
-        }
-    }
 }
 
 // Word Component

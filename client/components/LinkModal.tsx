@@ -18,6 +18,7 @@ import { useState, useEffect, useRef } from 'react';
 
 // TeaType icons
 import { TrashIcon } from '@teatype/icons';
+import { TeaButton } from '@teatype/components';
 
 interface iLinkModalProps {
     isOpen: boolean;
@@ -119,8 +120,10 @@ export const LinkModal: React.FC<iLinkModalProps> = ({
             <div className='link-modal__header'>
                 <span className='link-modal__word'>"{wordText}"</span>
                 {currentLink && (
-                    <button
-                        className='link-modal__delete'
+                    <TeaButton
+                        variant='borderless'
+                        theme='danger'
+                        size='xs'
                         onClick={() => {
                             onDelete();
                             onClose();
@@ -128,7 +131,7 @@ export const LinkModal: React.FC<iLinkModalProps> = ({
                         title='Remove link'
                     >
                         <TrashIcon />
-                    </button>
+                    </TeaButton>
                 )}
             </div>
             <div className='link-modal__body'>
@@ -142,16 +145,17 @@ export const LinkModal: React.FC<iLinkModalProps> = ({
                 />
             </div>
             <div className='link-modal__footer'>
-                <button className='link-modal__btn link-modal__btn--secondary' onClick={onClose}>
+                <TeaButton size='xs' onClick={onClose}>
                     Cancel
-                </button>
-                <button
-                    className='link-modal__btn link-modal__btn--primary'
+                </TeaButton>
+                <TeaButton
+                    theme='filled'
+                    size='xs'
                     onClick={handleSave}
                     disabled={!url.trim()}
                 >
                     {currentLink ? 'Update' : 'Add Link'}
-                </button>
+                </TeaButton>
             </div>
         </div>
     );

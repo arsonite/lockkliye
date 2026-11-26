@@ -14,6 +14,7 @@
  */
 
 // TeaType
+import { TeaButton } from '@teatype/components';
 import { BookmarkIcon, ColorIcon, HighlightIcon, LinkIcon } from '@teatype/icons';
 
 // React imports
@@ -125,11 +126,14 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                             // Holding Ctrl shows the shortcuts that are Ctrl plus a letter, adding Shift shows the next ones
                             const hinted = !!heldModifiers && shortcutBase(tool.mode).toLowerCase() === heldModifiers;
                             return (
-                                <button
+                                <TeaButton
                                     key={tool.mode}
-                                    className={`floating-toolbar__btn ${
-                                        formatMode === tool.mode ? 'floating-toolbar__btn--active' : ''
-                                    } ${hinted ? 'floating-toolbar__btn--hint' : ''}`}
+                                    variant='borderless'
+                                    size='xs'
+                                    iconOnly
+                                    disableRipple
+                                    active={formatMode === tool.mode}
+                                    className={hinted ? 'floating-toolbar__btn--hint' : undefined}
                                     onClick={() => onFormatModeChange(formatMode === tool.mode ? null : tool.mode)}
                                     onMouseDown={(e) => e.preventDefault()}
                                     title={`${tool.label} (${shortcutText(tool.mode)})`}
@@ -149,16 +153,19 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                                         {tool.icon}
                                     </span>
                                     {hinted && <span className='floating-toolbar__key'>{shortcutKey(tool.mode)}</span>}
-                                </button>
+                                </TeaButton>
                             );
                         })}
 
                     {/* Anchor button with the list of anchor notes */}
                     <div className='floating-toolbar__size-wrapper'>
-                        <button
-                            className={`floating-toolbar__btn ${
-                                formatMode === 'anchor' ? 'floating-toolbar__btn--active' : ''
-                            } ${anchorHinted ? 'floating-toolbar__btn--hint' : ''}`}
+                        <TeaButton
+                            variant='borderless'
+                            size='xs'
+                            iconOnly
+                            disableRipple
+                            active={formatMode === 'anchor'}
+                            className={anchorHinted ? 'floating-toolbar__btn--hint' : undefined}
                             onClick={toggleAnchorMode}
                             onMouseDown={(e) => e.preventDefault()}
                             title={`Anchor (${shortcutText('anchor')}): click words to link them to an anchor note, Ctrl+click opens it`}
@@ -167,7 +174,7 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                                 <BookmarkIcon />
                             </span>
                             {anchorHinted && <span className='floating-toolbar__key'>{shortcutKey('anchor')}</span>}
-                        </button>
+                        </TeaButton>
 
                         {formatMode === 'anchor' && (
                             <div className='floating-toolbar__size-menu floating-toolbar__anchor-menu'>
@@ -194,18 +201,18 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                                                 <div className='floating-toolbar__anchor-empty'>No match</div>
                                             ) : (
                                                 matchingAnchors.map((note) => (
-                                                    <button
+                                                    <TeaButton
                                                         key={note.id}
-                                                        className={`floating-toolbar__size-option ${
-                                                            note.id === selectedAnchorId
-                                                                ? 'floating-toolbar__size-option--active'
-                                                                : ''
-                                                        }`}
+                                                        variant='borderless'
+                                                        size='small'
+                                                        fullWidth
+                                                        align='start'
+                                                        active={note.id === selectedAnchorId}
                                                         onClick={() => onAnchorChange(note.id)}
                                                         onMouseDown={(e) => e.preventDefault()}
                                                     >
                                                         {note.title}
-                                                    </button>
+                                                    </TeaButton>
                                                 ))
                                             )}
                                         </div>
@@ -217,28 +224,31 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
 
                     {/* Size button with dropdown */}
                     <div className='floating-toolbar__size-wrapper'>
-                        <button
-                            className={`floating-toolbar__btn floating-toolbar__btn--size ${
-                                showSizeMenu || isSizeMode ? 'floating-toolbar__btn--active' : ''
-                            } ${sizeHinted ? 'floating-toolbar__btn--hint' : ''}`}
+                        <TeaButton
+                            variant='borderless'
+                            size='xs'
+                            iconOnly
+                            disableRipple
+                            active={showSizeMenu || isSizeMode}
+                            className={sizeHinted ? 'floating-toolbar__btn--hint' : undefined}
                             onClick={() => setShowSizeMenu(!showSizeMenu)}
                             onMouseDown={(e) => e.preventDefault()}
                             title={`Text Size (${shortcutText('sizes')})`}
                         >
                             <span className='floating-toolbar__icon'>Aa</span>
-                        </button>
+                        </TeaButton>
 
                         {/* Holding Ctrl+Alt lists the sizes with their numbers, the key badge under the Aa button is not shown for it */}
                         {(showSizeMenu || sizeHinted) && (
                             <div className='floating-toolbar__size-menu'>
                                 {SIZE_PRESETS.map((preset) => (
-                                    <button
+                                    <TeaButton
                                         key={preset.id}
-                                        className={`floating-toolbar__size-option ${
-                                            formatMode === preset.fontSize
-                                                ? 'floating-toolbar__size-option--active'
-                                                : ''
-                                        }`}
+                                        variant='borderless'
+                                        size='small'
+                                        fullWidth
+                                        active={formatMode === preset.fontSize}
+                                        className='floating-toolbar__size-option'
                                         onClick={() => {
                                             // Set format mode to the size so clicking words applies this size
                                             onFormatModeChange(preset.fontSize as tFormatMode);
@@ -253,7 +263,7 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                                             {preset.label}
                                         </span>
                                         <span className='floating-toolbar__size-shortcut'>{shortcutKey(preset.shortcut)}</span>
-                                    </button>
+                                    </TeaButton>
                                 ))}
                             </div>
                         )}
@@ -271,18 +281,21 @@ const FloatingToolbar: React.FC<iFloatingToolbarProps> = ({
                             </span>
                         )}
                         {colors.map(({ value, label }, index) => (
-                            <button
+                            <TeaButton
                                 key={value}
-                                className={`floating-toolbar__color ${
-                                    selectedColor === value ? 'floating-toolbar__color--active' : ''
-                                } ${value === 'inherit' ? 'floating-toolbar__color--inherit' : ''}`}
-                                style={value !== 'inherit' ? { backgroundColor: value } : undefined}
+                                round
+                                iconOnly
+                                size='xs'
+                                disableRipple
+                                active={selectedColor === value}
+                                className='floating-toolbar__color'
+                                style={{ background: value === 'inherit' ? 'var(--text-primary)' : value }}
                                 onClick={() => onColorChange(value)}
                                 onMouseDown={(e) => e.preventDefault()}
                                 title={`${label} (${shortcutBase('colorPick')}+${index + 1})`}
                             >
                                 {colorsHinted && <span className='floating-toolbar__key'>{index + 1}</span>}
-                            </button>
+                            </TeaButton>
                         ))}
                     </div>
                 </div>

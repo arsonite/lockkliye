@@ -216,36 +216,12 @@
         }
     }
 
+    // The bookmark is filled while the note is an anchor
     &__anchor-btn {
-        display: flex;
         flex-shrink: 0;
-        align-items: center;
-        justify-content: center;
-        width: 28px;
-        height: 28px;
-        padding: 0;
-        background: transparent;
-        border: 1px solid transparent;
-        border-radius: 6px;
-        color: var(--text-tertiary);
-        cursor: pointer;
-        font-size: 16px;
-        opacity: 0.5;
-        transition: all var(--transition);
 
-        &:hover {
-            background: var(--bg-hover);
-            opacity: 1;
-        }
-
-        &--active {
-            border-color: var(--accent);
-            color: var(--accent);
-            opacity: 1;
-
-            .bookmark-icon {
-                fill: currentColor;
-            }
+        &.active .bookmark-icon {
+            fill: currentColor;
         }
     }
 
@@ -296,25 +272,7 @@
     }
 
     &__template-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
         margin-top: 12px;
-        padding: 8px 14px;
-        font-family: inherit;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--accent);
-        background: var(--accent-glow);
-        border: 1px solid var(--accent);
-        border-radius: var(--radius-md);
-        cursor: pointer;
-        transition: all var(--transition);
-
-        &:hover {
-            color: var(--bg-primary);
-            background: var(--accent);
-        }
     }
 
     &__content {
@@ -477,34 +435,24 @@
         margin-top: 16px;
     }
 
-    &__add-block,
-    &__add-component,
-    &__add-preset {
+    // The three dashed buttons below the blocks
+    &__add.tea-button {
         flex: 1;
         padding: 16px;
-        background: transparent;
         border: 2px dashed var(--border);
         border-radius: var(--radius-md);
-        color: var(--text-tertiary);
-        cursor: pointer;
-        font-size: 14px;
-        transition: all var(--transition);
+        color: var(--text-muted);
 
-        &:hover {
+        &:hover:not(:disabled) {
             border-color: var(--accent);
             color: var(--accent);
-            background: rgba(10, 132, 255, 0.05);
+            background: var(--accent-glow);
         }
     }
 
     &__preset-container {
         position: relative;
         flex: 1;
-    }
-
-    &__add-component,
-    &__add-preset {
-        width: 100%;
     }
 
     &__preset-menu {
@@ -532,26 +480,18 @@
         right: auto;
         min-width: 190px;
         gap: 2px;
+
+        .tea-button .icon {
+            color: var(--accent);
+        }
     }
 
-    &__preset-item {
-        padding: 12px 16px;
-        background: var(--bg-tertiary);
-        border: 2px solid var(--border);
-        border-radius: var(--radius-sm);
-        color: var(--text-primary);
-        cursor: pointer;
-        font-size: 13px;
-        font-weight: 500;
-        text-align: left;
-        transition: all var(--transition);
+    // A row of the list takes the look of the preset it adds
+    &__preset-item.tea-button {
         flex: 1;
-
-        &:hover {
-            background: var(--bg-hover);
-            border-color: var(--accent);
-            transform: scale(1.02);
-        }
+        padding: 12px 16px;
+        border-width: 2px;
+        color: var(--text-primary);
     }
 
     &__preset-row {
@@ -563,33 +503,6 @@
     &__preset-actions {
         display: flex;
         gap: 4px;
-    }
-
-    &__preset-edit,
-    &__preset-delete {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 28px;
-        height: 28px;
-        background: var(--bg-tertiary);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-sm);
-        color: var(--text-secondary);
-        cursor: pointer;
-        font-size: 12px;
-        transition: all var(--transition);
-
-        &:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-        }
-    }
-
-    &__preset-delete:hover {
-        background: rgba(255, 69, 58, 0.15);
-        border-color: var(--danger);
-        color: var(--danger);
     }
 
     &__preset-edit-input {
@@ -673,19 +586,12 @@
             opacity var(--transition);
     }
 
-    &__history-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    // The number of changes, a TeaButton that fills the box of the history
+    &__history-btn.tea-button {
         gap: 6px;
-        height: 32px;
-        padding: 0 12px;
-        background: transparent;
         border: none;
-        color: var(--text-secondary);
-        cursor: pointer;
+        border-radius: 0;
         font-size: 12px;
-        white-space: nowrap;
     }
 
     &__history-count {
@@ -726,37 +632,21 @@
         transform: translateX(-50%);
     }
 
-    &__undo-btn,
-    &__redo-btn {
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 32px;
-        width: 32px;
-        backdrop-filter: blur(10px);
-        background: var(--bg-glass);
-        border: 1px solid var(--glass-border);
-        border-radius: var(--radius-sm);
-        color: var(--text-secondary);
-        font-size: 14px;
+    // Undo and redo: faint until the mouse is over them, gone while there is nothing to undo
+    &__step.tea-button {
         opacity: 0.45;
-        transition: all var(--transition);
 
-        &:hover:not(&--disabled) {
-            background: var(--bg-hover);
-            color: var(--text-primary);
+        &:hover:not(:disabled) {
             opacity: 1;
         }
 
-        &--disabled {
+        &:disabled {
             opacity: 0;
             pointer-events: none;
         }
 
         // Like the buttons of the toolbar: lit while its shortcut is being held, there even if it has nothing to do now
         &--hint {
-            position: relative;
             opacity: 1;
             background: color-mix(in srgb, var(--accent) 18%, transparent);
             box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
@@ -771,25 +661,6 @@
         border-bottom: 1px solid var(--border);
         font-size: 13px;
         font-weight: 600;
-
-        button {
-            background: none;
-            border: none;
-            color: var(--text-tertiary);
-            cursor: pointer;
-            font-size: 18px;
-            padding: 0;
-            line-height: 1;
-
-            &:hover {
-                color: var(--text-primary);
-            }
-        }
-    }
-
-    &__history-header &__history-clear {
-        font-size: 12px;
-        font-weight: 500;
     }
 
     &__history-list {
